@@ -44,6 +44,17 @@ by 255). The open-loop video summaries in `Agent.report`
 image has no pixel range to draw. No configuration is needed; the dtype of
 the observation space selects the behavior.
 
+## Quiet initialization (`jax.verbose`)
+
+`embodied.jax.Agent` prints the ninjax module tree, parameter summaries,
+partition groupings, and compilation chatter while creating parameters and
+compiling `train` / `report`. Setting `jax.verbose: False`
+(`dreamerv3/configs.yaml`, default `True`) redirects that output away while
+those two phases run; the `elements.print` status lines and the cost /
+memory analysis stay visible. `jax.profiler` is also declared in
+`configs.yaml` (it was only an `Options` default before), so both knobs can
+be overridden from a config block or the command line.
+
 ## Running the fork's tests
 
 The tests added by this fork live next to the upstream ones under
@@ -53,5 +64,6 @@ and are not collected by this command):
 
 ```sh
 python -m pytest embodied/tests/test_from_gym.py \
-    embodied/tests/test_float_images.py
+    embodied/tests/test_float_images.py \
+    embodied/tests/test_jax_agent_options.py
 ```

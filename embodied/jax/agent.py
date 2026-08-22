@@ -1,5 +1,6 @@
 import contextlib
 import dataclasses
+import io
 import re
 import threading
 import time
@@ -31,6 +32,7 @@ class Options:
   enable_policy: bool = True
   ckpt_chunksize: int = -1
   precompile: bool = True
+  verbose: bool = True
 
 
 class Agent(embodied.Agent):
@@ -109,7 +111,7 @@ class Agent(embodied.Agent):
     self.partition_rules = getattr(
         self.model, 'partition_rules', ([('.*', P())], []))
     elements.print('Initializing parameters...', color='yellow')
-    with self.train_mesh:
+    with self.train_mesh, self._stdout_unless_verbose():
       self.params, self.train_params_sharding = self._init_params()
     elements.print('Done initializing!', color='yellow')
     pattern = re.compile(self.model.policy_keys)
@@ -185,10 +187,12 @@ class Agent(embodied.Agent):
     if self.jaxcfg.precompile:
       elements.print('Compiling train and report...', color='yellow')
       with self.train_mesh:
-        self._compile_train()
+        with self._stdout_unless_verbose():
+          self._compile_train()
         print('Train cost analysis:')
         print(self._format_jit_stats(self._train))
-        self._compile_report()
+        with self._stdout_unless_verbose():
+          self._compile_report()
         print('Report cost analysis:')
         print(self._format_jit_stats(self._report))
       elements.print('Done compiling!', color='yellow')
@@ -395,6 +399,14 @@ class Agent(embodied.Agent):
             k: self.params[k].copy() for k in self.policy_keys}
         self.policy_params = internal.move(
             policy_params, self.policy_params_sharding)
+
+  def _stdout_unless_verbose(self):
+    # Parameter creation and compilation print module trees, parameter
+    # summaries, and partition groupings. Those are useful when developing a
+    # model but drown the console of a harness that embeds the agent.
+    if self.jaxcfg.verbose:
+      return contextlib.nullcontext()
+    return contextlib.redirect_stdout(io.StringIO())
 
   def _take_outs(self, outs):
     outs = jax.tree.map(lambda x: x.__array__(), outs)
