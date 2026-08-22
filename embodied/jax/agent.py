@@ -33,6 +33,12 @@ class Options:
   ckpt_chunksize: int = -1
   precompile: bool = True
   verbose: bool = True
+  # When the actor installs parameters staged by the learner: 'immediate'
+  # (after every policy call, upstream behavior), 'episode' (after a policy
+  # call in which any environment of the batch ended its episode), or
+  # 'steps' (after every policy_sync_steps-th policy call).
+  policy_sync_mode: str = 'immediate'
+  policy_sync_steps: int = 1
 
 
 class Agent(embodied.Agent):
@@ -59,6 +65,9 @@ class Agent(embodied.Agent):
     self.config = config
     self.jaxcfg = jaxcfg
     self.logdir = elements.Path(config.logdir)
+    assert self.jaxcfg.policy_sync_mode in ('immediate', 'episode', 'steps'), (
+        self.jaxcfg.policy_sync_mode)
+    assert self.jaxcfg.policy_sync_steps >= 1, self.jaxcfg.policy_sync_steps
 
     ext_space = self.model.ext_space  # Extra inputs to train and report.
     elements.print('Observations', color='cyan')
@@ -257,10 +266,11 @@ class Agent(embodied.Agent):
       assert np.isfinite(obs[key]).all(), (obs[key], key, space)
 
     with self.policy_lock:
-      obs = internal.device_put(obs, self.policy_sharded)
       with self.n_actions.lock:
         counter = self.n_actions.value
         self.n_actions.value += 1
+      sync_due = self._policy_sync_due(obs, counter)
+      obs = internal.device_put(obs, self.policy_sharded)
       seed = self._seeds(counter, self.policy_mirrored)
       carry = internal.to_global(self._stack(carry), self.policy_sharded)
 
@@ -269,8 +279,10 @@ class Agent(embodied.Agent):
           self.policy_params, seed, carry, obs, mode)
 
     if self.jaxcfg.enable_policy:
+      # The parameters staged by the learner take effect from the next policy
+      # call on; this call already dispatched with the current ones.
       with self.policy_lock:
-        if self.pending_sync:
+        if self.pending_sync and sync_due:
           old = self.policy_params
           self.policy_params = self.pending_sync
           jax.tree.map(lambda x: x.delete(), old)
@@ -306,12 +318,7 @@ class Agent(embodied.Agent):
     self.n_updates.increment()
 
     if self.jaxcfg.enable_policy:
-      if not self.pending_sync:
-        self.pending_sync = internal.move(
-            {k: allo[k] for k in self.policy_keys},
-            self.policy_params_sharding)
-      else:
-        jax.tree.map(lambda x: x.delete(), allo)
+      self._stage_policy_sync({k: allo[k] for k in self.policy_keys})
 
     return_outs = {}
     if self.pending_outs:
@@ -433,6 +440,45 @@ class Agent(embodied.Agent):
     if self.jaxcfg.verbose:
       return contextlib.nullcontext()
     return contextlib.redirect_stdout(io.StringIO())
+
+  def _policy_sync_due(self, obs, counter):
+    """Whether staged parameters may be installed after this policy call.
+
+    Args:
+      obs: The (host) observation batch of the call.
+      counter: The action counter value assigned to the call.
+    """
+    mode = self.jaxcfg.policy_sync_mode
+    if mode == 'immediate':
+      return True
+    if mode == 'episode':
+      return bool(np.any(obs['is_last']))
+    if mode == 'steps':
+      return (counter + 1) % self.jaxcfg.policy_sync_steps == 0
+    raise NotImplementedError(mode)
+
+  def _stage_policy_sync(self, params):
+    """Stage the policy parameters a train step started from for the actor.
+
+    Args:
+      params: The policy-key parameters on the train devices.
+    """
+    if self.jaxcfg.policy_sync_mode == 'immediate':
+      # Upstream behavior: staged parameters stay until the actor installs
+      # them; newer ones are dropped meanwhile.
+      if not self.pending_sync:
+        self.pending_sync = internal.move(
+            params, self.policy_params_sharding)
+      else:
+        jax.tree.map(lambda x: x.delete(), params)
+      return
+    # The scheduled modes install at a later point, so the newest parameters
+    # replace whatever was staged before.
+    staged = internal.move(params, self.policy_params_sharding)
+    with self.policy_lock:
+      stale, self.pending_sync = self.pending_sync, staged
+    if stale:
+      jax.tree.map(lambda x: x.delete(), stale)
 
   def _take_outs(self, outs):
     outs = jax.tree.map(lambda x: x.__array__(), outs)

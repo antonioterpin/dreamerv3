@@ -122,6 +122,27 @@ The learner neither trains nor stages a policy sync until the second
 rendezvous, and a failing warmup aborts the barrier so the learner cannot
 deadlock. Agents without `precompile_policy` skip the step.
 
+## Policy sync schedule (`jax.policy_sync_mode`, `jax.policy_sync_steps`)
+
+In parallel training the learner stages fresh policy parameters after every
+train step and upstream's actor installs them after its next `policy()`
+call, so a policy may change on any environment step. `jax.policy_sync_mode`
+(`dreamerv3/configs.yaml`, `embodied/jax/agent.py`) chooses when the actor
+installs staged parameters:
+
+| mode | installs after |
+| --- | --- |
+| `immediate` (default) | every policy call; upstream behavior |
+| `episode` | a policy call in which any environment of the actor batch reports `is_last`; with one environment per actor batch (`run.envs: 1`, `run.actor_batch: 1`) each episode runs exactly one policy |
+| `steps` | every `jax.policy_sync_steps`-th policy call (each call serves one actor batch) |
+
+The installing call already dispatched with the previous parameters; the
+new ones take effect from the following call. In the scheduled modes the
+learner keeps the newest parameters staged (and releases the ones they
+replace), whereas `immediate` keeps upstream's rule of holding the first
+staged set until the actor takes it. The schedule counts actor policy calls,
+so with `run.actor_batch: 1` a step is one environment step.
+
 ## Running the fork's tests
 
 The tests added by this fork live next to the upstream ones under
@@ -130,9 +151,10 @@ The tests added by this fork live next to the upstream ones under
 and are not collected by this command):
 
 ```sh
-python -m pytest embodied/tests/test_from_gym.py \
+python -m pytest embodied/tests/test_configs.py embodied/tests/test_from_gym.py \
     embodied/tests/test_float_images.py \
     embodied/tests/test_jax_agent_options.py \
     embodied/tests/test_parallel_lifecycle.py \
-    embodied/tests/test_policy_precompile.py
+    embodied/tests/test_policy_precompile.py \
+    embodied/tests/test_policy_sync.py
 ```
