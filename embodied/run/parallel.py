@@ -143,7 +143,8 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
 
   Args:
     agent: The agent instance to use for acting.
-    barrier: Barrier that delays acting until learner checkpoint restoration.
+    barrier: Two-party barrier shared with the learner; crossed twice, after
+      checkpoint restoration and after policy warmup.
     args: Actor and parallel-run configuration.
     lifecycle: Optional process-safe events for finite-run shutdown.
     save_events: Optional thread events ('latest', 'best') the actor sets at
@@ -157,7 +158,20 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
   initial = agent.init_policy(args.actor_batch)
   initial = elements.tree.map(lambda x: x[0], initial, isleaf=islist)
   carries = collections.defaultdict(lambda: initial)
-  barrier.wait()  # Do not collect data before learner restored checkpoint.
+  # First rendezvous: the learner restored the checkpoint, so warmup sees the
+  # restored parameters and action counter.
+  barrier.wait()
+  try:
+    precompile = getattr(agent, 'precompile_policy', None)
+    if precompile is not None:
+      precompile(args.actor_batch)
+  except Exception:
+    barrier.abort()
+    raise
+  # Second rendezvous: the learner neither trains nor stages a policy sync
+  # until warmup completed, and the actor server starts only after it, so an
+  # environment's actor.connect() means the policy is immediately executable.
+  barrier.wait()
   fps = elements.FPS()
 
   should_log = embodied.LocalClock(args.log_every)
@@ -249,7 +263,8 @@ def parallel_learner(
 
   Args:
     agent: Dreamer agent shared with the actor thread.
-    barrier: Barrier coordinating initial checkpoint restoration with acting.
+    barrier: Two-party barrier shared with the actor; crossed twice, after
+      checkpoint restoration and after the actor's policy warmup.
     args: Learner and parallel-run configuration.
     lifecycle: Optional process-safe events for finite-run shutdown.
     save_events: Optional thread events set by the actor at episode
@@ -277,6 +292,10 @@ def parallel_learner(
   logger = portal.Client(args.logger_addr, 'LearnerLogger', maxinflight=1)
   updater = portal.Client(
       args.replay_addr, 'LearnerReplayUpdater', maxinflight=8)
+  # Release the actor once checkpoint restoration installed the parameters
+  # and counters its policy warmup exercises, then hold training until the
+  # warmup is complete (see parallel_actor).
+  barrier.wait()
   barrier.wait()
 
   replays = {}

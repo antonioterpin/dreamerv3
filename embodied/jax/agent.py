@@ -206,6 +206,32 @@ class Agent(embodied.Agent):
     return self._split(internal.to_local(self._init_policy(
         self.policy_params, self._seeds(0, self.policy_mirrored), batch_size)))
 
+  def precompile_policy(self, batch_size):
+    """Compile the train-mode policy for an actor batch before serving.
+
+    Runs one dummy batch through the public policy path and blocks until it
+    executed, so the first real request does not pay the compilation. The
+    dummy carry and actions are discarded, the action counter is restored,
+    and no pending learner sync may exist yet (call this before training).
+    """
+    obs = self._zeros(self.obs_space, (batch_size,))
+    obs['is_first'].fill(True)
+    carry = self.init_policy(batch_size)
+    with self.policy_lock:
+      assert self.pending_sync is None, (
+          'Policy warmup must run before learner policy synchronization.')
+    with self.n_actions.lock:
+      action_index = self.n_actions.value
+    try:
+      warmed = self.policy(carry, obs, mode='train')
+      jax.block_until_ready(warmed)
+    finally:
+      with self.n_actions.lock:
+        self.n_actions.value = action_index
+    with self.policy_lock:
+      assert self.pending_sync is None, (
+          'Policy warmup must not consume or change pending policy state.')
+
   def init_train(self, batch_size):
     batch_size = batch_size * jax.process_count()
     if self.jaxcfg.use_shardmap:

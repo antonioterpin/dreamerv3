@@ -100,6 +100,28 @@ services these requests between train steps, so a save lands after the
 train step in flight. The wall-clock timer keeps working independently; set
 `run.save_every: 0` to rely on episode boundaries only.
 
+## Policy precompiled before the actor serves
+
+`embodied.jax.Agent` compiles the policy lazily, so upstream's first real
+`policy()` call pays the JAX compilation while an environment is already
+waiting for an action. `Agent.precompile_policy(batch_size)`
+(`embodied/jax/agent.py`) runs one dummy train-mode batch through the public
+policy path and blocks until it executed; the dummy carry and actions are
+discarded and the action counter is restored, so nothing observable
+changes. `parallel_actor` (`embodied/run/parallel.py`) calls it between two
+actor/learner rendezvous:
+
+    restore checkpoint -> barrier -> precompile policy -> barrier
+    -> start actor server -> environments connect
+
+The warmup always runs for `embodied.jax.Agent`; there is no knob, since it
+only moves the compilation ahead of the first request and changes nothing
+observable.
+
+The learner neither trains nor stages a policy sync until the second
+rendezvous, and a failing warmup aborts the barrier so the learner cannot
+deadlock. Agents without `precompile_policy` skip the step.
+
 ## Running the fork's tests
 
 The tests added by this fork live next to the upstream ones under
@@ -111,5 +133,6 @@ and are not collected by this command):
 python -m pytest embodied/tests/test_from_gym.py \
     embodied/tests/test_float_images.py \
     embodied/tests/test_jax_agent_options.py \
-    embodied/tests/test_parallel_lifecycle.py
+    embodied/tests/test_parallel_lifecycle.py \
+    embodied/tests/test_policy_precompile.py
 ```
