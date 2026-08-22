@@ -153,7 +153,7 @@ def make_stream(replay, source):
 
 
 def make_args(tmp_path, **overrides):
-  return elements.Config(
+  args = dict(
       actor_batch=1,
       envs=1,
       eval_envs=0,
@@ -167,6 +167,7 @@ def make_args(tmp_path, **overrides):
       log_every=0,
       report_every=0,
       save_every=0,
+      save_on_episode=False,
       usage={
           'psutil': False, 'nvsmi': False, 'gputil': False,
           'malloc': False, 'gc': False},
@@ -179,8 +180,9 @@ def make_args(tmp_path, **overrides):
       consec_report=1,
       report_batches=1,
       episode_timeout=10,
-      **overrides,
   )
+  args.update(overrides)
+  return elements.Config(**args)
 
 
 def run_combined(tmp_path, events, failure=None, prefetch=False, **overrides):
@@ -290,3 +292,81 @@ def test_prefetch_treats_source_exhaustion_as_normal_completion():
   stream.worker.join()
   assert stream.worker.exitcode == 0, (
       'Source exhaustion must let the prefetch worker exit successfully')
+
+
+def test_episode_checkpoints_are_opt_in(tmp_path):
+  with multiprocessing.Manager() as manager:
+    events = manager.list()
+    run_combined(tmp_path / 'off', events)
+    assert not (tmp_path / 'off' / 'ckpt' / 'agent_best').exists(), (
+        'No best checkpoint is written unless save_on_episode is set')
+    run_combined(tmp_path / 'on', events, save_on_episode=True)
+  assert (tmp_path / 'on' / 'ckpt' / 'agent').exists()
+  assert (tmp_path / 'on' / 'ckpt' / 'agent_best').exists(), (
+      'The first completed episode is the best one so far')
+
+
+def test_actor_requests_latest_every_episode_and_best_on_improvement(
+    monkeypatch):
+  import threading
+  import types
+
+  save_events = {'latest': threading.Event(), 'best': threading.Event()}
+  requests = []
+
+  class Agent:
+
+    def init_policy(self, batch_size):
+      return {'state': np.zeros((batch_size, 1), np.float32)}
+
+    def policy(self, carry, obs, mode='train'):
+      return carry, {'action': np.zeros((len(obs['reward']), 1))}, {}
+
+  def batch(reward, first=False, last=False):
+    return {
+        'envid': np.array([0]), 'is_eval': np.array([False]),
+        'reward': np.array([reward], np.float32),
+        'is_first': np.array([first]), 'is_last': np.array([last]),
+        'is_terminal': np.array([last]),
+    }
+
+  # Three one-step episodes with mean rewards 1.0, 0.5, and 2.0.
+  script = [
+      batch(0.0, first=True), batch(1.0, last=True),
+      batch(0.0, first=True), batch(0.5, last=True),
+      batch(0.0, first=True), batch(2.0, last=True),
+  ]
+
+  def make_server(*args, **kwargs):
+    bound = {}
+
+    def bind(name, workfn, postfn, *args):
+      bound['workfn'] = workfn
+
+    def start(**kwargs):
+      for obs in script:
+        last = bool(obs['is_last'][0])
+        bound['workfn'](dict(obs))
+        if last:
+          requests.append(
+              (save_events['latest'].is_set(), save_events['best'].is_set()))
+          save_events['latest'].clear()
+          save_events['best'].clear()
+
+    return types.SimpleNamespace(
+        bind=bind, start=start, close=lambda: None, stats=lambda: {})
+
+  monkeypatch.setattr(embodied.run.parallel.portal, 'BatchServer', make_server)
+  monkeypatch.setattr(
+      embodied.run.parallel.portal, 'Client',
+      lambda *a, **k: types.SimpleNamespace(close=lambda: None, stats=lambda: {}))
+  embodied.run.parallel.parallel_actor(
+      Agent(),
+      types.SimpleNamespace(wait=lambda: None),
+      types.SimpleNamespace(
+          actor_batch=1, log_every=0, actor_threads=1, logger_addr='logger',
+          replay_addr='replay', actor_addr='actor'),
+      save_events=save_events,
+  )
+  assert requests == [(True, True), (True, False), (True, True)], (
+      'latest is requested at every episode end, best only on improvement')

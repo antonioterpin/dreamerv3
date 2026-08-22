@@ -85,6 +85,21 @@ propagates source exhaustion as `StopIteration` instead of a worker crash,
 and the learner opens no eval stream when `eval_envs <= 0`. Without
 `run_done_error` the behavior is unchanged.
 
+## Checkpoints at episode boundaries (`run.save_on_episode`)
+
+Upstream checkpoints on a wall-clock timer (`run.save_every`). When a run is
+a sequence of physical episodes, the natural moment to persist is the
+episode boundary. With `run.save_on_episode: True` (`dreamerv3/configs.yaml`,
+default `False`) the parallel actor (`embodied/run/parallel.py`) tracks the
+mean reward per step of every environment's episode and, on each
+`is_last`, asks the learner to save `ckpt/agent`; when that mean improves on
+every episode seen so far it also asks for `ckpt/agent_best` (episodes that
+end before the learner's first train step, i.e. before the replay reached
+its minimum fill, are covered by the run's final checkpoint). The learner
+services these requests between train steps, so a save lands after the
+train step in flight. The wall-clock timer keeps working independently; set
+`run.save_every: 0` to rely on episode boundaries only.
+
 ## Running the fork's tests
 
 The tests added by this fork live next to the upstream ones under

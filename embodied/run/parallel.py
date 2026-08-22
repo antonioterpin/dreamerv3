@@ -125,16 +125,20 @@ def parallel_agent(make_agent, args, lifecycle=None):
     make_agent = cloudpickle.loads(make_agent)
   agent = make_agent()
   barrier = threading.Barrier(2)
+  save_events = None
+  if args.save_on_episode:
+    # The actor observes episode boundaries, the learner owns the checkpoints.
+    save_events = {'latest': threading.Event(), 'best': threading.Event()}
   workers = []
   workers.append(portal.Thread(
-      parallel_actor, agent, barrier, args, lifecycle))
+      parallel_actor, agent, barrier, args, lifecycle, save_events))
   workers.append(portal.Thread(
-      parallel_learner, agent, barrier, args, lifecycle))
+      parallel_learner, agent, barrier, args, lifecycle, save_events))
   _run_workers(workers)
 
 
 @elements.timer.section('actor')
-def parallel_actor(agent, barrier, args, lifecycle=None):
+def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
   """Run the actor in parallel with the learner and agent.
 
   Args:
@@ -142,9 +146,14 @@ def parallel_actor(agent, barrier, args, lifecycle=None):
     barrier: Barrier that delays acting until learner checkpoint restoration.
     args: Actor and parallel-run configuration.
     lifecycle: Optional process-safe events for finite-run shutdown.
+    save_events: Optional thread events ('latest', 'best') the actor sets at
+      episode boundaries to request checkpoints from the learner.
   """
 
   islist = lambda x: isinstance(x, list)
+  ep_sums = collections.defaultdict(float)
+  ep_steps = collections.defaultdict(int)
+  best_score = [float('-inf')]
   initial = agent.init_policy(args.actor_batch)
   initial = elements.tree.map(lambda x: x[0], initial, isleaf=islist)
   carries = collections.defaultdict(lambda: initial)
@@ -176,6 +185,23 @@ def parallel_actor(agent, barrier, args, lifecycle=None):
     trans = {'envid': envid, 'is_eval': is_eval, **obs, **acts, **outs, **logs}
     [x.setflags(write=False) for x in trans.values()]
     acts = {**acts, 'reset': obs['is_last'].copy()}
+    if save_events is not None:
+      # Track each environment's mean reward per step and request a 'latest'
+      # checkpoint at every episode end, plus a 'best' one when the mean
+      # improves on every episode seen so far.
+      for i, a in enumerate(envid):
+        key = int(a)
+        if obs['is_first'][i]:
+          ep_sums[key] = 0.0
+          ep_steps[key] = 0
+        ep_sums[key] += float(obs['reward'][i])
+        ep_steps[key] += 1
+        if obs['is_last'][i]:
+          score = ep_sums[key] / max(1, ep_steps[key])
+          save_events['latest'].set()
+          if score > best_score[0]:
+            best_score[0] = score
+            save_events['best'].set()
     return acts, trans
 
   @elements.timer.section('donefn')
@@ -217,7 +243,8 @@ def parallel_actor(agent, barrier, args, lifecycle=None):
 
 
 @elements.timer.section('learner')
-def parallel_learner(agent, barrier, args, lifecycle=None):
+def parallel_learner(
+    agent, barrier, args, lifecycle=None, save_events=None):
   """Train the agent and acknowledge persistence of the final checkpoint.
 
   Args:
@@ -225,6 +252,8 @@ def parallel_learner(agent, barrier, args, lifecycle=None):
     barrier: Barrier coordinating initial checkpoint restoration with acting.
     args: Learner and parallel-run configuration.
     lifecycle: Optional process-safe events for finite-run shutdown.
+    save_events: Optional thread events set by the actor at episode
+      boundaries; 'latest' saves ckpt/agent, 'best' saves ckpt/agent_best.
   """
 
   agg = elements.Agg()
@@ -237,6 +266,10 @@ def parallel_learner(agent, barrier, args, lifecycle=None):
 
   cp = elements.Checkpoint(elements.Path(args.logdir) / 'ckpt/agent')
   cp.agent = agent
+  if save_events is not None:
+    best_cp = elements.Checkpoint(
+        elements.Path(args.logdir) / 'ckpt/agent_best')
+    best_cp.agent = agent
   if args.from_checkpoint:
     elements.checkpoint.load(args.from_checkpoint, dict(
         agent=bind(agent.load, regex=args.from_checkpoint_regex)))
@@ -326,9 +359,22 @@ def parallel_learner(agent, barrier, args, lifecycle=None):
           stats.update(prefix(client.stats(), f'client/replay_{source}'))
       logger.add(stats)
 
+    if save_events is not None:
+      # Episode-boundary checkpoints requested by the actor, serviced between
+      # train steps.
+      if save_events['latest'].is_set():
+        save_events['latest'].clear()
+        cp.save()
+      if save_events['best'].is_set():
+        save_events['best'].clear()
+        best_cp.save()
     if should_save():
       cp.save()
 
+  if save_events is not None and save_events['best'].is_set():
+    # The actor may have reported a best episode right before its final RPC.
+    save_events['best'].clear()
+    best_cp.save()
   # The run is complete: persist the final agent state before releasing the
   # replay and logger workers, which wait on checkpoint_persisted.
   cp.save()
