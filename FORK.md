@@ -33,6 +33,17 @@ doubles as a migration checklist.
   (`embodied/tests/test_configs.py`).
 - **`np.ranodm` typo** in `embodied/core/streams.py` (`Mixture.__next__`).
 
+## Floating point image observations
+
+Upstream requires every image observation (rank-3 space) to be `uint8`.
+The encoder (`dreamerv3/rssm.py`) now also accepts floating point images,
+which are assumed to lie in `[0, 1]` (the same range the decoder's sigmoid
+output and reconstruction loss already use; `uint8` images are still divided
+by 255). The open-loop video summaries in `Agent.report`
+(`dreamerv3/agent.py`) are rendered for `uint8` images only, since a float
+image has no pixel range to draw. No configuration is needed; the dtype of
+the observation space selects the behavior.
+
 ## Running the fork's tests
 
 The tests added by this fork live next to the upstream ones under
@@ -41,5 +52,6 @@ The tests added by this fork live next to the upstream ones under
 and are not collected by this command):
 
 ```sh
-python -m pytest embodied/tests/test_from_gym.py
+python -m pytest embodied/tests/test_from_gym.py \
+    embodied/tests/test_float_images.py
 ```
