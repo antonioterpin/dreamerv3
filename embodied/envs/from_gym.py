@@ -58,16 +58,25 @@ class FromGym(embodied.Env):
     if action['reset'] or self._done:
       self._done = False
       obs = self._env.reset()
+      if isinstance(obs, tuple):  # Gym >= 0.26 returns (obs, info).
+        obs, self._info = obs
       return self._obs(obs, 0.0, is_first=True)
     if self._act_dict:
-      action = self._unflatten(action)
+      # 'reset' belongs to the embodied action space, not to the wrapped env.
+      action = self._unflatten(
+          {k: v for k, v in action.items() if k != 'reset'})
     else:
       action = action[self._act_key]
-    obs, reward, self._done, self._info = self._env.step(action)
+    result = self._env.step(action)
+    if len(result) == 5:  # Gym >= 0.26 returns (obs, rew, term, trunc, info).
+      obs, reward, terminated, truncated, self._info = result
+      self._done = terminated or truncated
+      is_terminal = bool(self._info.get('is_terminal', terminated))
+    else:
+      obs, reward, self._done, self._info = result
+      is_terminal = bool(self._info.get('is_terminal', self._done))
     return self._obs(
-        obs, reward,
-        is_last=bool(self._done),
-        is_terminal=bool(self._info.get('is_terminal', self._done)))
+        obs, reward, is_last=bool(self._done), is_terminal=is_terminal)
 
   def _obs(
       self, obs, reward, is_first=False, is_last=False, is_terminal=False):
