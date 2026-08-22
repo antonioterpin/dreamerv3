@@ -31,6 +31,11 @@ class Stateless(base.Stream):
 
 class Prefetch(base.Stream):
 
+  """Prefetch source items while preserving normal iterator exhaustion."""
+
+  # A unique sentinel distinguishes source exhaustion from data and exceptions.
+  _DONE = object()
+
   def __init__(self, source, transform=None, amount=1):
     self.source = iter(source) if hasattr(source, '__iter__') else source()
     self.transform = transform or (lambda x: x)
@@ -51,6 +56,8 @@ class Prefetch(base.Stream):
     assert self.started
     result = self.queue.get()
     self.requests.release()
+    if result is self._DONE:
+      raise StopIteration
     if isinstance(result, str):
       raise RuntimeError(result)
     data, self.state = result
@@ -75,6 +82,10 @@ class Prefetch(base.Stream):
         data = self.transform(data)
         state = self._getstate()
         self.queue.put((data, state))
+    except StopIteration:
+      # Deliver exhaustion to the consumer instead of reporting it as a failed
+      # Portal worker during graceful finite-run shutdown.
+      self.queue.put(self._DONE)
     except Exception as e:
       self.queue.put(str(e))
       raise

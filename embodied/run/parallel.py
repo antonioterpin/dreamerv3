@@ -12,6 +12,24 @@ import portal
 prefix = lambda d, p: {f'{p}/{k}': v for k, v in d.items()}
 
 
+def _run_workers(workers):
+  """Run workers and, once all of them finished, join them.
+
+  Graceful finite-run completion lets workers terminate normally, so the
+  parent waits for their process/thread teardown instead of leaving it to
+  interpreter shutdown. portal.run returns only when every worker exited
+  cleanly; on a crash it kills the others and raises, and nothing is joined
+  (a thread blocked in a wait cannot be killed and would hang the join).
+
+  Args:
+    workers: Portal processes or threads to run and subsequently join.
+  """
+  portal.run(workers)
+  for worker in workers:
+    if worker.started:
+      worker.join()
+
+
 def combined(
     make_agent,
     make_replay_train,
@@ -20,7 +38,24 @@ def combined(
     make_env_eval,
     make_stream,
     make_logger,
-    args):
+    args,
+    run_done_error=None):
+  """Run the complete parallel Dreamer topology.
+
+  Args:
+    make_agent: Factory for the Dreamer agent.
+    make_replay_train: Factory for training replay storage.
+    make_replay_eval: Factory for evaluation replay storage.
+    make_env_train: Factory for training environments.
+    make_env_eval: Factory for evaluation environments.
+    make_stream: Factory for replay sample streams.
+    make_logger: Factory for the experiment logger.
+    args: Parallel-run configuration.
+    run_done_error: Optional typed exception that signals finite environment
+      exhaustion; every environment raises it from env.step on its own final
+      reset. Without it, the original indefinitely running behavior is
+      preserved.
+  """
 
   if args.actor_batch <= 0:
     args = args.update(actor_batch=max(1, args.envs // 2))
@@ -37,41 +72,77 @@ def combined(
   make_stream = cloudpickle.dumps(make_stream)
   make_logger = cloudpickle.dumps(make_logger)
 
+  lifecycle = None
+  if run_done_error is not None:
+    # These process-safe primitives encode the finite-run handoff. Every
+    # environment releases 'requested' once on its final reset, the actor
+    # confirms final replay/logger RPCs drained after all of them did, and the
+    # learner confirms the final checkpoint save returned.
+    lifecycle = {
+        'requested': portal.context.mp.Semaphore(0),
+        'env_count': args.envs + max(0, args.eval_envs),
+        'actor_flushed': portal.context.mp.Event(),
+        'checkpoint_persisted': portal.context.mp.Event(),
+    }
+
   workers = []
   if args.agent_process:
-    workers.append(portal.Process(parallel_agent, make_agent, args))
+    workers.append(portal.Process(
+        parallel_agent, make_agent, args, lifecycle))
   else:
-    workers.append(portal.Thread(parallel_agent, make_agent, args))
-  workers.append(portal.Process(parallel_logger, make_logger, args))
+    workers.append(portal.Thread(
+        parallel_agent, make_agent, args, lifecycle))
+  workers.append(portal.Process(
+      parallel_logger, make_logger, args, lifecycle))
 
   if not args.remote_envs:
     for i in range(args.envs):
-      workers.append(portal.Process(parallel_env, make_env_train, i, args))
+      workers.append(portal.Process(
+          parallel_env, make_env_train, i, args, False,
+          lifecycle, run_done_error))
     for i in range(args.envs, args.envs + args.eval_envs):
       workers.append(portal.Process(
-          parallel_env, make_env_eval, i, args, True))
+          parallel_env, make_env_eval, i, args, True,
+          lifecycle, run_done_error))
 
   if not args.remote_replay:
     workers.append(portal.Process(
         parallel_replay, make_replay_train, make_replay_eval,
-        make_stream, args))
+        make_stream, args, lifecycle))
 
-  portal.run(workers)
+  _run_workers(workers)
 
 
-def parallel_agent(make_agent, args):
+def parallel_agent(make_agent, args, lifecycle=None):
+  """Run the agent in parallel with the actor and learner.
+
+  Args:
+    make_agent: A callable that returns a new agent instance.
+    args: The arguments for the agent and its components.
+    lifecycle: Optional process-safe events for finite-run shutdown.
+  """
   if isinstance(make_agent, bytes):
     make_agent = cloudpickle.loads(make_agent)
   agent = make_agent()
   barrier = threading.Barrier(2)
   workers = []
-  workers.append(portal.Thread(parallel_actor, agent, barrier, args))
-  workers.append(portal.Thread(parallel_learner, agent, barrier, args))
-  portal.run(workers)
+  workers.append(portal.Thread(
+      parallel_actor, agent, barrier, args, lifecycle))
+  workers.append(portal.Thread(
+      parallel_learner, agent, barrier, args, lifecycle))
+  _run_workers(workers)
 
 
 @elements.timer.section('actor')
-def parallel_actor(agent, barrier, args):
+def parallel_actor(agent, barrier, args, lifecycle=None):
+  """Run the actor in parallel with the learner and agent.
+
+  Args:
+    agent: The agent instance to use for acting.
+    barrier: Barrier that delays acting until learner checkpoint restoration.
+    args: Actor and parallel-run configuration.
+    lifecycle: Optional process-safe events for finite-run shutdown.
+  """
 
   islist = lambda x: isinstance(x, list)
   initial = agent.init_policy(args.actor_batch)
@@ -109,10 +180,16 @@ def parallel_actor(agent, barrier, args):
 
   @elements.timer.section('donefn')
   def postfn(trans):
+    """Submit a completed transition to replay and logging services."""
     logs = {k: v for k, v in trans.items() if k.startswith('log/')}
     trans = {k: v for k, v in trans.items() if not k.startswith('log/')}
-    replay.add_batch(trans)
-    logger.tran({**trans, **logs})
+    replay_future = replay.add_batch(trans)
+    logger_future = logger.tran({**trans, **logs})
+    if lifecycle is not None and trans['is_last'].any():
+      # The environment may discover run exhaustion on its next reset. Resolve
+      # both RPCs now so actor_flushed cannot overtake the terminal transition.
+      replay_future.result()
+      logger_future.result()
     if should_log():
       stats = {}
       stats['fps/policy'] = fps.result()
@@ -124,11 +201,31 @@ def parallel_actor(agent, barrier, args):
 
   server = portal.BatchServer(args.actor_addr, name='Actor')
   server.bind('act', workfn, postfn, args.actor_batch, args.actor_threads)
-  server.start()
+  if lifecycle is None:
+    server.start()
+    return
+  server.start(block=False)
+  # Wait for every environment, so none is cut off mid-episode by the close.
+  for _ in range(lifecycle['env_count']):
+    lifecycle['requested'].acquire()
+  # BatchServer.close() drains accepted work before returning. Only advertise
+  # actor completion after its downstream replay and logger clients also close.
+  server.close()
+  replay.close()
+  logger.close()
+  lifecycle['actor_flushed'].set()
 
 
 @elements.timer.section('learner')
-def parallel_learner(agent, barrier, args):
+def parallel_learner(agent, barrier, args, lifecycle=None):
+  """Train the agent and acknowledge persistence of the final checkpoint.
+
+  Args:
+    agent: Dreamer agent shared with the actor thread.
+    barrier: Barrier coordinating initial checkpoint restoration with acting.
+    args: Learner and parallel-run configuration.
+    lifecycle: Optional process-safe events for finite-run shutdown.
+  """
 
   agg = elements.Agg()
   usage = elements.Usage(**args.usage)
@@ -157,9 +254,18 @@ def parallel_learner(agent, barrier, args):
     call = getattr(replay, f'sample_batch_{source}')
     futures = collections.deque([call() for _ in range(prefetch)])
     while True:
-      futures.append(call())
-      with elements.timer.section(f'stream_{source}_response'):
-        data = futures.popleft().result()
+      try:
+        futures.append(call())
+        with elements.timer.section(f'stream_{source}_response'):
+          data = futures.popleft().result()
+      except portal.Disconnected:
+        if lifecycle is not None and lifecycle['actor_flushed'].is_set():
+          # The learner closed this client during finite-run shutdown; end
+          # the stream so its prefetch thread exits instead of crashing.
+          return
+        raise
+      if lifecycle is not None and data.get('__run_done__', False):
+        return
       received[source] += 1
       yield data
 
@@ -176,14 +282,20 @@ def parallel_learner(agent, barrier, args):
       embodied.streams.Stateless(parallel_stream('train'))))
   stream_report = iter(agent.stream(
       embodied.streams.Stateless(parallel_stream('report'))))
-  stream_eval = iter(agent.stream(
-      embodied.streams.Stateless(parallel_stream('eval'))))
+  stream_eval = (
+      iter(agent.stream(embodied.streams.Stateless(parallel_stream('eval'))))
+      if args.eval_envs > 0 else None)
   carry = agent.init_train(args.batch_size)
 
   while True:
 
     with elements.timer.section('batch_next'):
-      batch = next(stream_train)
+      try:
+        batch = next(stream_train)
+      except StopIteration:
+        assert lifecycle is not None
+        assert lifecycle['actor_flushed'].is_set()
+        break
     with elements.timer.section('train_step'):
       carry, outs, mets = agent.train(carry, batch)
     if 'replay' in outs:
@@ -198,7 +310,7 @@ def parallel_learner(agent, barrier, args):
       print('Report started...')
       with elements.timer.section('report'):
         logger.add(prefix(evaluate(stream_report), 'report'))
-        if args.eval_envs and received['eval']:
+        if stream_eval is not None and received['eval']:
           logger.add(prefix(evaluate(stream_eval), 'eval'))
       print('Report finished!')
 
@@ -217,8 +329,28 @@ def parallel_learner(agent, barrier, args):
     if should_save():
       cp.save()
 
+  # The run is complete: persist the final agent state before releasing the
+  # replay and logger workers, which wait on checkpoint_persisted.
+  cp.save()
+  updater.close()
+  logger.close()
+  for replay in replays.values():
+    replay.close()
+  lifecycle['checkpoint_persisted'].set()
 
-def parallel_replay(make_replay_train, make_replay_eval, make_stream, args):
+
+def parallel_replay(
+    make_replay_train, make_replay_eval, make_stream, args,
+    lifecycle=None):
+  """Serve replay operations until the learner persists its final checkpoint.
+
+  Args:
+    make_replay_train: Factory for training replay storage.
+    make_replay_eval: Factory for evaluation replay storage.
+    make_stream: Factory for replay sample streams.
+    args: Replay and parallel-run configuration.
+    lifecycle: Optional process-safe events for finite-run shutdown.
+  """
   if isinstance(make_replay_train, bytes):
     make_replay_train = cloudpickle.loads(make_replay_train)
   if isinstance(make_replay_eval, bytes):
@@ -267,8 +399,17 @@ def parallel_replay(make_replay_train, make_replay_eval, make_stream, args):
     with elements.timer.section('replay_sample_wait'):
       for _ in range(args.batch_size):
         dur = embodied.limiters.wait(
-            limiter.want_sample, 'Replay sample waiting',
+            lambda: (
+                limiter.want_sample() or
+                (lifecycle is not None and
+                 lifecycle['actor_flushed'].is_set())),
+            'Replay sample waiting',
             limiter.__dict__)
+        if (lifecycle is not None and
+            lifecycle['actor_flushed'].is_set()):
+          # Unblock a learner waiting below replay's minimum fill after the
+          # finite actor has submitted its final transition.
+          return {'__run_done__': np.asarray(True)}
         limit_agg.add('sample_wait_dur', dur, agg='sum')
         limit_agg.add('sample_wait_count', dur > 0, agg='sum')
         limit_agg.add('sample_wait_frac', dur > 0, agg='avg')
@@ -297,7 +438,7 @@ def parallel_replay(make_replay_train, make_replay_eval, make_stream, args):
   server.bind('sample_batch_eval', sample_batch_eval, workers=1)
   server.bind('update', lambda data: replay_train.update(data), workers=1)
   server.start(block=False)
-  while True:
+  while lifecycle is None or not lifecycle['checkpoint_persisted'].is_set():
     if should_save() and active > 0:
       active.reset()
       cp.save()
@@ -312,10 +453,26 @@ def parallel_replay(make_replay_train, make_replay_eval, make_stream, args):
       stats.update(prefix(server.stats(), 'server/replay'))
       logger.add(stats)
     time.sleep(1)
+  # Persist replay only after the learner has acknowledged its agent checkpoint.
+  cp.save()
+  for replay in (replay_train, replay_eval):
+    # Chunk writes are asynchronous; finish them before the process exits.
+    workers = getattr(replay, 'workers', None)
+    if workers is not None:
+      workers.shutdown(wait=True)
+  server.close()
+  logger.close()
 
 
 @elements.timer.section('logger')
-def parallel_logger(make_logger, args):
+def parallel_logger(make_logger, args, lifecycle=None):
+  """Serve logging RPCs and flush output during finite-run shutdown.
+
+  Args:
+    make_logger: Factory for the experiment logger.
+    args: Logger and parallel-run configuration.
+    lifecycle: Optional process-safe events for finite-run shutdown.
+  """
   if isinstance(make_logger, bytes):
     make_logger = cloudpickle.loads(make_logger)
 
@@ -395,7 +552,7 @@ def parallel_logger(make_logger, args):
   server.bind('tran', tranfn)
   server.start(block=False)
   last_step = int(logger.step)
-  while True:
+  while lifecycle is None or not lifecycle['checkpoint_persisted'].is_set():
     time.sleep(1)
     if should_log() and active > 0:
       active.reset()
@@ -411,10 +568,31 @@ def parallel_logger(make_logger, args):
       last_step = int(logger.step)
     if should_save():
       cp.save()
+  # Closing the server first prevents new submissions while checkpoint and
+  # output state are flushed.
+  server.close()
+  cp.save()
+  logger.close()
 
 
 @elements.timer.section('env')
-def parallel_env(make_env, envid, args, is_eval=False):
+def parallel_env(
+    make_env, envid, args, is_eval=False, lifecycle=None,
+    run_done_error=None):
+  """Drive one environment, translating finite exhaustion into normal exit.
+
+  Args:
+    make_env: Factory accepting the numeric environment identifier.
+    envid: Non-negative environment identifier.
+    args: Environment and parallel-run configuration.
+    is_eval: Whether transitions belong to evaluation replay.
+    lifecycle: Optional process-safe events for finite-run shutdown.
+    run_done_error: Optional exception type denoting authoritative finite-run
+      exhaustion.
+
+  Raises:
+    Exception: Any environment exception other than ``run_done_error``.
+  """
   if isinstance(make_env, bytes):
     make_env = cloudpickle.loads(make_env)
   assert envid >= 0, envid
@@ -441,8 +619,23 @@ def parallel_env(make_env, envid, args, is_eval=False):
       score, length = 0, 0
 
     scope_name = 'reset' if act['reset'] else 'step'
-    with elements.timer.section(scope_name):
-      obs = env.step(act)
+    try:
+      with elements.timer.section(scope_name):
+        obs = env.step(act)
+    except Exception as exc:
+      if run_done_error is None or not isinstance(exc, run_done_error):
+        raise
+      assert lifecycle is not None, 'Lifecycle must be provided for graceful shutdown.'
+      # The terminal transition was processed before this attempted reset.
+      # Report exhaustion without fabricating a reset observation, then keep
+      # the environment alive until the final checkpoint is durable.
+      lifecycle['requested'].release()
+      lifecycle['checkpoint_persisted'].wait()
+      actor.close()
+      if envid == 0:
+        logger.close()
+      env.close()
+      return
     obs = {k: np.asarray(v, order='C') for k, v in obs.items()}
     obs['is_eval'] = is_eval
     score += obs['reward']
@@ -478,4 +671,4 @@ def parallel_envs(make_env, make_env_eval, args):
     workers.append(portal.Process(parallel_env, make_env, i, args))
   for i in range(args.envs, args.envs + args.eval_envs):
     workers.append(portal.Process(parallel_env, make_env_eval, i, args, True))
-  portal.run(workers)
+  _run_workers(workers)

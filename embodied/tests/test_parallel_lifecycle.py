@@ -1,0 +1,292 @@
+"""Graceful completion of finite runs in the parallel runner."""
+
+import functools
+import multiprocessing
+import time
+import warnings
+
+import elements
+import numpy as np
+import portal
+import pytest
+
+import embodied
+
+
+class RunDone(Exception):
+  """Raised by a finite environment when asked to reset past its last episode."""
+
+
+class FiniteEnv:
+  """One-step episodes; the reset after the second episode ends the run."""
+
+  def __init__(self, events, failure=None):
+    self.events = events
+    self.failure = failure
+    self.resets = 0
+    self.steps = 0
+    self.obs_space = {
+        'obs': elements.Space(np.float32),
+        'reward': elements.Space(np.float32),
+        'is_first': elements.Space(bool),
+        'is_last': elements.Space(bool),
+        'is_terminal': elements.Space(bool),
+    }
+    self.act_space = {
+        'action': elements.Space(np.float32, (1,), -1, 1),
+        'reset': elements.Space(bool),
+    }
+
+  def step(self, action):
+    if action['reset']:
+      self.resets += 1
+      self.events.append(f'reset:{self.resets}')
+      if self.resets == 2:
+        raise (self.failure or RunDone)('run complete')
+      return self._obs(first=True)
+    self.steps += 1
+    self.events.append(f'step:{self.steps}')
+    return self._obs(last=True)
+
+  def _obs(self, first=False, last=False):
+    return {
+        'obs': np.float32(self.steps),
+        'reward': np.float32(1),
+        'is_first': first,
+        'is_last': last,
+        'is_terminal': last,
+    }
+
+  def close(self):
+    self.events.append('env_closed')
+
+
+class Agent:
+
+  def __init__(self, events, prefetch=False):
+    self.events = events
+    self.prefetch = prefetch
+
+  def init_policy(self, batch):
+    return {'state': np.zeros((batch, 1), np.float32)}
+
+  def policy(self, carry, obs, mode='train'):
+    self.events.append('policy')
+    batch = obs['reward'].shape[0]
+    return carry, {'action': np.zeros((batch, 1), np.float32)}, {}
+
+  def init_train(self, batch):
+    return None
+
+  def init_report(self, batch):
+    return None
+
+  def stream(self, stream):
+    # The JAX agent wraps its streams in Prefetch threads; mimic that.
+    return embodied.streams.Prefetch(stream) if self.prefetch else stream
+
+  def train(self, carry, batch):
+    self.events.append('train')
+    return carry, {}, {}
+
+  def report(self, carry, batch):
+    return carry, {}
+
+  def save(self):
+    self.events.append('checkpoint')
+    return {'value': np.asarray(1)}
+
+  def load(self, data):
+    return None
+
+
+class Replay:
+
+  length = 1
+
+  def __init__(self, events):
+    self.events = events
+    self.items = []
+
+  def add(self, item, envid):
+    self.items.append(item)
+    self.events.append(f'replay:{bool(item["is_last"])}')
+
+  def update(self, data):
+    return None
+
+  def stats(self):
+    return {}
+
+  def save(self):
+    return {'items': len(self.items)}
+
+  def load(self, data):
+    return None
+
+
+class Logger:
+
+  def __init__(self, events):
+    self.events = events
+    self.step = elements.Counter()
+
+  def add(self, metrics, prefix=None):
+    self.events.append('logger_submission')
+
+  def write(self):
+    self.events.append('logger_write')
+
+  def close(self):
+    self.events.append('logger_closed')
+
+
+def make_env(events, failure, envid):
+  return FiniteEnv(events, failure)
+
+
+def make_stream(replay, source):
+  while True:
+    while not replay.items:
+      time.sleep(0.001)
+    yield {k: np.asarray([[v]]) for k, v in replay.items[-1].items()}
+
+
+def make_args(tmp_path, **overrides):
+  return elements.Config(
+      actor_batch=1,
+      envs=1,
+      eval_envs=0,
+      actor_addr='localhost:{auto}',
+      replay_addr='localhost:{auto}',
+      logger_addr='localhost:{auto}',
+      agent_process=True,
+      remote_envs=False,
+      remote_replay=False,
+      actor_threads=1,
+      log_every=0,
+      report_every=0,
+      save_every=0,
+      usage={
+          'psutil': False, 'nvsmi': False, 'gputil': False,
+          'malloc': False, 'gc': False},
+      batch_size=1,
+      batch_length=1,
+      train_ratio=1,
+      from_checkpoint='',
+      from_checkpoint_regex='.*',
+      logdir=str(tmp_path),
+      consec_report=1,
+      report_batches=1,
+      episode_timeout=10,
+      **overrides,
+  )
+
+
+def run_combined(tmp_path, events, failure=None, prefetch=False, **overrides):
+  args = make_args(tmp_path)
+  if overrides:
+    args = args.update(overrides)
+  portal.reset()
+  portal.setup(ipv6=False)
+  embodied.run.parallel.combined(
+      functools.partial(Agent, events, prefetch),
+      functools.partial(Replay, events),
+      functools.partial(Replay, events),
+      functools.partial(make_env, events, failure),
+      functools.partial(make_env, events, failure),
+      make_stream,
+      functools.partial(Logger, events),
+      args,
+      run_done_error=RunDone,
+  )
+
+
+def test_finite_run_flushes_and_exits_cleanly(tmp_path):
+  with multiprocessing.Manager() as manager:
+    events = manager.list()
+    run_combined(tmp_path, events)
+    recorded = list(events)
+
+  assert recorded.count('policy') == 2, (
+      'The actor must serve exactly the initial and terminal observations')
+  assert 'reset:2' in recorded, (
+      'The environment must attempt the reset that signals run exhaustion')
+  assert 'reset:3' not in recorded, (
+      'Graceful shutdown must not fabricate another episode')
+  assert 'replay:True' in recorded, (
+      'The terminal transition must reach replay before shutdown')
+  assert 'logger_submission' in recorded, (
+      'The terminal transition must reach the logger before shutdown')
+  last_checkpoint = len(recorded) - 1 - recorded[::-1].index('checkpoint')
+  assert recorded.index('replay:True') < last_checkpoint, (
+      'A final agent checkpoint must follow the terminal transition')
+  assert last_checkpoint < recorded.index('logger_closed'), (
+      'The final checkpoint must be persisted before the logger shuts down')
+  assert 'env_closed' in recorded
+
+
+def test_unrelated_environment_error_still_crashes_the_worker(tmp_path):
+  with multiprocessing.Manager() as manager:
+    events = manager.list()
+    with pytest.raises(RuntimeError, match=r'parallel_env.*crashed'):
+      run_combined(tmp_path, events, failure=ValueError)
+
+
+def test_finite_run_waits_for_every_environment(tmp_path):
+  with multiprocessing.Manager() as manager:
+    events = manager.list()
+    run_combined(tmp_path, events, envs=2)
+    recorded = list(events)
+
+  assert recorded.count('reset:2') == 2, (
+      'Both environments must reach the reset that reports exhaustion')
+  assert recorded.count('env_closed') == 2, (
+      'The actor must not close its server before every environment is done')
+
+
+def test_agent_with_prefetching_streams_exits_cleanly(tmp_path):
+  with multiprocessing.Manager() as manager:
+    events = manager.list()
+    # The agent runs in its own process, so a prefetch thread crashing at
+    # shutdown would surface as a crashed parallel_agent worker.
+    run_combined(tmp_path, events, prefetch=True)
+    recorded = list(events)
+  assert 'train' in recorded, 'The learner must have trained on the stream'
+  assert 'replay:True' in recorded
+
+
+def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path):
+  import threading
+  outcome = []
+
+  def run():
+    # Portal warns about plain threads; this one only isolates a potential
+    # hang from the test process.
+    warnings.simplefilter('ignore', UserWarning)
+    try:
+      with multiprocessing.Manager() as manager:
+        run_combined(
+            tmp_path, manager.list(), failure=ValueError, agent_process=False)
+    except BaseException as e:
+      outcome.append(e)
+    else:
+      outcome.append(None)
+
+  thread = threading.Thread(target=run, daemon=True)
+  thread.start()
+  thread.join(120)
+  assert not thread.is_alive(), (
+      'A worker crash must propagate; joining the un-killable agent thread '
+      'would hang here')
+  assert isinstance(outcome[0], RuntimeError), outcome
+  assert 'crashed' in str(outcome[0])
+
+
+def test_prefetch_treats_source_exhaustion_as_normal_completion():
+  stream = embodied.streams.Prefetch(iter(()))
+  with pytest.raises(StopIteration):
+    next(iter(stream))
+  stream.worker.join()
+  assert stream.worker.exitcode == 0, (
+      'Source exhaustion must let the prefetch worker exit successfully')

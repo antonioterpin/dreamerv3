@@ -55,6 +55,36 @@ memory analysis stay visible. `jax.profiler` is also declared in
 `configs.yaml` (it was only an `Options` default before), so both knobs can
 be overridden from a config block or the command line.
 
+## Graceful completion of finite runs (`run_done_error`)
+
+Upstream's parallel runner assumes environments reset forever; a run ends
+by killing the workers. Real-world harnesses have a finite number of
+episodes. `embodied.run.parallel.combined(..., run_done_error=SomeError)`
+(`embodied/run/parallel.py`) treats that exception type, raised by
+`env.step` on the reset after the final episode, as normal completion:
+
+    final terminal transition -> replay / logger flush
+    -> final agent checkpoint -> replay and logger checkpoints
+    -> worker shutdown -> clean portal exit
+
+The handoff uses a process-safe semaphore (`requested`, released once by
+every environment on its own final reset) and two events (`actor_flushed`,
+`checkpoint_persisted`). The actor closes its server only after all
+environments reported exhaustion, so none is cut off mid-episode; it resolves
+the replay and logger RPCs of a terminal transition before `actor_flushed` is
+set; the replay server releases a learner blocked below the minimum fill; the
+learner's replay streams treat the shutdown disconnect as completion, so its
+prefetch threads exit instead of taking the agent process down; the replay
+worker waits for its asynchronous chunk writes before exiting; and every
+worker is joined once `portal.run` returned normally (a crash still kills the
+others and raises, without joining: a thread blocked in a wait cannot be
+killed and would hang the join). Any other exception still crashes the
+worker as before. Two changes apply regardless of `run_done_error`:
+`embodied.streams.Prefetch` (`embodied/core/streams.py`)
+propagates source exhaustion as `StopIteration` instead of a worker crash,
+and the learner opens no eval stream when `eval_envs <= 0`. Without
+`run_done_error` the behavior is unchanged.
+
 ## Running the fork's tests
 
 The tests added by this fork live next to the upstream ones under
@@ -65,5 +95,6 @@ and are not collected by this command):
 ```sh
 python -m pytest embodied/tests/test_from_gym.py \
     embodied/tests/test_float_images.py \
-    embodied/tests/test_jax_agent_options.py
+    embodied/tests/test_jax_agent_options.py \
+    embodied/tests/test_parallel_lifecycle.py
 ```
