@@ -1,5 +1,10 @@
 # Mastering Diverse Domains through World Models
 
+> **Fork note:** this repository is a fork of
+> [danijar/dreamerv3](https://github.com/danijar/dreamerv3) carrying a few
+> generic adaptations for external real-time training harnesses. They are
+> listed, with their configuration knobs, in [FORK.md](FORK.md).
+
 A reimplementation of [DreamerV3][paper], a scalable and general reinforcement
 learning algorithm that masters a wide range of applications with fixed
 hyperparameters.
