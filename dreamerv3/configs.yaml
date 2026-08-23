@@ -52,6 +52,7 @@ defaults:
     log_every: 120
     report_every: 300
     save_every: 900
+    save_on_episode: False
     envs: 16
     eval_envs: 4
     eval_eps: 1
@@ -82,6 +83,10 @@ defaults:
     expect_devices: 0
     enable_policy: True
     coordinator_address: ''
+    profiler: True
+    verbose: True
+    policy_sync_mode: immediate
+    policy_sync_steps: 1
 
   agent:
     loss_scales: {rec: 1.0, rew: 1.0, con: 1.0, dyn: 1.0, rep: 0.1, policy: 1.0, value: 1.0, repval: 0.3}

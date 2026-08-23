@@ -288,7 +288,10 @@ class Agent(embodied.jax.Agent):
 
     # Video preds
     for key in self.dec.imgkeys:
-      assert obs[key].dtype == jnp.uint8
+      if obs[key].dtype != jnp.uint8:
+        # Floating point image observations have no natural pixel range to
+        # render, so they get reconstruction losses but no video summary.
+        continue
       true = obs[key][:RB]
       pred = jnp.concatenate([obsrecons[key].pred(), imgrecons[key].pred()], 1)
       pred = jnp.clip(pred * 255, 0, 255).astype(jnp.uint8)

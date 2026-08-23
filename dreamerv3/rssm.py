@@ -226,8 +226,16 @@ class Encoder(nj.Module):
     if self.imgkeys:
       K = self.kernel
       imgs = [obs[k] for k in sorted(self.imgkeys)]
-      assert all(x.dtype == jnp.uint8 for x in imgs)
-      x = nn.cast(jnp.concatenate(imgs, -1), force=True) / 255 - 0.5
+      # Images are either uint8 in [0, 255] or floating point already in
+      # [0, 1]; both are mapped to [-0.5, 0.5] here and the decoder's sigmoid
+      # output is compared against the same [0, 1] target.
+      assert all(
+          x.dtype == jnp.uint8 or jnp.issubdtype(x.dtype, jnp.floating)
+          for x in imgs), [x.dtype for x in imgs]
+      imgs = [
+          nn.cast(x, force=True) / (255 if x.dtype == jnp.uint8 else 1)
+          for x in imgs]
+      x = jnp.concatenate(imgs, -1) - 0.5
       x = x.reshape((-1, *x.shape[bdims:]))
       for i, depth in enumerate(self.depths):
         if self.outer and i == 0:
