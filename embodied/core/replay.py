@@ -1,3 +1,5 @@
+"""Provide replay functionality."""
+
 import threading
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +14,7 @@ from . import selectors
 
 
 class Replay:
+    """Represent replay."""
 
     def __init__(
         self,
@@ -25,7 +28,19 @@ class Replay:
         name="unnamed",
         seed=0,
     ):
+        """Initialize the replay.
 
+        Args:
+            length: Length value.
+            capacity: Capacity value.
+            directory: Directory value.
+            chunksize: Chunksize value.
+            online: Online value.
+            selector: Selector value.
+            save_wait: Save wait value.
+            name: Name value.
+            seed: Random seed.
+        """
         self.length = length
         self.capacity = capacity
         self.chunksize = chunksize
@@ -65,6 +80,11 @@ class Replay:
         return len(self.items)
 
     def stats(self):
+        """Handle statistics.
+
+        Returns:
+            Result of the operation.
+        """
         ratio = lambda x, y: x / y if y else np.nan
         m = self.metrics
         chunk_nbytes = sum(x.nbytes for x in list(self.chunks.values()))
@@ -84,6 +104,12 @@ class Replay:
 
     @elements.timer.section("replay_add")
     def add(self, step, worker=0):
+        """Add state.
+
+        Args:
+            step: Step value.
+            worker: Worker value.
+        """
         step = {k: v for k, v in step.items() if not k.startswith("log/")}
         with self.rwlock.reading:
             step = {k: np.asarray(v) for k, v in step.items()}
@@ -129,6 +155,15 @@ class Replay:
 
     @elements.timer.section("replay_sample")
     def sample(self, batch, mode="train"):
+        """Sample state.
+
+        Args:
+            batch: Batch of values to process.
+            mode: Mode value.
+
+        Returns:
+            Result of the operation.
+        """
         message = f"Replay buffer {self.name} is empty"
         limiters.wait(lambda: len(self.sampler), message)
         seqs, is_online = zip(*[self._sample(mode) for _ in range(batch)])
@@ -138,6 +173,11 @@ class Replay:
 
     @elements.timer.section("replay_update")
     def update(self, data):
+        """Update state.
+
+        Args:
+            data: Data to process.
+        """
         stepid = data.pop("stepid")
         priority = data.pop("priority", None)
         assert stepid.ndim == 3, stepid.shape
@@ -304,6 +344,11 @@ class Replay:
 
     @elements.timer.section("replay_save")
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         if self.directory:
             with self.rwlock.writing:
                 for worker, (chunkid, _) in self.current.items():
@@ -321,7 +366,13 @@ class Replay:
 
     @elements.timer.section("replay_load")
     def load(self, data=None, directory=None, amount=None):
+        """Load state.
 
+        Args:
+            data: Data to process.
+            directory: Directory value.
+            amount: Amount value.
+        """
         directory = directory or self.directory
         amount = amount or self.capacity or np.inf
         if not directory:

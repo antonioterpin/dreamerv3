@@ -1,3 +1,5 @@
+"""Provide internal functionality."""
+
 import concurrent.futures
 import math
 import os
@@ -31,6 +33,27 @@ def setup(
     coordinator_address=None,
     compilation_cache=True,
 ):
+    """Handle setup.
+
+    Args:
+        platform: Platform value.
+        compute_dtype: Compute dtype value.
+        debug: Debug value.
+        jit: Jit value.
+        prealloc: Prealloc value.
+        mock_devices: Mock devices value.
+        transfer_guard: Transfer guard value.
+        deterministic: Deterministic value.
+        autotune: Autotune value.
+        gpuflags: Gpuflags value.
+        tpuflags: Tpuflags value.
+        xladump: Xladump value.
+        debug_nans: Debug nans value.
+        process_id: Process id value.
+        num_processes: Num processes value.
+        coordinator_address: Coordinator address value.
+        compilation_cache: Compilation cache value.
+    """
     platform and jax.config.update("jax_platforms", platform)
     jax.config.update("jax_disable_most_optimizations", debug)
     jax.config.update("jax_disable_jit", not jit)
@@ -110,6 +133,11 @@ def setup(
 
 
 def get_named_axes():
+    """Return named axes.
+
+    Returns:
+        Result of the operation.
+    """
     axes = []
     for x in string.ascii_lowercase:
         try:
@@ -121,6 +149,11 @@ def get_named_axes():
 
 
 def get_data_axes():
+    """Return data axes.
+
+    Returns:
+        Result of the operation.
+    """
     axes = ("d", "f")
     for x in axes:
         try:
@@ -131,6 +164,14 @@ def get_data_axes():
 
 
 def fetch_async(value):
+    """Handle fetch async.
+
+    Args:
+        value: Value to process.
+
+    Returns:
+        Result of the operation.
+    """
     if is_multihost():
         value = to_local(value)
     with jax._src.config.explicit_device_get_scope():
@@ -139,10 +180,24 @@ def fetch_async(value):
 
 
 def is_multihost():
+    """Return whether multihost.
+
+    Returns:
+        Whether multihost.
+    """
     return jax.process_count() > 1
 
 
 def device_put(value, sharding):
+    """Handle device put.
+
+    Args:
+        value: Value to process.
+        sharding: Sharding value.
+
+    Returns:
+        Result of the operation.
+    """
     if is_multihost():
         with jax._src.config.explicit_device_put_scope():
             value = jax.tree.map(
@@ -154,12 +209,28 @@ def device_put(value, sharding):
 
 
 def local_sharding(sharding):
+    """Handle local sharding.
+
+    Args:
+        sharding: Sharding value.
+
+    Returns:
+        Result of the operation.
+    """
     return jax.tree.map(
         lambda s: jax.sharding.NamedSharding(s.mesh.local_mesh, s.spec), sharding
     )
 
 
 def to_local(x):
+    """Handle to local.
+
+    Args:
+        x: X value.
+
+    Returns:
+        Result of the operation.
+    """
     return jax.tree.map(_to_local, x)
 
 
@@ -186,6 +257,15 @@ def _to_local(x):
 
 
 def to_global(x, global_sharding):
+    """Handle to global.
+
+    Args:
+        x: X value.
+        global_sharding: Global sharding value.
+
+    Returns:
+        Result of the operation.
+    """
     if isinstance(global_sharding, jax.sharding.NamedSharding):
         return jax.tree.map(lambda xi: _to_global(xi, global_sharding), x)
     else:
@@ -214,6 +294,15 @@ def _to_global(x, global_sharding):
 
 
 def move(xs, dst_sharding):
+    """Handle move.
+
+    Args:
+        xs: Xs value.
+        dst_sharding: Dst sharding value.
+
+    Returns:
+        Result of the operation.
+    """
     if is_multihost():
         xs = to_local(xs)
         xs = jax.device_put(xs, local_sharding(dst_sharding))
@@ -224,6 +313,16 @@ def move(xs, dst_sharding):
 
 
 def mesh(devices, shape, names):
+    """Handle mesh.
+
+    Args:
+        devices: Devices value.
+        shape: Shape of the resulting value.
+        names: Names value.
+
+    Returns:
+        Result of the operation.
+    """
     shape = list(map(int, shape.split(",")))
     # At most a single -1 is allowed
     assert sum(i == -1 for i in shape) <= 1
@@ -237,6 +336,15 @@ def mesh(devices, shape, names):
 
 
 def grouped_ckpt_fns(params, chunksize):
+    """Handle grouped ckpt fns.
+
+    Args:
+        params: Parameters value.
+        chunksize: Chunksize value.
+
+    Returns:
+        Result of the operation.
+    """
     if chunksize <= 0:
         groups = [list(params.keys())]
     else:
@@ -270,6 +378,15 @@ def grouped_ckpt_fns(params, chunksize):
 
 
 def ckpt_fn(params, compile=True):
+    """Handle ckpt function.
+
+    Args:
+        params: Parameters value.
+        compile: Compile value.
+
+    Returns:
+        Result of the operation.
+    """
     mesh = params[list(params.keys())[0]].sharding.mesh
     mirrored = jax.sharding.NamedSharding(mesh, P())
     struct = lambda x, s: jax.ShapeDtypeStruct(x.shape, x.dtype, sharding=s)

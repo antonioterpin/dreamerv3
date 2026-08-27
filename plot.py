@@ -1,3 +1,5 @@
+"""Provide plot functionality."""
+
 import concurrent.futures
 import functools
 import json
@@ -35,6 +37,17 @@ COLORS = [
 
 
 def load_run(filename, xkeys, ykeys, ythres=None):
+    """Load run.
+
+    Args:
+        filename: Filename value.
+        xkeys: Xkeys value.
+        ykeys: Ykeys value.
+        ythres: Ythres value.
+
+    Returns:
+        Result of the operation.
+    """
     try:
         try:
             df = pd.read_json(filename, lines=True)
@@ -65,6 +78,14 @@ def load_run(filename, xkeys, ykeys, ythres=None):
 
 
 def load_runs(args):
+    """Load runs.
+
+    Args:
+        args: Positional arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+    """
     indirs = [elements.Path(x) for x in args.indirs]
     assert len(set(x.name for x in indirs)) == len(indirs), indirs
     records, filenames = [], []
@@ -101,6 +122,15 @@ def load_runs(args):
 
 
 def bin_runs(df, args):
+    """Handle bin runs.
+
+    Args:
+        df: Df value.
+        args: Positional arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+    """
     print("Binning runs...")
     if args.xlim:
         df["xlim"] = args.xlim
@@ -115,6 +145,14 @@ def bin_runs(df, args):
         df["binsize"] = df["xlim"].apply(lambda x: x / args.bins)
 
     def binning(row):
+        """Handle binning.
+
+        Args:
+            row: Row value.
+
+        Returns:
+            Result of the operation.
+        """
         bins = np.arange(0, row["xlim"] + 0.99 * row["binsize"], row["binsize"])
         sums = np.histogram(row["xs"], bins=bins, weights=row["ys"])[0]
         nums = np.histogram(row["xs"], bins=bins)[0]
@@ -129,6 +167,17 @@ def bin_runs(df, args):
 
 
 def comp_stat(name, df, fn, baseline=None):
+    """Handle comp stat.
+
+    Args:
+        name: Name value.
+        df: Df value.
+        fn: Function to apply.
+        baseline: Baseline value.
+
+    Returns:
+        Result of the operation.
+    """
     df = df.copy()
     if not df["xs"].apply(lambda xs: np.array_equal(xs, df["xs"][0])).all():
         assert len(df["xs"].apply(len).unique()) == 1
@@ -154,6 +203,15 @@ def comp_stat(name, df, fn, baseline=None):
 
 
 def comp_count(name, df):
+    """Handle comp count.
+
+    Args:
+        name: Name value.
+        df: Df value.
+
+    Returns:
+        Result of the operation.
+    """
     df = df.copy()
     if not df["xs"].apply(lambda xs: np.array_equal(xs, df["xs"][0])).all():
         assert len(df["xs"].apply(len).unique()) == 1
@@ -167,6 +225,18 @@ def comp_count(name, df):
 
 
 def comp_stats(df, args):
+    """Handle comp statistics.
+
+    Args:
+        df: Df value.
+        args: Positional arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+
+    Raises:
+        ValueError: If the operation cannot be completed.
+    """
     print("Computing stats...")
     refs = yaml.YAML(typ="safe").load(
         (elements.Path(__file__).parent / "baselines.yaml").read()
@@ -224,6 +294,13 @@ def comp_stats(df, args):
 
 
 def plot_runs(df, stats, args):
+    """Handle plot runs.
+
+    Args:
+        df: Df value.
+        stats: Statistics value.
+        args: Positional arguments forwarded to the wrapped callable.
+    """
     print("Plotting...")
     tasks = natsort(df.task.unique())
     snames = [] if stats is None else stats.name.unique()
@@ -275,6 +352,17 @@ def plot_runs(df, stats, args):
 
 
 def plots(amount, cols=4, size=(3, 3), **kwargs):
+    """Handle plots.
+
+    Args:
+        amount: Amount value.
+        cols: Cols value.
+        size: Requested number of elements.
+        kwargs: Keyword arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+    """
     rows = int(np.ceil(amount / cols))
     cols = min(cols, amount)
     kwargs["figsize"] = kwargs.get("figsize", (size[0] * cols, size[1] * rows))
@@ -286,6 +374,16 @@ def plots(amount, cols=4, size=(3, 3), **kwargs):
 
 
 def style(ax, xticks=4, yticks=4, grid=(1, 1), logx=False, darker=False):
+    """Handle style.
+
+    Args:
+        ax: Ax value.
+        xticks: Xticks value.
+        yticks: Yticks value.
+        grid: Grid value.
+        logx: Logx value.
+        darker: Darker value.
+    """
     ax.tick_params(axis="x", which="major", length=2, labelsize=10, pad=3)
     ax.tick_params(axis="y", which="major", length=2, labelsize=10, pad=2)
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(xticks))
@@ -319,6 +417,20 @@ def curve(
     scatter=True,
     **kwargs,
 ):
+    """Handle curve.
+
+    Args:
+        ax: Ax value.
+        xs: Xs value.
+        ys: Ys value.
+        lo: Lo value.
+        hi: Hi value.
+        label: Label value.
+        order: Order value.
+        color: Color value.
+        scatter: Scatter value.
+        kwargs: Keyword arguments forwarded to the wrapped callable.
+    """
     color = color or (None if order is None else COLORS[order])
     order = order or 0
     kwargs["color"] = color
@@ -338,6 +450,18 @@ def curve(
 
 
 def legend(fig, names=None, reverse=False, adjust=False, **kwargs):
+    """Handle legend.
+
+    Args:
+        fig: Fig value.
+        names: Names value.
+        reverse: Reverse value.
+        adjust: Adjust value.
+        kwargs: Keyword arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+    """
     options = dict(
         fontsize=10,
         numpoints=1,
@@ -374,7 +498,25 @@ def legend(fig, names=None, reverse=False, adjust=False, **kwargs):
 
 
 def silent(fn):
+    """Handle silent.
+
+    Args:
+        fn: Function to apply.
+
+    Returns:
+        Result of the operation.
+    """
+
     def wrapped(*args, **kwargs):
+        """Handle wrapped.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result of the operation.
+        """
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return fn(*args, **kwargs)
@@ -390,6 +532,14 @@ nanmin = silent(np.nanmin)
 
 
 def natsort(sequence):
+    """Handle natsort.
+
+    Args:
+        sequence: Sequence value.
+
+    Returns:
+        Result of the operation.
+    """
     pattern = re.compile(r"([0-9]+)")
     return sorted(
         sequence,
@@ -398,7 +548,14 @@ def natsort(sequence):
 
 
 def natfmt(x):
+    """Handle natfmt.
 
+    Args:
+        x: X value.
+
+    Returns:
+        Result of the operation.
+    """
     if abs(x) < 1e3:
         x, suffix = x, ""
     elif 1e3 <= abs(x) < 1e6:
@@ -416,6 +573,11 @@ def natfmt(x):
 
 
 def print_summary(df):
+    """Handle print summary.
+
+    Args:
+        df: Df value.
+    """
     methods = natsort(df.method.unique())
     tasks = natsort(df.task.unique())
     seeds = natsort(df.seed.unique())
@@ -429,6 +591,11 @@ def print_summary(df):
 
 
 def main(args):
+    """Handle main.
+
+    Args:
+        args: Positional arguments forwarded to the wrapped callable.
+    """
     df = load_runs(args)
     df = bin_runs(df, args)
     print_summary(df)

@@ -1,3 +1,5 @@
+"""Provide test parallel functionality."""
+
 from collections import deque
 from functools import partial as bind
 
@@ -12,6 +14,7 @@ import utils
 
 
 class TestParallel:
+    """Represent test parallel."""
 
     @pytest.mark.parametrize(
         "train_ratio, eval_envs",
@@ -23,6 +26,13 @@ class TestParallel:
         ),
     )
     def test_run_loop(self, tmpdir, train_ratio, eval_envs):
+        """Verify run loop.
+
+        Args:
+            tmpdir: Tmpdir value.
+            train_ratio: Train ratio value.
+            eval_envs: Eval envs value.
+        """
         addr = "ipc:///tmp/teststats"
         received = deque(maxlen=1)
         server = zerofun.Server(addr, name="TestStats")

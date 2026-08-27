@@ -1,3 +1,5 @@
+"""Provide test replay functionality."""
+
 import collections
 import threading
 import time
@@ -22,6 +24,11 @@ REPLAYS_UNIFORM = [
 
 
 def unbatched(dataset):
+    """Handle unbatched.
+
+    Args:
+        dataset: Dataset value.
+    """
     for batch in dataset:
         yield {k: v[0] for k, v in batch.items()}
 
@@ -30,9 +37,15 @@ def unbatched(dataset):
 @pytest.mark.filterwarnings("ignore:.*the imp module.*")
 @pytest.mark.filterwarnings("ignore:.*distutils.*")
 class TestReplay:
+    """Represent test replay."""
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_multiple_keys(self, Replay):
+        """Verify multiple keys.
+
+        Args:
+            Replay: Replay value.
+        """
         replay = Replay(length=5, capacity=10)
         for step in range(30):
             replay.add({"image": np.zeros((64, 64, 3)), "action": np.zeros(12)})
@@ -48,6 +61,14 @@ class TestReplay:
         [(1, 1, 1), (2, 1, 2), (5, 1, 10), (1, 2, 2), (5, 3, 15), (2, 7, 20)],
     )
     def test_capacity_exact(self, Replay, length, workers, capacity):
+        """Verify capacity exact.
+
+        Args:
+            Replay: Replay value.
+            length: Length value.
+            workers: Workers value.
+            capacity: Capacity value.
+        """
         replay = Replay(length, capacity)
         for step in range(30):
             for worker in range(workers):
@@ -69,6 +90,15 @@ class TestReplay:
         ],
     )
     def test_sample_sequences(self, Replay, length, workers, capacity, chunksize):
+        """Verify sample sequences.
+
+        Args:
+            Replay: Replay value.
+            length: Length value.
+            workers: Workers value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+        """
         replay = Replay(length, capacity, chunksize=chunksize)
         for step in range(30):
             for worker in range(workers):
@@ -84,6 +114,13 @@ class TestReplay:
         "length,capacity", [(1, 1), (2, 2), (5, 10), (1, 2), (5, 15), (2, 20)]
     )
     def test_sample_single(self, Replay, length, capacity):
+        """Verify sample single.
+
+        Args:
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+        """
         replay = Replay(length, capacity)
         for step in range(length):
             replay.add({"step": step})
@@ -94,6 +131,11 @@ class TestReplay:
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNIFORM)
     def test_sample_uniform(self, Replay):
+        """Verify sample uniform.
+
+        Args:
+            Replay: Replay value.
+        """
         replay = Replay(capacity=20, length=5, seed=0)
         for step in range(7):
             replay.add({"step": step})
@@ -111,6 +153,11 @@ class TestReplay:
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_workers_simple(self, Replay):
+        """Verify workers simple.
+
+        Args:
+            Replay: Replay value.
+        """
         replay = Replay(length=2, capacity=20)
         replay.add({"step": 0}, worker=0)
         replay.add({"step": 1}, worker=1)
@@ -123,6 +170,13 @@ class TestReplay:
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_workers_random(self, Replay, length=4, capacity=30):
+        """Verify workers random.
+
+        Args:
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+        """
         rng = np.random.default_rng(seed=0)
         replay = Replay(length, capacity)
         streams = {i: iter(range(10)) for i in range(3)}
@@ -148,6 +202,14 @@ class TestReplay:
         [(1, 1, 1), (2, 1, 2), (5, 1, 10), (1, 2, 2), (5, 3, 15), (2, 7, 20)],
     )
     def test_worker_delay(self, Replay, length, workers, capacity):
+        """Verify worker delay.
+
+        Args:
+            Replay: Replay value.
+            length: Length value.
+            workers: Workers value.
+            capacity: Capacity value.
+        """
         replay = Replay(length, capacity)
         rng = np.random.default_rng(seed=0)
         streams = [iter(range(10)) for _ in range(workers)]
@@ -164,6 +226,15 @@ class TestReplay:
         [(1, 1, 128), (3, 10, 128), (5, 100, 128), (5, 25, 2)],
     )
     def test_restore_exact(self, tmpdir, Replay, length, capacity, chunksize):
+        """Verify restore exact.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+        """
         elements.UUID.reset(debug=True)
         replay = Replay(
             length, capacity, directory=tmpdir, chunksize=chunksize, save_wait=True
@@ -186,6 +257,15 @@ class TestReplay:
         [(1, 1, 128), (3, 10, 128), (5, 100, 128), (5, 25, 2)],
     )
     def test_restore_noclear(self, tmpdir, Replay, length, capacity, chunksize):
+        """Verify restore noclear.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+        """
         elements.UUID.reset(debug=True)
         replay = Replay(
             length, capacity, directory=tmpdir, chunksize=chunksize, save_wait=True
@@ -207,6 +287,15 @@ class TestReplay:
     @pytest.mark.parametrize("workers", [1, 2, 5])
     @pytest.mark.parametrize("length,capacity", [(1, 1), (3, 10), (5, 100)])
     def test_restore_workers(self, tmpdir, Replay, workers, length, capacity):
+        """Verify restore workers.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            workers: Workers value.
+            length: Length value.
+            capacity: Capacity value.
+        """
         capacity *= workers
         replay = Replay(length, capacity, directory=tmpdir, save_wait=True)
         for step in range(50):
@@ -227,6 +316,15 @@ class TestReplay:
         "length,capacity,chunksize", [(1, 1, 1), (3, 10, 5), (5, 100, 12)]
     )
     def test_restore_chunks_exact(self, tmpdir, Replay, length, capacity, chunksize):
+        """Verify restore chunks exact.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+        """
         elements.UUID.reset(debug=True)
         assert len(list(elements.Path(tmpdir).glob("*.npz"))) == 0
         replay = Replay(
@@ -263,6 +361,16 @@ class TestReplay:
     def test_restore_chunks_workers(
         self, tmpdir, Replay, workers, length, capacity, chunksize
     ):
+        """Verify restore chunks workers.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            workers: Workers value.
+            length: Length value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+        """
         capacity *= workers
         replay = Replay(
             length, capacity, directory=tmpdir, chunksize=chunksize, save_wait=True
@@ -295,6 +403,15 @@ class TestReplay:
         [(1, 1, 128), (3, 10, 128), (5, 100, 128), (5, 25, 2)],
     )
     def test_restore_insert(self, tmpdir, Replay, length, capacity, chunksize):
+        """Verify restore insert.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+        """
         elements.UUID.reset(debug=True)
         replay = Replay(
             length, capacity, directory=tmpdir, chunksize=chunksize, save_wait=True
@@ -320,6 +437,17 @@ class TestReplay:
     def test_threading(
         self, tmpdir, Replay, length=5, capacity=128, chunksize=32, adders=8, samplers=4
     ):
+        """Verify threading.
+
+        Args:
+            tmpdir: Tmpdir value.
+            Replay: Replay value.
+            length: Length value.
+            capacity: Capacity value.
+            chunksize: Chunksize value.
+            adders: Adders value.
+            samplers: Samplers value.
+        """
         elements.UUID.reset(debug=True)
         replay = Replay(
             length, capacity, directory=tmpdir, chunksize=chunksize, save_wait=True
@@ -327,6 +455,7 @@ class TestReplay:
         running = [True]
 
         def adder():
+            """Handle adder."""
             ident = threading.get_ident()
             step = 0
             while running[0]:
@@ -335,6 +464,7 @@ class TestReplay:
                 time.sleep(0.001)
 
         def sampler():
+            """Handle sampler."""
             dataset = unbatched(replay.dataset(1))
             while running[0]:
                 seq = next(dataset)

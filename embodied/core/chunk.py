@@ -1,3 +1,5 @@
+"""Provide chunk functionality."""
+
 import io
 import sys
 import traceback
@@ -7,10 +9,16 @@ import numpy as np
 
 
 class Chunk:
+    """Represent chunk."""
 
     __slots__ = ("time", "uuid", "succ", "length", "size", "data", "saved")
 
     def __init__(self, size=1024):
+        """Initialize the chunk.
+
+        Args:
+            size: Requested number of elements.
+        """
         self.time = elements.timestamp(millis=True)
         self.uuid = elements.UUID()
         self.succ = elements.UUID(0)
@@ -29,16 +37,31 @@ class Chunk:
 
     @property
     def filename(self):
+        """Handle filename.
+
+        Returns:
+            Result of the operation.
+        """
         succ = self.succ.uuid if isinstance(self.succ, type(self)) else self.succ
         return f"{self.time}-{str(self.uuid)}-{str(succ)}-{self.length}.npz"
 
     @property
     def nbytes(self):
+        """Handle nbytes.
+
+        Returns:
+            Result of the operation.
+        """
         if not self.data:
             return 0
         return sum(x.nbytes for x in self.data.values())
 
     def append(self, step):
+        """Handle append.
+
+        Args:
+            step: Step value.
+        """
         assert self.length < self.size
         if not self.data:
             example = step
@@ -52,17 +75,39 @@ class Chunk:
         #   [x.setflags(write=False) for x in self.data.values()]
 
     def update(self, index, length, mapping):
+        """Update state.
+
+        Args:
+            index: Position of the requested element.
+            length: Length value.
+            mapping: Mapping value.
+        """
         assert 0 <= index <= self.length, (index, self.length)
         assert 0 <= index + length <= self.length, (index, length, self.length)
         for key, value in mapping.items():
             self.data[key][index : index + length] = value
 
     def slice(self, index, length):
+        """Handle slice.
+
+        Args:
+            index: Position of the requested element.
+            length: Length value.
+
+        Returns:
+            Result of the operation.
+        """
         assert 0 <= index and index + length <= self.length
         return {k: v[index : index + length] for k, v in self.data.items()}
 
     @elements.timer.section("chunk_save")
     def save(self, directory, log=False):
+        """Save state.
+
+        Args:
+            directory: Directory value.
+            log: Log value.
+        """
         assert not self.saved
         self.saved = True
         filename = elements.Path(directory) / self.filename
@@ -75,6 +120,15 @@ class Chunk:
 
     @classmethod
     def load(cls, filename, error="raise"):
+        """Load state.
+
+        Args:
+            filename: Filename value.
+            error: Error value.
+
+        Returns:
+            Result of the operation.
+        """
         assert error in ("raise", "none")
         time, uuid, succ, length = filename.stem.split("-")
         length = int(length)

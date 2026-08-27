@@ -1,3 +1,5 @@
+"""Provide clock functionality."""
+
 import threading
 import time
 
@@ -8,6 +10,15 @@ REPLICA = None
 
 
 def setup(is_server, replica, replicas, port, addr):
+    """Handle setup.
+
+    Args:
+        is_server: Is server value.
+        replica: Replica value.
+        replicas: Replicas value.
+        port: Port value.
+        addr: Address value.
+    """
     global CLIENT, REPLICA
     assert CLIENT is None
     if replicas <= 1:
@@ -31,6 +42,15 @@ def _start_server(port, replicas):
     respond = threading.Barrier(replicas)
 
     def create(replica, every):
+        """Create state.
+
+        Args:
+            replica: Replica value.
+            every: Every value.
+
+        Returns:
+            Result of the operation.
+        """
         requests.append(every)
         receive.wait()
         if replica == 0:
@@ -44,6 +64,16 @@ def _start_server(port, replicas):
         return result[0]
 
     def should(replica, clockid, skip):
+        """Handle should.
+
+        Args:
+            replica: Replica value.
+            clockid: Clockid value.
+            skip: Skip value.
+
+        Returns:
+            Result of the operation.
+        """
         requests.append((clockid, skip))
         receive.wait()
         if replica == 0:
@@ -74,8 +104,15 @@ def _start_server(port, replicas):
 
 
 class GlobalClock:
+    """Represent global clock."""
 
     def __init__(self, every, first=False):
+        """Initialize the global clock.
+
+        Args:
+            every: Every value.
+            first: First value.
+        """
         self.multihost = bool(CLIENT)
         if self.multihost:
             self.clockid = CLIENT.create(REPLICA, every).result()
@@ -84,6 +121,15 @@ class GlobalClock:
             self.clock = LocalClock(every, first)
 
     def __call__(self, step=None, skip=None):
+        """Apply the global clock.
+
+        Args:
+            step: Step to process.
+            skip: Skip to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         if self.multihost:
             if self.skip_next:
                 self.skip_next = False
@@ -94,13 +140,29 @@ class GlobalClock:
 
 
 class LocalClock:
+    """Represent local clock."""
 
     def __init__(self, every, first=False):
+        """Initialize the local clock.
+
+        Args:
+            every: Every value.
+            first: First value.
+        """
         self.every = every
         self.prev = None
         self.first = first
 
     def __call__(self, step=None, skip=None):
+        """Apply the local clock.
+
+        Args:
+            step: Step to process.
+            skip: Skip to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         if skip:
             return False
         if self.every == 0:  # Zero means off

@@ -1,11 +1,21 @@
+"""Provide dummy functionality."""
+
 import elements
 import embodied
 import numpy as np
 
 
 class Dummy(embodied.Env):
+    """Represent dummy."""
 
     def __init__(self, task, size=(64, 64), length=100):
+        """Initialize the dummy.
+
+        Args:
+            task: Task value.
+            size: Requested number of elements.
+            length: Length value.
+        """
         del task
         self.size = size
         self.length = length
@@ -14,6 +24,11 @@ class Dummy(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "image": elements.Space(np.uint8, self.size + (3,)),
             "vector": elements.Space(np.float32, (7,)),
@@ -29,6 +44,11 @@ class Dummy(embodied.Env):
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "reset": elements.Space(bool),
             "act_disc": elements.Space(np.int32, (), 0, 5),
@@ -36,6 +56,14 @@ class Dummy(embodied.Env):
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         if action.pop("reset") or self.done:
             self.count = 0
             self.done = False

@@ -1,3 +1,5 @@
+"""Provide train functionality."""
+
 import collections
 from functools import partial as bind
 
@@ -7,7 +9,16 @@ import numpy as np
 
 
 def train(make_agent, make_replay, make_env, make_stream, make_logger, args):
+    """Train state.
 
+    Args:
+        make_agent: Make agent value.
+        make_replay: Make replay value.
+        make_env: Make environment value.
+        make_stream: Make stream value.
+        make_logger: Make logger value.
+        args: Positional arguments forwarded to the wrapped callable.
+    """
     agent = make_agent()
     replay = make_replay()
     logger = make_logger()
@@ -29,6 +40,12 @@ def train(make_agent, make_replay, make_env, make_stream, make_logger, args):
 
     @elements.timer.section("logfn")
     def logfn(tran, worker):
+        """Handle logfn.
+
+        Args:
+            tran: Tran value.
+            worker: Worker value.
+        """
         episode = episodes[worker]
         tran["is_first"] and episode.reset()
         episode.add("score", tran["reward"], agg="sum")
@@ -71,6 +88,12 @@ def train(make_agent, make_replay, make_env, make_stream, make_logger, args):
     carry_report = agent.init_report(args.batch_size)
 
     def trainfn(tran, worker):
+        """Handle trainfn.
+
+        Args:
+            tran: Tran value.
+            worker: Worker value.
+        """
         if len(replay) < args.batch_size * args.batch_length:
             return
         for _ in range(should_train(step)):

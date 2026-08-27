@@ -1,3 +1,5 @@
+"""Provide agent functionality."""
+
 import re
 
 import chex
@@ -22,6 +24,7 @@ isimage = lambda s: s.dtype == np.uint8 and len(s.shape) == 3
 
 
 class Agent(embodied.jax.Agent):
+    """Represent agent."""
 
     banner = [
         r"---  ___                           __   ______ ---",
@@ -31,6 +34,13 @@ class Agent(embodied.jax.Agent):
     ]
 
     def __init__(self, obs_space, act_space, config):
+        """Initialize the agent.
+
+        Args:
+            obs_space: Observation space value.
+            act_space: Act space value.
+            config: Runtime configuration.
+        """
         self.obs_space = obs_space
         self.act_space = act_space
         self.config = config
@@ -102,10 +112,20 @@ class Agent(embodied.jax.Agent):
 
     @property
     def policy_keys(self):
+        """Handle policy keys.
+
+        Returns:
+            Result of the operation.
+        """
         return "^(enc|dyn|dec|pol)/"
 
     @property
     def ext_space(self):
+        """Handle ext space.
+
+        Returns:
+            Result of the operation.
+        """
         spaces = {}
         spaces["consec"] = elements.Space(np.int32)
         spaces["stepid"] = elements.Space(np.uint8, 20)
@@ -122,6 +142,14 @@ class Agent(embodied.jax.Agent):
         return spaces
 
     def init_policy(self, batch_size):
+        """Handle init policy.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         zeros = lambda x: jnp.zeros((batch_size, *x.shape), x.dtype)
         return (
             self.enc.initial(batch_size),
@@ -131,12 +159,38 @@ class Agent(embodied.jax.Agent):
         )
 
     def init_train(self, batch_size):
+        """Handle init train.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return self.init_policy(batch_size)
 
     def init_report(self, batch_size):
+        """Handle init report.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return self.init_policy(batch_size)
 
     def policy(self, carry, obs, mode="train"):
+        """Handle policy.
+
+        Args:
+            carry: Carry value.
+            obs: Observation value.
+            mode: Mode value.
+
+        Returns:
+            Result of the operation.
+        """
         enc_carry, dyn_carry, dec_carry, prevact = carry
         kw = dict(training=False, single=True)
         reset = obs["is_first"]
@@ -166,6 +220,15 @@ class Agent(embodied.jax.Agent):
         return carry, act, out
 
     def train(self, carry, data):
+        """Train state.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         carry, obs, prevact, stepid = self._apply_replay_context(carry, data)
         metrics, (carry, entries, outs, mets) = self.opt(
             self.loss, carry, obs, prevact, training=True, has_aux=True
@@ -189,6 +252,17 @@ class Agent(embodied.jax.Agent):
         return carry, outs, metrics
 
     def loss(self, carry, obs, prevact, training):
+        """Handle loss.
+
+        Args:
+            carry: Carry value.
+            obs: Observation value.
+            prevact: Prevact value.
+            training: Training value.
+
+        Returns:
+            Result of the operation.
+        """
         enc_carry, dyn_carry, dec_carry = carry
         reset = obs["is_first"]
         B, T = reset.shape
@@ -290,6 +364,15 @@ class Agent(embodied.jax.Agent):
         return loss, (carry, entries, outs, metrics)
 
     def report(self, carry, data):
+        """Handle report.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         if not self.config.report:
             return carry, {}
 
@@ -458,6 +541,29 @@ def imag_loss(
     actent=3e-4,
     slowreg=1.0,
 ):
+    """Handle imag loss.
+
+    Args:
+        act: Act value.
+        rew: Rew value.
+        con: Con value.
+        policy: Policy value.
+        value: Value to process.
+        slowvalue: Slowvalue value.
+        retnorm: Retnorm value.
+        valnorm: Valnorm value.
+        advnorm: Advnorm value.
+        update: Update value.
+        contdisc: Contdisc value.
+        slowtar: Slowtar value.
+        horizon: Horizon value.
+        lam: Lam value.
+        actent: Actent value.
+        slowreg: Slowreg value.
+
+    Returns:
+        Result of the operation.
+    """
     losses = {}
     metrics = {}
 
@@ -531,6 +637,25 @@ def repl_loss(
     horizon=333,
     lam=0.95,
 ):
+    """Handle replay buffer loss.
+
+    Args:
+        last: Last value.
+        term: Term value.
+        rew: Rew value.
+        boot: Boot value.
+        value: Value to process.
+        slowvalue: Slowvalue value.
+        valnorm: Valnorm value.
+        update: Update value.
+        slowreg: Slowreg value.
+        slowtar: Slowtar value.
+        horizon: Horizon value.
+        lam: Lam value.
+
+    Returns:
+        Result of the operation.
+    """
     losses = {}
 
     voffset, vscale = valnorm.stats()
@@ -559,6 +684,20 @@ def repl_loss(
 
 
 def lambda_return(last, term, rew, val, boot, disc, lam):
+    """Handle lambda return.
+
+    Args:
+        last: Last value.
+        term: Term value.
+        rew: Rew value.
+        val: Val value.
+        boot: Boot value.
+        disc: Disc value.
+        lam: Lam value.
+
+    Returns:
+        Result of the operation.
+    """
     chex.assert_equal_shape((last, term, rew, val, boot))
     rets = [boot[:, -1]]
     live = (1 - f32(term))[:, 1:] * disc

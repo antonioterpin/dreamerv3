@@ -1,3 +1,5 @@
+"""Provide main functionality."""
+
 import importlib
 import os
 import pathlib
@@ -17,6 +19,14 @@ import ruamel.yaml as yaml
 
 
 def main(argv=None):
+    """Handle main.
+
+    Args:
+        argv: Argv value.
+
+    Raises:
+        NotImplementedError: If the operation cannot be completed.
+    """
     from .agent import Agent
 
     [elements.print(line) for line in Agent.banner]
@@ -44,6 +54,7 @@ def main(argv=None):
         config.save(logdir / "config.yaml")
 
     def init():
+        """Handle init."""
         elements.timer.global_timer.enabled = config.logger.timer
 
     portal.setup(
@@ -134,6 +145,14 @@ def main(argv=None):
 
 
 def make_agent(config):
+    """Create agent.
+
+    Args:
+        config: Runtime configuration.
+
+    Returns:
+        Result of the operation.
+    """
     from .agent import Agent
 
     env = make_env(config, 0)
@@ -164,6 +183,17 @@ def make_agent(config):
 
 
 def make_logger(config):
+    """Create logger.
+
+    Args:
+        config: Runtime configuration.
+
+    Returns:
+        Result of the operation.
+
+    Raises:
+        NotImplementedError: If the operation cannot be completed.
+    """
     step = elements.Counter()
     logdir = config.logdir
     multiplier = config.env.get(config.task.split("_")[0], {}).get("repeat", 1)
@@ -198,6 +228,16 @@ def make_logger(config):
 
 
 def make_replay(config, folder, mode="train"):
+    """Create replay.
+
+    Args:
+        config: Runtime configuration.
+        folder: Folder value.
+        mode: Mode value.
+
+    Returns:
+        Result of the operation.
+    """
     batlen = config.batch_length if mode == "train" else config.report_length
     consec = config.consec_train if mode == "train" else config.consec_report
     capacity = config.replay.size if mode == "train" else config.replay.size / 10
@@ -235,6 +275,16 @@ def make_replay(config, folder, mode="train"):
 
 
 def make_env(config, index, **overrides):
+    """Create environment.
+
+    Args:
+        config: Runtime configuration.
+        index: Position of the requested element.
+        overrides: Overrides value.
+
+    Returns:
+        Result of the operation.
+    """
     suite, task = config.task.split("_", 1)
     if suite == "memmaze":
         from embodied.envs import from_gym
@@ -271,6 +321,15 @@ def make_env(config, index, **overrides):
 
 
 def wrap_env(env, config):
+    """Handle wrap environment.
+
+    Args:
+        env: Environment value.
+        config: Runtime configuration.
+
+    Returns:
+        Result of the operation.
+    """
     for name, space in env.act_space.items():
         if not space.discrete:
             env = embodied.wrappers.NormalizeAction(env, name)
@@ -283,6 +342,16 @@ def wrap_env(env, config):
 
 
 def make_stream(config, replay, mode):
+    """Create stream.
+
+    Args:
+        config: Runtime configuration.
+        replay: Replay value.
+        mode: Mode value.
+
+    Returns:
+        Result of the operation.
+    """
     fn = bind(replay.sample, config.batch_size, mode)
     stream = embodied.streams.Stateless(fn)
     stream = embodied.streams.Consec(

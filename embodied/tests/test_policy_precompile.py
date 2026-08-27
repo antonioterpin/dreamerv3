@@ -19,6 +19,15 @@ def _client(*args, **kwargs):
 def _server_factory(events):
 
     def make_server(*args, **kwargs):
+        """Create server.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result of the operation.
+        """
         events.append("server_construct")
         return types.SimpleNamespace(
             bind=lambda *a, **k: None,
@@ -44,12 +53,29 @@ def _args(actor_batch):
 def _run_actor_startup(monkeypatch, events, warmup_error=None):
 
     class Agent:
+        """Represent agent."""
 
         def init_policy(self, batch_size):
+            """Handle init policy.
+
+            Args:
+                batch_size: Batch size value.
+
+            Returns:
+                Result of the operation.
+            """
             events.append("init_policy")
             return {"state": np.zeros((batch_size, 1), np.float32)}
 
         def precompile_policy(self, batch_size):
+            """Handle precompile policy.
+
+            Args:
+                batch_size: Batch size value.
+
+            Raises:
+                warmup_error: If the operation cannot be completed.
+            """
             events.append(f"warmup:{batch_size}")
             if warmup_error is not None:
                 raise warmup_error
@@ -58,6 +84,7 @@ def _run_actor_startup(monkeypatch, events, warmup_error=None):
     waits = [0]
 
     def wait():
+        """Wait for state."""
         waits[0] += 1
         events.append("checkpoint_restored" if waits[0] == 1 else "learner_continues")
 
@@ -75,6 +102,11 @@ def _run_actor_startup(monkeypatch, events, warmup_error=None):
 
 
 def test_actor_warms_policy_after_restore_before_serving(monkeypatch):
+    """Verify actor warms policy after restore before serving.
+
+    Args:
+        monkeypatch: Monkeypatch value.
+    """
     events = []
     _run_actor_startup(monkeypatch, events)
     assert events == [
@@ -89,6 +121,11 @@ def test_actor_warms_policy_after_restore_before_serving(monkeypatch):
 
 
 def test_failed_warmup_aborts_barrier_and_never_serves(monkeypatch):
+    """Verify failed warmup aborts barrier and never serves.
+
+    Args:
+        monkeypatch: Monkeypatch value.
+    """
     events = []
     with pytest.raises(RuntimeError, match="warmup failed"):
         _run_actor_startup(monkeypatch, events, RuntimeError("warmup failed"))
@@ -97,6 +134,14 @@ def test_failed_warmup_aborts_barrier_and_never_serves(monkeypatch):
 
 
 def test_learner_waits_for_warmup(monkeypatch):
+    """Verify learner waits for warmup.
+
+    Args:
+        monkeypatch: Monkeypatch value.
+
+    Returns:
+        Result of the operation.
+    """
     events = []
     warmup_started = threading.Event()
     finish_warmup = threading.Event()
@@ -104,11 +149,25 @@ def test_learner_waits_for_warmup(monkeypatch):
     errors = []
 
     class Agent:
+        """Represent agent."""
 
         def init_policy(self, batch_size):
+            """Handle init policy.
+
+            Args:
+                batch_size: Batch size value.
+
+            Returns:
+                Result of the operation.
+            """
             return {"state": np.zeros((batch_size, 1), np.float32)}
 
         def precompile_policy(self, batch_size):
+            """Handle precompile policy.
+
+            Args:
+                batch_size: Batch size value.
+            """
             events.append("warmup_begin")
             warmup_started.set()
             assert finish_warmup.wait(5.0), "test did not release the warmup"
@@ -120,12 +179,14 @@ def test_learner_waits_for_warmup(monkeypatch):
     )
 
     def actor():
+        """Handle actor."""
         try:
             embodied.run.parallel.parallel_actor(Agent(), barrier, _args(2))
         except BaseException as e:
             errors.append(e)
 
     def learner():
+        """Handle learner."""
         events.append("checkpoint_restored")
         barrier.wait()
         barrier.wait()
@@ -145,6 +206,11 @@ def test_learner_waits_for_warmup(monkeypatch):
 
 
 def test_jax_warmup_compiles_real_shape_without_state_leaks():
+    """Verify jax warmup compiles real shape without state leaks.
+
+    Returns:
+        Result of the operation.
+    """
     agent = object.__new__(JaxAgent)
     agent.obs_space = {
         "sensor": elements.Space(np.float32, (2,)),
@@ -161,13 +227,40 @@ def test_jax_warmup_compiles_real_shape_without_state_leaks():
 
     @jax.jit
     def compiled(state, sensor):
+        """Handle compiled.
+
+        Args:
+            state: State value.
+            sensor: Sensor value.
+
+        Returns:
+            Result of the operation.
+        """
         traces.append("trace")
         return state + 1, sensor[:, :1]
 
     def init_policy(batch_size):
+        """Handle init policy.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return {"state": np.zeros((batch_size, 1), np.float32)}
 
     def policy(carry, obs, mode="train"):
+        """Handle policy.
+
+        Args:
+            carry: Carry value.
+            obs: Observation value.
+            mode: Mode value.
+
+        Returns:
+            Result of the operation.
+        """
         with agent.n_actions.lock:
             agent.n_actions.value += 1
         observations.append({k: v.copy() for k, v in obs.items()})

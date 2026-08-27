@@ -1,3 +1,5 @@
+"""Provide test from gym functionality."""
+
 import gym
 import numpy as np
 import pytest
@@ -13,13 +15,27 @@ class _LegacyEnv(gym.Env):
     action_space = gym.spaces.Box(-1, 1, (1,), np.float32)
 
     def __init__(self):
+        """Initialize the legacy environment."""
         self.t = 0
 
     def reset(self):
+        """Reset state.
+
+        Returns:
+            Result of the operation.
+        """
         self.t = 0
         return np.zeros((2,), np.float32)
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         self.t += 1
         done = self.t >= 2
         return np.full((2,), self.t, np.float32), 1.0, done, {}
@@ -32,14 +48,36 @@ class _ModernEnv(gym.Env):
     action_space = gym.spaces.Box(-1, 1, (1,), np.float32)
 
     def __init__(self, truncate=False):
+        """Initialize the modern environment.
+
+        Args:
+            truncate: Truncate value.
+        """
         self.t = 0
         self.truncate = truncate
 
     def reset(self, *, seed=None, options=None):
+        """Reset state.
+
+        Args:
+            seed: Random seed.
+            options: Options value.
+
+        Returns:
+            Result of the operation.
+        """
         self.t = 0
         return np.zeros((2,), np.float32), {"source": "reset"}
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         self.t += 1
         last = self.t >= 2
         terminated = last and not self.truncate
@@ -57,6 +95,7 @@ def _rollout(env):
 
 
 def test_legacy_api_unchanged():
+    """Verify legacy api unchanged."""
     obs = _rollout(_LegacyEnv())
     assert [o["is_first"] for o in obs] == [True, False, False]
     assert [o["is_last"] for o in obs] == [False, False, True]
@@ -67,6 +106,11 @@ def test_legacy_api_unchanged():
 
 @pytest.mark.parametrize("truncate", [False, True])
 def test_modern_api_reset_tuple_and_five_tuple_step(truncate):
+    """Verify modern api reset tuple and five tuple step.
+
+    Args:
+        truncate: Truncate value.
+    """
     env = _ModernEnv(truncate=truncate)
     wrapped = FromGym(env)
     act = {k: v.sample() for k, v in wrapped.act_space.items()}
@@ -87,9 +131,24 @@ def test_modern_api_reset_tuple_and_five_tuple_step(truncate):
 
 
 def test_modern_api_info_overrides_is_terminal():
+    """Verify modern api info overrides is terminal.
+
+    Returns:
+        Result of the operation.
+    """
 
     class Env(_ModernEnv):
+        """Represent environment."""
+
         def step(self, action):
+            """Advance state.
+
+            Args:
+                action: Action value.
+
+            Returns:
+                Result of the operation.
+            """
             obs, rew, term, trunc, info = super().step(action)
             return obs, rew, term, trunc, {"is_terminal": False}
 
@@ -98,8 +157,15 @@ def test_modern_api_info_overrides_is_terminal():
 
 
 def test_reset_key_is_not_forwarded_to_dict_action_envs():
+    """Verify reset key is not forwarded to dict action envs.
+
+    Returns:
+        Result of the operation.
+    """
 
     class DictActionEnv(gym.Env):
+        """Represent dict action environment."""
+
         observation_space = gym.spaces.Dict(
             {"pos": gym.spaces.Box(-1, 1, (2,), np.float32)}
         )
@@ -108,12 +174,26 @@ def test_reset_key_is_not_forwarded_to_dict_action_envs():
         )
 
         def __init__(self):
+            """Initialize the dict action environment."""
             self.received = []
 
         def reset(self):
+            """Reset state.
+
+            Returns:
+                Result of the operation.
+            """
             return {"pos": np.zeros((2,), np.float32)}
 
         def step(self, action):
+            """Advance state.
+
+            Args:
+                action: Action value.
+
+            Returns:
+                Result of the operation.
+            """
             self.received.append(action)
             return {"pos": np.ones((2,), np.float32)}, 0.0, True, {}
 

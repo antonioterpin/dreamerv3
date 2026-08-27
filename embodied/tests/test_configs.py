@@ -1,3 +1,5 @@
+"""Provide test configs functionality."""
+
 import pathlib
 
 import elements
@@ -7,6 +9,7 @@ CONFIGS = pathlib.Path(__file__).resolve().parents[2] / "dreamerv3" / "configs.y
 
 
 def test_run_args_declare_the_resume_regex():
+    """Verify run args declare the resume regex."""
     configs = yaml.YAML(typ="safe").load(CONFIGS.read_text())
     config = elements.Config(configs["defaults"])
     args = elements.Config(**config.run, logdir=config.logdir)

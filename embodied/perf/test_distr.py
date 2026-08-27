@@ -1,3 +1,5 @@
+"""Provide test distr functionality."""
+
 import os
 import pathlib
 import sys
@@ -11,8 +13,19 @@ import numpy as np
 
 
 class TestDistr:
+    """Represent test distr."""
 
     def test_batched_throughput(self, clients=32, batch=16, workers=4):
+        """Verify batched throughput.
+
+        Args:
+            clients: Clients value.
+            batch: Batch of values to process.
+            workers: Workers value.
+
+        Returns:
+            Result of the operation.
+        """
         assert int(os.popen("ulimit -n").read()) > 1024
 
         addr = f"tcp://localhost:{zerofun.get_free_port()}"
@@ -20,6 +33,13 @@ class TestDistr:
         barrier = zerofun.mp.Barrier(1 + clients)
 
         def client(context, addr, barrier):
+            """Handle client.
+
+            Args:
+                context: Context value.
+                addr: Address value.
+                barrier: Barrier value.
+            """
             data = {
                 "foo": np.zeros(
                     (
@@ -39,10 +59,23 @@ class TestDistr:
                 client.function(data).result()
 
         def workfn(data):
+            """Handle workfn.
+
+            Args:
+                data: Data to process.
+
+            Returns:
+                Result of the operation.
+            """
             time.sleep(0.002)
             return data, data
 
         def donefn(data):
+            """Handle donefn.
+
+            Args:
+                data: Data to process.
+            """
             stats["batches"] += 1
             stats["frames"] += len(data["foo"])
             stats["nbytes"] += sum(x.nbytes for x in data.values())
@@ -76,9 +109,26 @@ class TestDistr:
     #############################################################################
 
     def test_proxy_throughput(self, clients=32, batch=16, workers=4):
+        """Verify proxy throughput.
+
+        Args:
+            clients: Clients value.
+            batch: Batch of values to process.
+            workers: Workers value.
+
+        Returns:
+            Result of the operation.
+        """
         assert int(os.popen("ulimit -n").read()) > 1024
 
         def client(context, outer_addr, barrier):
+            """Handle client.
+
+            Args:
+                context: Context value.
+                outer_addr: Outer address value.
+                barrier: Barrier value.
+            """
             data = {
                 "foo": np.zeros(
                     (
@@ -98,11 +148,30 @@ class TestDistr:
                 client.function(data).result()
 
         def proxy(context, outer_addr, inner_addr, barrier):
+            """Handle proxy.
+
+            Args:
+                context: Context value.
+                outer_addr: Outer address value.
+                inner_addr: Inner address value.
+                barrier: Barrier value.
+
+            Returns:
+                Result of the operation.
+            """
             client = zerofun.Client(inner_addr, pings=0, maxage=0, name="ProxyInner")
             client.connect()
             server = zerofun.Server(outer_addr, errors=True, name="ProxyOuter")
 
             def function(data):
+                """Handle function.
+
+                Args:
+                    data: Data to process.
+
+                Returns:
+                    Result of the operation.
+                """
                 return client.function(data).result()
 
             server.bind("function", function, batch=batch, workers=workers)
@@ -113,13 +182,36 @@ class TestDistr:
                     time.sleep(0.1)
 
         def backend(context, inner_addr, barrier):
+            """Handle backend.
+
+            Args:
+                context: Context value.
+                inner_addr: Inner address value.
+                barrier: Barrier value.
+
+            Returns:
+                Result of the operation.
+            """
             stats = defaultdict(int)
 
             def workfn(data):
+                """Handle workfn.
+
+                Args:
+                    data: Data to process.
+
+                Returns:
+                    Result of the operation.
+                """
                 time.sleep(0.002)
                 return data, data
 
             def donefn(data):
+                """Handle donefn.
+
+                Args:
+                    data: Data to process.
+                """
                 stats["batches"] += 1
                 stats["frames"] += len(data["foo"])
                 stats["nbytes"] += sum(x.nbytes for x in data.values())

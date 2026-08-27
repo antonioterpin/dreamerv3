@@ -1,3 +1,5 @@
+"""Provide test float images functionality."""
+
 import elements
 import jax
 import jax.numpy as jnp
@@ -14,6 +16,14 @@ def _encode(space, image):
     )
 
     def fn(obs):
+        """Handle function.
+
+        Args:
+            obs: Observation value.
+
+        Returns:
+            Result of the operation.
+        """
         reset = jnp.zeros(obs["image"].shape[:2], bool)
         _, _, tokens = enc({}, obs, reset, training=False)
         return tokens
@@ -23,6 +33,7 @@ def _encode(space, image):
 
 
 def test_float_images_in_unit_range_match_uint8_images():
+    """Verify float images in unit range match uint8 images."""
     rng = np.random.default_rng(0)
     pixels = rng.integers(0, 256, (1, 2, 16, 16, 3), np.uint8)
     as_uint8 = _encode(elements.Space(np.uint8, (16, 16, 3)), pixels)
@@ -36,6 +47,7 @@ def test_float_images_in_unit_range_match_uint8_images():
 
 
 def test_integer_images_other_than_uint8_are_rejected():
+    """Verify integer images other than uint8 are rejected."""
     pixels = np.zeros((1, 2, 16, 16, 3), np.int32)
     with pytest.raises(AssertionError):
         _encode(elements.Space(np.int32, (16, 16, 3), 0, 256), pixels)

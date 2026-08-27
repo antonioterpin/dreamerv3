@@ -1,3 +1,5 @@
+"""Provide parallel functionality."""
+
 import collections
 import threading
 import time
@@ -57,7 +59,6 @@ def combined(
         reset. Without it, the original indefinitely running behavior is
         preserved.
     """
-
     if args.actor_batch <= 0:
         args = args.update(actor_batch=max(1, args.envs // 2))
     assert args.actor_batch <= args.envs, (args.actor_batch, args.envs)
@@ -173,7 +174,6 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
       save_events: Optional thread events ('latest', 'best') the actor sets at
         episode boundaries to request checkpoints from the learner.
     """
-
     islist = lambda x: isinstance(x, list)
     ep_sums = collections.defaultdict(float)
     ep_steps = collections.defaultdict(int)
@@ -204,6 +204,14 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
 
     @elements.timer.section("workfn")
     def workfn(obs):
+        """Handle workfn.
+
+        Args:
+            obs: Observation value.
+
+        Returns:
+            Result of the operation.
+        """
         envid = obs.pop("envid")
         assert envid.shape == (args.actor_batch,)
         is_eval = obs.pop("is_eval")
@@ -291,7 +299,6 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
       save_events: Optional thread events set by the actor at episode
         boundaries; 'latest' saves ckpt/agent, 'best' saves ckpt/agent_best.
     """
-
     agg = elements.Agg()
     usage = elements.Usage(**args.usage)
     should_log = embodied.GlobalClock(args.log_every)
@@ -323,6 +330,15 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
     received = collections.defaultdict(int)
 
     def parallel_stream(source, prefetch=2):
+        """Handle parallel stream.
+
+        Args:
+            source: Source value.
+            prefetch: Prefetch value.
+
+        Raises:
+            Disconnected: If replay disconnects before the actor finishes.
+        """
         replay = portal.Client(args.replay_addr, f"LearnerReplay{source.title()}")
         replays[source] = replay
         call = getattr(replay, f"sample_batch_{source}")
@@ -344,6 +360,14 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
             yield data
 
     def evaluate(stream):
+        """Evaluate state.
+
+        Args:
+            stream: Stream value.
+
+        Returns:
+            Result of the operation.
+        """
         carry = agent.init_report(args.batch_size)
         agg = elements.Agg()
         for _ in range(args.consec_report * args.report_batches):
@@ -469,6 +493,14 @@ def parallel_replay(
     )
 
     def add_batch(data):
+        """Add batch.
+
+        Args:
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         active.increment()
         for i, envid in enumerate(data.pop("envid")):
             tran = {k: v[i] for k, v in data.items()}
@@ -487,6 +519,11 @@ def parallel_replay(
         return {}
 
     def sample_batch_train():
+        """Sample batch train.
+
+        Returns:
+            Result of the operation.
+        """
         active.increment()
         with elements.timer.section("replay_sample_wait"):
             for _ in range(args.batch_size):
@@ -512,10 +549,20 @@ def parallel_replay(
         return next(stream_train)
 
     def sample_batch_report():
+        """Sample batch report.
+
+        Returns:
+            Result of the operation.
+        """
         active.increment()
         return next(stream_report)
 
     def sample_batch_eval():
+        """Sample batch eval.
+
+        Returns:
+            Result of the operation.
+        """
         active.increment()
         return next(stream_eval)
 
@@ -589,11 +636,21 @@ def parallel_logger(make_logger, args, lifecycle=None):
 
     @elements.timer.section("addfn")
     def addfn(metrics):
+        """Handle addfn.
+
+        Args:
+            metrics: Metrics value.
+        """
         active.increment()
         logger.add(metrics)
 
     @elements.timer.section("tranfn")
     def tranfn(trans):
+        """Handle tranfn.
+
+        Args:
+            trans: Trans value.
+        """
         active.increment()
         now = time.time()
         envid = trans.pop("envid")
@@ -766,6 +823,13 @@ def parallel_env(
 
 
 def parallel_envs(make_env, make_env_eval, args):
+    """Handle parallel envs.
+
+    Args:
+        make_env: Make environment value.
+        make_env_eval: Make environment eval value.
+        args: Positional arguments forwarded to the wrapped callable.
+    """
     workers = []
     for i in range(args.envs):
         workers.append(portal.Process(parallel_env, make_env, i, args))

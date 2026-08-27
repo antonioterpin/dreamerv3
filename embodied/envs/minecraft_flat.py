@@ -1,3 +1,5 @@
+"""Provide minecraft flat functionality."""
+
 import logging
 import threading
 
@@ -17,8 +19,15 @@ from minerl.herobraine.hero.mc import INVERSE_KEYMAP  # pyright: ignore[reportMi
 
 
 class Wood(embodied.Wrapper):
+    """Represent wood."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the wood.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         actions = BASIC_ACTIONS
         self.rewards = [
             CollectReward("log", repeated=1),
@@ -30,6 +39,14 @@ class Wood(embodied.Wrapper):
         super().__init__(env)
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         obs = self.env.step(action)
         reward = sum([fn(obs, self.env.inventory) for fn in self.rewards])
         obs["reward"] = np.float32(reward)
@@ -37,8 +54,15 @@ class Wood(embodied.Wrapper):
 
 
 class Climb(embodied.Wrapper):
+    """Represent climb."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the climb.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         actions = BASIC_ACTIONS
         length = kwargs.pop("length", 36000)
         env = MinecraftBase(actions, *args, **kwargs)
@@ -48,6 +72,14 @@ class Climb(embodied.Wrapper):
         self._health_reward = HealthReward()
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         obs = self.env.step(action)
         x, y, z = obs["log/player_pos"]
         height = np.float32(y)
@@ -60,8 +92,15 @@ class Climb(embodied.Wrapper):
 
 
 class Diamond(embodied.Wrapper):
+    """Represent diamond."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the diamond.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         actions = {
             **BASIC_ACTIONS,
             "craft_planks": dict(craft="planks"),
@@ -99,6 +138,14 @@ class Diamond(embodied.Wrapper):
         super().__init__(env)
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         obs = self.env.step(action)
         reward = sum([fn(obs, self.env.inventory) for fn in self.rewards])
         obs["reward"] = np.float32(reward)
@@ -122,8 +169,16 @@ BASIC_ACTIONS = {
 
 
 class CollectReward:
+    """Represent collect reward."""
 
     def __init__(self, item, once=0, repeated=0):
+        """Initialize the collect reward.
+
+        Args:
+            item: Item value.
+            once: Once value.
+            repeated: Repeated value.
+        """
         self.item = item
         self.once = once
         self.repeated = repeated
@@ -131,6 +186,15 @@ class CollectReward:
         self.maximum = 0
 
     def __call__(self, obs, inventory):
+        """Apply the collect reward.
+
+        Args:
+            obs: Obs to process.
+            inventory: Inventory to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         current = inventory[self.item]
         if obs["is_first"]:
             self.previous = current
@@ -145,12 +209,27 @@ class CollectReward:
 
 
 class HealthReward:
+    """Represent health reward."""
 
     def __init__(self, scale=0.01):
+        """Initialize the health reward.
+
+        Args:
+            scale: Scale value.
+        """
         self.scale = scale
         self.previous = None
 
     def __call__(self, obs, inventory=None):
+        """Apply the health reward.
+
+        Args:
+            obs: Obs to process.
+            inventory: Inventory to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         health = obs["health"]
         if obs["is_first"]:
             self.previous = health
@@ -161,6 +240,7 @@ class HealthReward:
 
 
 class MinecraftBase(embodied.Env):
+    """Represent minecraft base."""
 
     LOCK = threading.Lock()
     NOOP = dict(
@@ -193,6 +273,20 @@ class MinecraftBase(embodied.Env):
         log_inv_keys=("log", "cobblestone", "iron_ingot", "diamond"),
         logs=False,
     ):
+        """Initialize the minecraft base.
+
+        Args:
+            actions: Actions value.
+            repeat: Repeat value.
+            size: Requested number of elements.
+            break_speed: Break speed value.
+            gamma: Gamma value.
+            sticky_attack: Sticky attack value.
+            sticky_jump: Sticky jump value.
+            pitch_limit: Pitch limit value.
+            log_inv_keys: Log inv keys value.
+            logs: Logs value.
+        """
         if logs:
             logging.basicConfig(level=logging.DEBUG)
         self._repeat = repeat
@@ -242,6 +336,11 @@ class MinecraftBase(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "image": elements.Space(np.uint8, self._size + (3,)),
             "inventory": elements.Space(np.float32, len(self._inv_keys), 0),
@@ -260,12 +359,25 @@ class MinecraftBase(embodied.Env):
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "action": elements.Space(np.int32, (), 0, len(self._action_values)),
             "reset": elements.Space(bool),
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         action = action.copy()
         index = action.pop("action")
         action.update(self._action_values[index])
@@ -288,6 +400,11 @@ class MinecraftBase(embodied.Env):
 
     @property
     def inventory(self):
+        """Handle inventory.
+
+        Returns:
+            Result of the operation.
+        """
         return self._inventory
 
     def _reset(self):
@@ -371,31 +488,68 @@ class MinecraftBase(embodied.Env):
 
 
 class MineRLEnv(EnvSpec):
+    """Represent mine rlenv."""
 
     def __init__(self, resolution=(64, 64), break_speed=50):
+        """Initialize the mine rlenv.
+
+        Args:
+            resolution: Resolution value.
+            break_speed: Break speed value.
+        """
         self.resolution = resolution
         self.break_speed = break_speed
         super().__init__(name="MineRLEnv-v1")
 
     def create_agent_start(self):
+        """Create agent start.
+
+        Returns:
+            Result of the operation.
+        """
         return [BreakSpeedMultiplier(self.break_speed)]
 
     def create_agent_handlers(self):
+        """Create agent handlers.
+
+        Returns:
+            Result of the operation.
+        """
         return []
 
     def create_server_world_generators(self):
+        """Create server world generators.
+
+        Returns:
+            Result of the operation.
+        """
         return [handlers.DefaultWorldGenerator(force_reset=True)]
 
     def create_server_quit_producers(self):
+        """Create server quit producers.
+
+        Returns:
+            Result of the operation.
+        """
         return [handlers.ServerQuitWhenAnyAgentFinishes()]
 
     def create_server_initial_conditions(self):
+        """Create server initial conditions.
+
+        Returns:
+            Result of the operation.
+        """
         return [
             handlers.TimeInitialCondition(allow_passage_of_time=True, start_time=0),
             handlers.SpawningInitialCondition(allow_spawning=True),
         ]
 
     def create_observables(self):
+        """Create observables.
+
+        Returns:
+            Result of the operation.
+        """
         return [
             handlers.POVObservation(self.resolution),
             handlers.FlatInventoryObservation(mc.ALL_ITEMS),
@@ -407,6 +561,11 @@ class MineRLEnv(EnvSpec):
         ]
 
     def create_actionables(self):
+        """Create actionables.
+
+        Returns:
+            Result of the operation.
+        """
         kw = dict(_other="none", _default="none")
         return [
             handlers.KeybasedCommandAction("forward", INVERSE_KEYMAP["forward"]),
@@ -425,34 +584,91 @@ class MineRLEnv(EnvSpec):
         ]
 
     def is_from_folder(self, folder):
+        """Return whether from folder.
+
+        Args:
+            folder: Folder value.
+
+        Returns:
+            Whether from folder.
+        """
         return folder == "none"
 
     def get_docstring(self):
+        """Return docstring.
+
+        Returns:
+            Result of the operation.
+        """
         return ""
 
     def determine_success_from_rewards(self, rewards):
+        """Handle determine success from rewards.
+
+        Args:
+            rewards: Rewards value.
+
+        Returns:
+            Result of the operation.
+        """
         return True
 
     def create_rewardables(self):
+        """Create rewardables.
+
+        Returns:
+            Result of the operation.
+        """
         return []
 
     def create_server_decorators(self):
+        """Create server decorators.
+
+        Returns:
+            Result of the operation.
+        """
         return []
 
     def create_mission_handlers(self):
+        """Create mission handlers.
+
+        Returns:
+            Result of the operation.
+        """
         return []
 
     def create_monitors(self):
+        """Create monitors.
+
+        Returns:
+            Result of the operation.
+        """
         return []
 
 
 class BreakSpeedMultiplier(handler.Handler):
+    """Represent break speed multiplier."""
 
     def __init__(self, multiplier=1.0):
+        """Initialize the break speed multiplier.
+
+        Args:
+            multiplier: Multiplier value.
+        """
         self.multiplier = multiplier
 
     def to_string(self):
+        """Handle to string.
+
+        Returns:
+            Result of the operation.
+        """
         return f"break_speed({self.multiplier})"
 
     def xml_template(self):
+        """Handle xml template.
+
+        Returns:
+            Result of the operation.
+        """
         return "<BreakSpeedMultiplier>{{multiplier}}</BreakSpeedMultiplier>"

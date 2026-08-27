@@ -1,3 +1,5 @@
+"""Provide crafter functionality."""
+
 import json
 
 import crafter
@@ -7,8 +9,18 @@ import numpy as np
 
 
 class Crafter(embodied.Env):
+    """Represent crafter."""
 
     def __init__(self, task, size=(64, 64), logs=False, logdir=None, seed=None):
+        """Initialize the crafter.
+
+        Args:
+            task: Task value.
+            size: Requested number of elements.
+            logs: Logs value.
+            logdir: Logging directory value.
+            seed: Random seed.
+        """
         assert task in ("reward", "noreward")
         self._env = crafter.Env(size=size, reward=(task == "reward"), seed=seed)
         self._logs = logs
@@ -22,6 +34,11 @@ class Crafter(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         spaces = {
             "image": elements.Space(np.uint8, self._env.observation_space.shape),
             "reward": elements.Space(np.float32),
@@ -41,12 +58,25 @@ class Crafter(embodied.Env):
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "action": elements.Space(np.int32, (), 0, self._env.action_space.n),
             "reset": elements.Space(bool),
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         if action["reset"] or self._done:
             self._episode += 1
             self._length = 0

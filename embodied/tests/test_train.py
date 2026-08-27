@@ -1,3 +1,5 @@
+"""Provide test train functionality."""
+
 from functools import partial as bind
 
 import elements
@@ -8,8 +10,14 @@ import utils
 
 
 class TestTrain:
+    """Represent test train."""
 
     def test_run_loop(self, tmpdir):
+        """Verify run loop.
+
+        Args:
+            tmpdir: Tmpdir value.
+        """
         args = self._make_args(tmpdir)
         agent = self._make_agent()
         embodied.run.train(

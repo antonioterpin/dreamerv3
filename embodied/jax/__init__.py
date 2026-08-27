@@ -1,3 +1,5 @@
+"""Provide init functionality."""
+
 from .agent import Agent
 
 from .heads import DictHead

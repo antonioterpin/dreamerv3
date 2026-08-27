@@ -1,3 +1,5 @@
+"""Provide from gym functionality."""
+
 import functools
 
 import elements
@@ -7,8 +9,17 @@ import numpy as np
 
 
 class FromGym(embodied.Env):
+    """Represent from gym."""
 
     def __init__(self, env, obs_key="image", act_key="action", **kwargs):
+        """Initialize the from gym.
+
+        Args:
+            env: Environment value.
+            obs_key: Observation key value.
+            act_key: Act key value.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         if isinstance(env, str):
             self._env = gym.make(env, **kwargs)
         else:
@@ -23,14 +34,29 @@ class FromGym(embodied.Env):
 
     @property
     def env(self):
+        """Handle environment.
+
+        Returns:
+            Result of the operation.
+        """
         return self._env
 
     @property
     def info(self):
+        """Handle info.
+
+        Returns:
+            Result of the operation.
+        """
         return self._info
 
     @functools.cached_property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         if self._obs_dict:
             spaces = self._flatten(self._env.observation_space.spaces)
         else:
@@ -46,6 +72,11 @@ class FromGym(embodied.Env):
 
     @functools.cached_property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         if self._act_dict:
             spaces = self._flatten(self._env.action_space.spaces)
         else:
@@ -55,6 +86,14 @@ class FromGym(embodied.Env):
         return spaces
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         if action["reset"] or self._done:
             self._done = False
             obs = self._env.reset()
@@ -90,11 +129,17 @@ class FromGym(embodied.Env):
         return obs
 
     def render(self):
+        """Render state.
+
+        Returns:
+            Result of the operation.
+        """
         image = self._env.render("rgb_array")
         assert image is not None
         return image
 
     def close(self):
+        """Close state."""
         try:
             self._env.close()
         except Exception:

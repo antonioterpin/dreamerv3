@@ -1,3 +1,5 @@
+"""Provide from dm functionality."""
+
 import functools
 
 import elements
@@ -6,8 +8,16 @@ import numpy as np
 
 
 class FromDM(embodied.Env):
+    """Represent from dm."""
 
     def __init__(self, env, obs_key="observation", act_key="action"):
+        """Initialize the from dm.
+
+        Args:
+            env: Environment value.
+            obs_key: Observation key value.
+            act_key: Act key value.
+        """
         self._env = env
         obs_spec = self._env.observation_spec()
         act_spec = self._env.action_spec()
@@ -20,6 +30,11 @@ class FromDM(embodied.Env):
 
     @functools.cached_property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         spec = self._env.observation_spec()
         spec = spec if self._obs_dict else {self._obs_key: spec}
         if "reward" in spec:
@@ -41,6 +56,11 @@ class FromDM(embodied.Env):
 
     @functools.cached_property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         spec = self._env.action_spec()
         spec = spec if self._act_dict else {self._act_key: spec}
         return {
@@ -49,6 +69,14 @@ class FromDM(embodied.Env):
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         action = action.copy()
         reset = action.pop("reset")
         if reset or self._done:

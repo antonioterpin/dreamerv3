@@ -1,3 +1,5 @@
+"""Provide test layer scan functionality."""
+
 import jax
 import jax.numpy as jnp
 import ninjax as nj
@@ -10,10 +12,21 @@ i32 = jnp.int32
 
 
 class Layer(nj.Module):
+    """Represent layer."""
 
     units: int = 8
 
     def __call__(self, x, c, k):
+        """Apply the layer.
+
+        Args:
+            x: X to process.
+            c: C to process.
+            k: K to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         assert x.shape[1:] == (self.units,)
         assert c.shape == (7,)
         assert k.shape == (13, 7)
@@ -30,11 +43,20 @@ class Layer(nj.Module):
 
 
 class Net(nj.Module):
+    """Represent net."""
 
     layers: int = 4
     units: int = 8
 
     def __call__(self, x):
+        """Apply the net.
+
+        Args:
+            x: X to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         if "outer1" not in nj.context():
             nj.context()["outer1"] = jnp.ones((), i32)
         if "outer2" not in nj.context():
@@ -49,12 +71,28 @@ class Net(nj.Module):
         return x
 
     def loss(self, x):
+        """Handle loss.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         return self(x).mean()
 
 
 class TestLayerScan:
+    """Represent test layer scan."""
 
     def test_init(self, L=4, B=2, D=8):
+        """Verify init.
+
+        Args:
+            L: L value.
+            B: B value.
+            D: D value.
+        """
         x = np.random.normal(0, 1, (B, D))
         net = Net(layers=L, units=D, name="net")
         params = nj.init(net)({}, x, seed=0)
@@ -77,6 +115,13 @@ class TestLayerScan:
             )
 
     def test_apply(self, L=4, B=2, D=8):
+        """Verify apply.
+
+        Args:
+            L: L value.
+            B: B value.
+            D: D value.
+        """
         x = np.random.normal(0, 1, (B, D))
         net = Net(layers=L, units=D, name="net")
         params = nj.init(net)({}, x, seed=0)
@@ -89,10 +134,28 @@ class TestLayerScan:
         assert (params["net/linear/inner"] == 1).all()
 
     def test_grad(self, L=4, B=2, D=8):
+        """Verify grad.
+
+        Args:
+            L: L value.
+            B: B value.
+            D: D value.
+
+        Returns:
+            Result of the operation.
+        """
         x = np.random.normal(0, 1, (B, D))
         net = Net(layers=L, units=D, name="net")
 
         def fn(x):
+            """Handle function.
+
+            Args:
+                x: X value.
+
+            Returns:
+                Result of the operation.
+            """
             if nj.creating():
                 net(x)
             params = {k: v for k, v in net.values.items() if v.dtype == f32}

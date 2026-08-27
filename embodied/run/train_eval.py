@@ -1,3 +1,5 @@
+"""Provide train eval functionality."""
+
 import collections
 from functools import partial as bind
 
@@ -16,7 +18,21 @@ def train_eval(
     make_logger,
     args,
 ):
+    """Train eval.
 
+    Args:
+        make_agent: Make agent value.
+        make_replay_train: Make replay train value.
+        make_replay_eval: Make replay eval value.
+        make_env_train: Make environment train value.
+        make_env_eval: Make environment eval value.
+        make_stream: Make stream value.
+        make_logger: Make logger value.
+        args: Positional arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+    """
     agent = make_agent()
     replay_train = make_replay_train()
     replay_eval = make_replay_eval()
@@ -43,6 +59,13 @@ def train_eval(
 
     @elements.timer.section("logfn")
     def logfn(tran, worker, mode):
+        """Handle logfn.
+
+        Args:
+            tran: Tran value.
+            worker: Worker value.
+            mode: Mode value.
+        """
         episodes = dict(train=train_episodes, eval=eval_episodes)[mode]
         epstats = dict(train=train_epstats, eval=eval_epstats)[mode]
         episode = episodes[worker]
@@ -95,6 +118,12 @@ def train_eval(
     carry_eval = agent.init_report(args.batch_size)
 
     def trainfn(tran, worker):
+        """Handle trainfn.
+
+        Args:
+            tran: Tran value.
+            worker: Worker value.
+        """
         if len(replay_train) < args.batch_size * args.batch_length:
             return
         for _ in range(should_train(step)):
@@ -109,6 +138,15 @@ def train_eval(
     driver_train.on_step(trainfn)
 
     def reportfn(carry, stream):
+        """Handle reportfn.
+
+        Args:
+            carry: Carry value.
+            stream: Stream value.
+
+        Returns:
+            Result of the operation.
+        """
         agg = elements.Agg()
         for _ in range(args.report_batches):
             batch = next(stream)

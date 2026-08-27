@@ -1,3 +1,5 @@
+"""Provide test driver functionality."""
+
 from functools import partial as bind
 
 import embodied
@@ -5,8 +7,10 @@ import numpy as np
 
 
 class TestDriver:
+    """Represent test driver."""
 
     def test_episode_length(self):
+        """Verify episode length."""
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
         driver.reset(agent.init_policy)
@@ -16,6 +20,7 @@ class TestDriver:
         assert len(seq) == 11
 
     def test_first_step(self):
+        """Verify first step."""
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
         driver.reset(agent.init_policy)
@@ -29,6 +34,7 @@ class TestDriver:
             assert seq[index]["is_first"].item() is False
 
     def test_last_step(self):
+        """Verify last step."""
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
         driver.reset(agent.init_policy)
@@ -42,6 +48,7 @@ class TestDriver:
             assert seq[index]["is_last"].item() is False
 
     def test_env_reset(self):
+        """Verify environment reset."""
         agent = self._make_agent()
         driver = embodied.Driver([bind(self._make_env, length=5)])
         driver.reset(agent.init_policy)
@@ -58,6 +65,11 @@ class TestDriver:
         assert (seq["act_disc"] == [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0]).all()
 
     def test_agent_inputs(self):
+        """Verify agent inputs.
+
+        Returns:
+            Result of the operation.
+        """
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
         driver.reset(agent.init_policy)
@@ -65,6 +77,16 @@ class TestDriver:
         states = []
 
         def policy(carry, obs, mode="train"):
+            """Handle policy.
+
+            Args:
+                carry: Carry value.
+                obs: Observation value.
+                mode: Mode value.
+
+            Returns:
+                Result of the operation.
+            """
             inputs.append(obs)
             states.append(carry)
             _, act, _ = agent.policy(carry, obs, mode)
@@ -85,16 +107,35 @@ class TestDriver:
             assert inputs[index]["is_last"].item() is False
 
     def test_unexpected_reset(self):
+        """Verify unexpected reset.
+
+        Returns:
+            Result of the operation.
+        """
 
         class UnexpectedReset(embodied.Wrapper):
             """Send is_first without preceeding is_last."""
 
             def __init__(self, env, when):
+                """Initialize the unexpected reset.
+
+                Args:
+                    env: Environment value.
+                    when: When value.
+                """
                 super().__init__(env)
                 self._when = when
                 self._step = 0
 
             def step(self, action):
+                """Advance state.
+
+                Args:
+                    action: Action value.
+
+                Returns:
+                    Result of the operation.
+                """
                 if self._step == self._when:
                     action = action.copy()
                     action["reset"] = np.ones_like(action["reset"])

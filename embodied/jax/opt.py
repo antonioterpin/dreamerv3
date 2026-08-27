@@ -1,3 +1,5 @@
+"""Provide optimizer functionality."""
+
 import math
 
 import jax
@@ -14,10 +16,17 @@ sg = jax.lax.stop_gradient
 
 
 class Optimizer(nj.Module):
+    """Represent optimizer."""
 
     summary_depth: int = 2
 
     def __init__(self, modules, opt):
+        """Initialize the optimizer.
+
+        Args:
+            modules: Modules value.
+            opt: Optimizer value.
+        """
         modules = modules if isinstance(modules, (list, tuple)) else (modules,)
         self.modules = modules
         self.opt = opt
@@ -29,9 +38,29 @@ class Optimizer(nj.Module):
             self.good_steps = nj.Variable(jnp.array, 0, i32, name="good_steps")
 
     def __call__(self, lossfn, *args, has_aux=False, **kwargs):
+        """Apply the optimizer.
+
+        Args:
+            lossfn: Lossfn to process.
+            has_aux: Has aux to process.
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result produced by the operation.
+        """
         metrics = {}
 
         def lossfn2(*args, **kwargs):
+            """Handle lossfn2.
+
+            Args:
+                args: Positional arguments forwarded to the wrapped callable.
+                kwargs: Keyword arguments forwarded to the wrapped callable.
+
+            Returns:
+                Result of the operation.
+            """
             outs = lossfn(*args, **kwargs)
             loss, aux = outs if has_aux else (outs, None)
             assert loss.dtype == f32, (self.name, loss.dtype)
@@ -114,12 +143,49 @@ class Optimizer(nj.Module):
 
 
 def clip_by_agc(clip=0.3, pmin=1e-3):
+    """Handle clip by agc.
+
+    Args:
+        clip: Clip value.
+        pmin: Pmin value.
+
+    Returns:
+        Result of the operation.
+    """
 
     def init_fn(params):
+        """Handle init function.
+
+        Args:
+            params: Parameters value.
+
+        Returns:
+            Result of the operation.
+        """
         return ()
 
     def update_fn(updates, state, params=None):
+        """Update function.
+
+        Args:
+            updates: Updates value.
+            state: State value.
+            params: Parameters value.
+
+        Returns:
+            Result of the operation.
+        """
+
         def fn(param, update):
+            """Handle function.
+
+            Args:
+                param: Param value.
+                update: Update value.
+
+            Returns:
+                Result of the operation.
+            """
             unorm = jnp.linalg.norm(update.flatten(), 2)
             pnorm = jnp.linalg.norm(param.flatten(), 2)
             upper = clip * jnp.maximum(pmin, pnorm)
@@ -132,13 +198,40 @@ def clip_by_agc(clip=0.3, pmin=1e-3):
 
 
 def scale_by_rms(beta=0.999, eps=1e-8):
+    """Handle scale by rms.
+
+    Args:
+        beta: Beta value.
+        eps: Eps value.
+
+    Returns:
+        Result of the operation.
+    """
 
     def init_fn(params):
+        """Handle init function.
+
+        Args:
+            params: Parameters value.
+
+        Returns:
+            Result of the operation.
+        """
         nu = jax.tree.map(lambda t: jnp.zeros_like(t, f32), params)
         step = jnp.zeros((), i32)
         return (step, nu)
 
     def update_fn(updates, state, params=None):
+        """Update function.
+
+        Args:
+            updates: Updates value.
+            state: State value.
+            params: Parameters value.
+
+        Returns:
+            Result of the operation.
+        """
         step, nu = state
         step = optax.safe_int32_increment(step)
         nu = jax.tree.map(lambda v, u: beta * v + (1 - beta) * (u * u), nu, updates)
@@ -150,13 +243,40 @@ def scale_by_rms(beta=0.999, eps=1e-8):
 
 
 def scale_by_momentum(beta=0.9, nesterov=False):
+    """Handle scale by momentum.
+
+    Args:
+        beta: Beta value.
+        nesterov: Nesterov value.
+
+    Returns:
+        Result of the operation.
+    """
 
     def init_fn(params):
+        """Handle init function.
+
+        Args:
+            params: Parameters value.
+
+        Returns:
+            Result of the operation.
+        """
         mu = jax.tree.map(lambda t: jnp.zeros_like(t, f32), params)
         step = jnp.zeros((), i32)
         return (step, mu)
 
     def update_fn(updates, state, params=None):
+        """Update function.
+
+        Args:
+            updates: Updates value.
+            state: State value.
+            params: Parameters value.
+
+        Returns:
+            Result of the operation.
+        """
         step, mu = state
         step = optax.safe_int32_increment(step)
         mu = optax.update_moment(updates, mu, beta, 1)

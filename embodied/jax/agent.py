@@ -1,3 +1,5 @@
+"""Provide agent functionality."""
+
 import contextlib
 import dataclasses
 import io
@@ -22,6 +24,7 @@ from . import transform
 
 @dataclasses.dataclass
 class Options:
+    """Represent options."""
 
     policy_devices: tuple = (0,)
     train_devices: tuple = (0,)
@@ -43,8 +46,19 @@ class Options:
 
 
 class Agent(embodied.Agent):
+    """Represent agent."""
 
     def __new__(subcls, obs_space, act_space, config):
+        """Construct the agent.
+
+        Args:
+            obs_space: Obs space to process.
+            act_space: Act space to process.
+            config: Config to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         keys = Options.__dataclass_fields__
         options = {k: v for k, v in config.jax.items() if k in keys}
         setup = {k: v for k, v in config.jax.items() if k not in keys}
@@ -57,6 +71,18 @@ class Agent(embodied.Agent):
         return outer
 
     def __init__(self, model, obs_space, act_space, config, jaxcfg):
+        """Initialize the agent.
+
+        Args:
+            model: Model value.
+            obs_space: Observation space value.
+            act_space: Act space value.
+            config: Runtime configuration.
+            jaxcfg: Jaxcfg value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         assert not any(k.startswith("log/") for k in obs_space)
         assert "reset" not in act_space
 
@@ -255,6 +281,17 @@ class Agent(embodied.Agent):
             elements.print("Done compiling!", color="yellow")
 
     def init_policy(self, batch_size):
+        """Handle init policy.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            Exception: If the operation cannot be completed.
+        """
         if not self.jaxcfg.enable_policy:
             raise Exception("Policy not available when enable_policy=False")
         batch_size = batch_size * jax.process_count()
@@ -297,6 +334,14 @@ class Agent(embodied.Agent):
             ), "Policy warmup must not consume or change pending policy state."
 
     def init_train(self, batch_size):
+        """Handle init train.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         batch_size = batch_size * jax.process_count()
         if self.jaxcfg.use_shardmap:
             batch_size = batch_size // self.train_mesh.size
@@ -305,6 +350,14 @@ class Agent(embodied.Agent):
         )
 
     def init_report(self, batch_size):
+        """Handle init report.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         batch_size = batch_size * jax.process_count()
         if self.jaxcfg.use_shardmap:
             batch_size = batch_size // self.train_mesh.size
@@ -314,6 +367,19 @@ class Agent(embodied.Agent):
 
     @elements.timer.section("jaxagent_policy")
     def policy(self, carry, obs, mode="train"):
+        """Handle policy.
+
+        Args:
+            carry: Carry value.
+            obs: Observation value.
+            mode: Mode value.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            Exception: If the operation cannot be completed.
+        """
         if not self.jaxcfg.enable_policy:
             raise Exception("Policy not available when enable_policy=False")
         assert not any(k.startswith("log/") for k in obs), obs.keys()
@@ -362,6 +428,15 @@ class Agent(embodied.Agent):
 
     @elements.timer.section("jaxagent_train")
     def train(self, carry, data):
+        """Train state.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         seed = data.pop("seed")
         assert sorted(data.keys()) == sorted(self.spaces.keys()), (
             sorted(data.keys()),
@@ -413,6 +488,15 @@ class Agent(embodied.Agent):
 
     @elements.timer.section("jaxagent_report")
     def report(self, carry, data):
+        """Handle report.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         seed = data.pop("seed")
         assert sorted(data.keys()) == sorted(self.spaces.keys()), (
             sorted(data.keys()),
@@ -425,7 +509,24 @@ class Agent(embodied.Agent):
         return carry, mets
 
     def stream(self, st):
+        """Handle stream.
+
+        Args:
+            st: St value.
+
+        Returns:
+            Result of the operation.
+        """
+
         def fn(data):
+            """Handle function.
+
+            Args:
+                data: Data to process.
+
+            Returns:
+                Result of the operation.
+            """
             for key, value in data.items():
                 if np.issubdtype(value.dtype, np.floating):
                     assert not np.isnan(value).any(), (key, value)
@@ -440,6 +541,11 @@ class Agent(embodied.Agent):
 
     @elements.timer.section("jaxagent_save")
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         with self.train_lock:
             params = {}
             for keys, gather_fn, _ in self._ckpt_groups:
@@ -456,6 +562,12 @@ class Agent(embodied.Agent):
 
     @elements.timer.section("jaxagent_load")
     def load(self, data, regex=None):
+        """Load state.
+
+        Args:
+            data: Data to process.
+            regex: Regex value.
+        """
         params = data["params"]
         assert params
 
@@ -513,6 +625,9 @@ class Agent(embodied.Agent):
         Args:
           obs: The (host) observation batch of the call.
           counter: The action counter value assigned to the call.
+
+        Returns:
+          Whether the staged parameters should be installed.
         """
         mode = self.jaxcfg.policy_sync_mode
         if mode == "immediate":
@@ -650,10 +765,28 @@ class Agent(embodied.Agent):
 
 
 def init(fun, **jit_kwargs):
+    """Handle init.
+
+    Args:
+        fun: Fun value.
+        jit_kwargs: Jit kwargs value.
+
+    Returns:
+        Result of the operation.
+    """
     if not getattr(fun, "_is_pure", False):
         fun = nj.pure(fun)
 
     def wrapper(*args, **kwargs):
+        """Handle wrapper.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result of the operation.
+        """
         state, out = fun(*args, create=True, modify=True, ignore=True, **kwargs)
         del out
         return state, ()

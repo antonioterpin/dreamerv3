@@ -1,3 +1,5 @@
+"""Provide selectors functionality."""
+
 import collections
 import threading
 
@@ -5,11 +7,18 @@ import numpy as np
 
 
 class Fifo:
+    """Represent fifo."""
 
     def __init__(self):
+        """Initialize the fifo."""
         self.queue = collections.deque()
 
     def __call__(self):
+        """Apply the fifo.
+
+        Returns:
+            Result produced by the operation.
+        """
         return self.queue[0]
 
     def __len__(self):
@@ -27,8 +36,14 @@ class Fifo:
 
 
 class Uniform:
+    """Represent uniform."""
 
     def __init__(self, seed=0):
+        """Initialize the uniform.
+
+        Args:
+            seed: Random seed.
+        """
         self.indices = {}
         self.keys = []
         self.rng = np.random.default_rng(seed)
@@ -38,6 +53,11 @@ class Uniform:
         return len(self.keys)
 
     def __call__(self):
+        """Apply the uniform.
+
+        Returns:
+            Result produced by the operation.
+        """
         with self.lock:
             index = self.rng.integers(0, len(self.keys)).item()
             return self.keys[index]
@@ -58,8 +78,15 @@ class Uniform:
 
 
 class Recency:
+    """Represent recency."""
 
     def __init__(self, uprobs, seed=0):
+        """Initialize the recency.
+
+        Args:
+            uprobs: Uprobs value.
+            seed: Random seed.
+        """
         assert uprobs[0] >= uprobs[-1], uprobs
         self.uprobs = uprobs
         self.tree = self._build(uprobs)
@@ -72,6 +99,14 @@ class Recency:
         return len(self.items)
 
     def __call__(self):
+        """Apply the recency.
+
+        Returns:
+            Result produced by the operation.
+
+        Raises:
+            KeyError: If the sampled item is repeatedly removed concurrently.
+        """
         for retry in range(10):
             try:
                 age = self._sample(self.tree, self.rng)
@@ -128,6 +163,7 @@ class Recency:
 
 
 class Prioritized:
+    """Represent prioritized."""
 
     def __init__(
         self,
@@ -138,6 +174,16 @@ class Prioritized:
         branching=16,
         seed=0,
     ):
+        """Initialize the prioritized.
+
+        Args:
+            exponent: Exponent value.
+            initial: Initial value.
+            zero_on_sample: Zero on sample value.
+            maxfrac: Maxfrac value.
+            branching: Branching value.
+            seed: Random seed.
+        """
         assert 0 <= maxfrac <= 1, maxfrac
         self.exponent = float(exponent)
         self.initial = float(initial)
@@ -149,6 +195,12 @@ class Prioritized:
         self.items = {}
 
     def prioritize(self, stepids, priorities):
+        """Handle prioritize.
+
+        Args:
+            stepids: Stepids value.
+            priorities: Priorities value.
+        """
         if not isinstance(stepids[0], bytes):
             stepids = [x.tobytes() for x in stepids]
         for stepid, priority in zip(stepids, priorities):
@@ -169,6 +221,11 @@ class Prioritized:
         return len(self.items)
 
     def __call__(self):
+        """Apply the prioritized.
+
+        Returns:
+            Result produced by the operation.
+        """
         key = self.tree.sample()
         if self.zero_on_sample:
             zeros = [0.0] * len(self.items[key])
@@ -206,8 +263,16 @@ class Prioritized:
 
 
 class Mixture:
+    """Represent mixture."""
 
     def __init__(self, selectors, fractions, seed=0):
+        """Initialize the mixture.
+
+        Args:
+            selectors: Selectors value.
+            fractions: Fractions value.
+            seed: Random seed.
+        """
         assert set(selectors.keys()) == set(fractions.keys())
         assert sum(fractions.values()) == 1, fractions
         for key, frac in list(fractions.items()):
@@ -220,6 +285,11 @@ class Mixture:
         self.rng = np.random.default_rng(seed)
 
     def __call__(self):
+        """Apply the mixture.
+
+        Returns:
+            Result produced by the operation.
+        """
         return self.rng.choice(self.selectors, p=self.fractions)()
 
     def __setitem__(self, key, stepids):
@@ -231,14 +301,27 @@ class Mixture:
             del selector[key]
 
     def prioritize(self, stepids, priorities):
+        """Handle prioritize.
+
+        Args:
+            stepids: Stepids value.
+            priorities: Priorities value.
+        """
         for selector in self.selectors:
             if hasattr(selector, "prioritize"):
                 selector.prioritize(stepids, priorities)
 
 
 class SampleTree:
+    """Represent sample tree."""
 
     def __init__(self, branching=16, seed=0):
+        """Initialize the sample tree.
+
+        Args:
+            branching: Branching value.
+            seed: Random seed.
+        """
         assert 2 <= branching
         self.branching = branching
         self.root = SampleTreeNode()
@@ -250,6 +333,12 @@ class SampleTree:
         return len(self.entries)
 
     def insert(self, key, uprob):
+        """Handle insert.
+
+        Args:
+            key: Key identifying the requested value.
+            uprob: Uprob value.
+        """
         if not self.last:
             node = self.root
         else:
@@ -272,6 +361,11 @@ class SampleTree:
         self.last = entry
 
     def remove(self, key):
+        """Handle remove.
+
+        Args:
+            key: Key identifying the requested value.
+        """
         entry = self.entries.pop(key)
         entry_parent = entry.parent
         last_parent = self.last.parent
@@ -293,11 +387,22 @@ class SampleTree:
         self.last = node
 
     def update(self, key, uprob):
+        """Update state.
+
+        Args:
+            key: Key identifying the requested value.
+            uprob: Uprob value.
+        """
         entry = self.entries[key]
         entry.uprob = uprob
         entry.parent.recompute()
 
     def sample(self):
+        """Sample state.
+
+        Returns:
+            Result of the operation.
+        """
         node = self.root
         while isinstance(node, SampleTreeNode):
             uprobs = np.array([x.uprob for x in node.children])
@@ -315,10 +420,16 @@ class SampleTree:
 
 
 class SampleTreeNode:
+    """Represent sample tree node."""
 
     __slots__ = ("parent", "children", "uprob")
 
     def __init__(self, parent=None):
+        """Initialize the sample tree node.
+
+        Args:
+            parent: Parent value.
+        """
         self.parent = parent
         self.children = []
         self.uprob = 0
@@ -336,6 +447,11 @@ class SampleTreeNode:
         return True
 
     def append(self, child):
+        """Handle append.
+
+        Args:
+            child: Child value.
+        """
         if child.parent:
             child.parent.remove(child)
         child.parent = self
@@ -343,20 +459,33 @@ class SampleTreeNode:
         self.recompute()
 
     def remove(self, child):
+        """Handle remove.
+
+        Args:
+            child: Child value.
+        """
         child.parent = None
         self.children.remove(child)
         self.recompute()
 
     def recompute(self):
+        """Handle recompute."""
         self.uprob = sum(x.uprob for x in self.children)
         self.parent and self.parent.recompute()
 
 
 class SampleTreeEntry:
+    """Represent sample tree entry."""
 
     __slots__ = ("parent", "key", "uprob")
 
     def __init__(self, key=None, uprob=None):
+        """Initialize the sample tree entry.
+
+        Args:
+            key: Key identifying the requested value.
+            uprob: Uprob value.
+        """
         self.parent = None
         self.key = key
         self.uprob = uprob

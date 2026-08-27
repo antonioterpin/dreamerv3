@@ -1,3 +1,5 @@
+"""Provide test jax agent options functionality."""
+
 import io
 import contextlib
 
@@ -13,11 +15,17 @@ def _agent(**options):
 
 
 def test_options_default_to_verbose():
+    """Verify options default to verbose."""
     assert Options().verbose is True
 
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_stdout_is_suppressed_only_when_not_verbose(verbose):
+    """Verify stdout is suppressed only when not verbose.
+
+    Args:
+        verbose: Verbose value.
+    """
     agent = _agent(verbose=verbose)
     captured = io.StringIO()
     with contextlib.redirect_stdout(captured):

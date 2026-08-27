@@ -1,3 +1,5 @@
+"""Provide streams functionality."""
+
 import functools
 import queue
 import threading
@@ -10,8 +12,16 @@ from . import base
 
 
 class Stateless(base.Stream):
+    """Represent stateless."""
 
     def __init__(self, nextfn, *args, **kwargs):
+        """Initialize the stateless.
+
+        Args:
+            nextfn: Nextfn value.
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         if not callable(nextfn) and hasattr(nextfn, "__next__"):
             nextfn = nextfn.__next__
         self.nextfn = functools.partial(nextfn, *args, **kwargs)
@@ -23,9 +33,19 @@ class Stateless(base.Stream):
         return self.nextfn()
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return None
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         pass
 
 
@@ -36,6 +56,13 @@ class Prefetch(base.Stream):
     _DONE = object()
 
     def __init__(self, source, transform=None, amount=1):
+        """Initialize the prefetch.
+
+        Args:
+            source: Source value.
+            transform: Transform value.
+            amount: Amount value.
+        """
         self.source = iter(source) if hasattr(source, "__iter__") else source()
         self.transform = transform or (lambda x: x)
         self.state = self._getstate()
@@ -63,9 +90,19 @@ class Prefetch(base.Stream):
         return data
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return self.state
 
     def load(self, state):
+        """Load state.
+
+        Args:
+            state: State value.
+        """
         if self.started:
             for _ in range(self.amount):
                 self.queue.get()
@@ -97,9 +134,9 @@ class Prefetch(base.Stream):
 
 
 class Consec(base.Stream):
-    """
-    Example:
+    """Yield consecutive chunks from a source stream.
 
+    Example:
     length = 3
     consec = 3
     prefix = 2
@@ -111,6 +148,16 @@ class Consec(base.Stream):
     """
 
     def __init__(self, source, length, consec, prefix=0, strict=True, contiguous=False):
+        """Initialize the consec.
+
+        Args:
+            source: Source value.
+            length: Length value.
+            consec: Consec value.
+            prefix: Prefix value.
+            strict: Strict value.
+            contiguous: Contiguous value.
+        """
         self.source = source
         self.length = length
         self.consec = consec
@@ -156,19 +203,35 @@ class Consec(base.Stream):
         return chunk
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "source": self.source.save(),
             "index": self.index,
         }
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         self.source.load(data["source"])
         self.index = data["index"]
 
 
 class Zip(base.Stream):
+    """Represent zip."""
 
     def __init__(self, sources):
+        """Initialize the zip.
+
+        Args:
+            sources: Sources value.
+        """
         assert len(sources) > 1, len(sources)
         self.sources = sources
         self.iterators = None
@@ -186,16 +249,35 @@ class Zip(base.Stream):
         return result
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return [x.save() for x in self.iterators]
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         assert len(data) == len(self.iterators)
         [it.load(d) for it, d in zip(self.iterators, data)]
 
 
 class Map(base.Stream):
+    """Represent map."""
 
     def __init__(self, source, fn, *args, **kwargs):
+        """Initialize the map.
+
+        Args:
+            source: Source value.
+            fn: Function to apply.
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         self.source = source
         self.fn = lambda x: fn(x, *args, **kwargs)
         self.iterator = None
@@ -212,15 +294,33 @@ class Map(base.Stream):
         return self.fn(next(self.iterator))
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return self.iterator.save()
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         self.iterator.load(data)
 
 
 class Mixer(base.Stream):
+    """Represent mixer."""
 
     def __init__(self, sources, weights, seed=0):
+        """Initialize the mixer.
+
+        Args:
+            sources: Sources value.
+            weights: Weights value.
+            seed: Random seed.
+        """
         assert sources.keys() == weights.keys(), (sources, weights)
         self.keys = sorted(sources.keys())
         self.iterators = [iter(sources[k]) for k in self.keys]
@@ -242,6 +342,11 @@ class Mixer(base.Stream):
         return next(self.iterators[index])
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "step": self.step,
             "seed": self.seed,
@@ -249,6 +354,11 @@ class Mixer(base.Stream):
         }
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         self.step = data["step"]
         self.seed = data["seed"]
         assert sorted(data["sources"].keys()) == self.keys, (data["sources"], self.keys)

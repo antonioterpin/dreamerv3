@@ -1,3 +1,5 @@
+"""Provide test replay functionality."""
+
 import pathlib
 import sys
 import threading
@@ -25,9 +27,19 @@ STEP = {
 
 
 class TestReplay:
+    """Represent test replay."""
 
     @pytest.mark.parametrize("name,Replay", REPLAYS)
     def test_speed(self, name, Replay, inserts=2e5, workers=8, samples=1e5):
+        """Verify speed.
+
+        Args:
+            name: Name value.
+            Replay: Replay value.
+            inserts: Inserts value.
+            workers: Workers value.
+            samples: Samples value.
+        """
         print("")
         initial = time.time()
         replay = Replay(length=32, capacity=1e5, chunksize=1024)
@@ -47,6 +59,14 @@ class TestReplay:
 
     @pytest.mark.parametrize("chunksize", [64, 128, 256, 512, 1024, 2048, 4096])
     def test_chunk_size(self, chunksize, inserts=2e5, workers=8, samples=2e5):
+        """Verify chunk size.
+
+        Args:
+            chunksize: Chunksize value.
+            inserts: Inserts value.
+            workers: Workers value.
+            samples: Samples value.
+        """
         print("")
         initial = time.time()
         replay = embodied.replay.Replay(length=64, chunksize=chunksize)
@@ -66,6 +86,14 @@ class TestReplay:
 
     @pytest.mark.parametrize("name,Replay", REPLAYS)
     def test_removal(self, name, Replay, inserts=1e6, workers=1):
+        """Verify removal.
+
+        Args:
+            name: Name value.
+            Replay: Replay value.
+            inserts: Inserts value.
+            workers: Workers value.
+        """
         print("")
         replay = Replay(length=32, capacity=1e5, chunksize=1024)
         start = time.time()
@@ -76,6 +104,17 @@ class TestReplay:
 
     @pytest.mark.parametrize("name,Replay", REPLAYS)
     def test_parallel(self, tmpdir, name, Replay, duration=5):
+        """Verify parallel.
+
+        Args:
+            tmpdir: Tmpdir value.
+            name: Name value.
+            Replay: Replay value.
+            duration: Duration value.
+
+        Raises:
+            errors[0]: If the operation cannot be completed.
+        """
         print("")
         replay = Replay(length=16, capacity=1e4, chunksize=32, directory=tmpdir)
 
@@ -86,6 +125,7 @@ class TestReplay:
         errors = []
 
         def adder():
+            """Handle adder."""
             try:
                 ident = threading.get_ident()
                 step = {"foo": np.zeros((64, 64, 3))}
@@ -97,6 +137,7 @@ class TestReplay:
                 raise
 
         def sampler():
+            """Handle sampler."""
             try:
                 ident = threading.get_ident()
                 dataset = iter(replay.dataset(1))
@@ -108,6 +149,7 @@ class TestReplay:
                 raise
 
         def saver():
+            """Handle saver."""
             try:
                 ident = threading.get_ident()
                 while running:

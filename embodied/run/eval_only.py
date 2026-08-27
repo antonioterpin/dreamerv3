@@ -1,3 +1,5 @@
+"""Provide eval only functionality."""
+
 from collections import defaultdict
 from functools import partial as bind
 
@@ -7,6 +9,14 @@ import numpy as np
 
 
 def eval_only(make_agent, make_env, make_logger, args):
+    """Handle eval only.
+
+    Args:
+        make_agent: Make agent value.
+        make_env: Make environment value.
+        make_logger: Make logger value.
+        args: Positional arguments forwarded to the wrapped callable.
+    """
     assert args.from_checkpoint
 
     agent = make_agent()
@@ -25,6 +35,12 @@ def eval_only(make_agent, make_env, make_logger, args):
 
     @elements.timer.section("logfn")
     def logfn(tran, worker):
+        """Handle logfn.
+
+        Args:
+            tran: Tran value.
+            worker: Worker value.
+        """
         episode = episodes[worker]
         tran["is_first"] and episode.reset()
         episode.add("score", tran["reward"], agg="sum")

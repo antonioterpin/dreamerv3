@@ -1,3 +1,5 @@
+"""Provide test bandwidth functionality."""
+
 import pathlib
 import sys
 import time
@@ -10,8 +12,10 @@ import numpy as np
 
 
 class TestBandwidth:
+    """Represent test bandwidth."""
 
     def test_numpy_read(self):
+        """Verify numpy read."""
         arr = np.ones((128, 1024, 1024), np.int64)  # 1 GiB
         size = arr.nbytes / (1024**3)
         for _ in range(10):
@@ -21,6 +25,7 @@ class TestBandwidth:
         print(f"numpy_read: {dt:.3f} avg | {size / dt:.2f} gib/s")
 
     def test_numpy_copy(self):
+        """Verify numpy copy."""
         arr = np.ones((1024, 1024, 1024), np.uint8)
         size = arr.nbytes / (1024**3)
         for _ in range(10):
@@ -30,9 +35,16 @@ class TestBandwidth:
         print(f"numpy_copy: {dt:.3f} avg | {size / dt:.2f} gib/s")
 
     def test_socket_send(self):
+        """Verify socket send."""
         shape, dtype, gib = (1024, 1024, 1024), np.uint8, 1.00
 
         def server(context, addr):
+            """Handle server.
+
+            Args:
+                context: Context value.
+                addr: Address value.
+            """
             server = zerofun.Server(addr)
             data = {"foo": np.ones(shape, dtype)}
             server.bind("function", lambda _: data)

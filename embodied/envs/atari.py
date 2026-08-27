@@ -1,3 +1,5 @@
+"""Provide atari functionality."""
+
 import os
 import threading
 import collections
@@ -12,6 +14,7 @@ from PIL import Image
 
 
 class Atari(embodied.Env):
+    """Represent atari."""
 
     LOCK = threading.Lock()
     WEIGHTS = np.array([0.299, 0.587, 1 - (0.299 + 0.587)])
@@ -54,7 +57,25 @@ class Atari(embodied.Env):
         clip_reward=False,
         seed=None,
     ):
+        """Initialize the atari.
 
+        Args:
+            name: Name value.
+            repeat: Repeat value.
+            size: Requested number of elements.
+            gray: Gray value.
+            noops: Noops value.
+            lives: Lives value.
+            sticky: Sticky value.
+            actions: Actions value.
+            length: Length value.
+            pooling: Pooling value.
+            aggregate: Aggregate value.
+            resize: Resize value.
+            autostart: Autostart value.
+            clip_reward: Clip reward value.
+            seed: Random seed.
+        """
         assert lives in ("unused", "discount", "reset"), lives
         assert actions in ("all", "needed"), actions
         assert resize in ("opencv", "pillow"), resize
@@ -105,6 +126,11 @@ class Atari(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "image": elements.Space(np.uint8, (*self.size, 1 if self.gray else 3)),
             "reward": elements.Space(np.float32),
@@ -115,12 +141,25 @@ class Atari(embodied.Env):
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "action": elements.Space(np.int32, (), 0, len(self.actionset)),
             "reset": elements.Space(bool),
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         if action["reset"] or self.done:
             self._reset()
             self.prevlives = self.ale.lives()

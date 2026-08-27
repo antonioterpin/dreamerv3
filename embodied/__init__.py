@@ -1,3 +1,5 @@
+"""Provide init functionality."""
+
 __version__ = "2.0.0"
 
 try:

@@ -1,3 +1,5 @@
+"""Provide bsuite functionality."""
+
 import time
 
 import embodied
@@ -5,8 +7,14 @@ import numpy as np
 
 
 class BSuite(embodied.Env):
+    """Represent bsuite."""
 
     def __init__(self, task):
+        """Initialize the bsuite.
+
+        Args:
+            task: Task value.
+        """
         print(
             "Warning: BSuite result logging is stateful and therefore training "
             + "runs cannot be interrupted or restarted."
@@ -29,13 +37,34 @@ class BSuite(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         return self.env.obs_space
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return self.env.act_space
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            RuntimeError: If the operation cannot be completed.
+        """
         obs = self.env.step(action)
         if obs["is_last"]:
             self.num_episodes += 1

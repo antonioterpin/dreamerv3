@@ -1,3 +1,5 @@
+"""Provide loconav functionality."""
+
 import functools
 import os
 import warnings
@@ -8,6 +10,7 @@ import numpy as np
 
 
 class LocoNav(embodied.Env):
+    """Represent loco nav."""
 
     DEFAULT_CAMERAS = dict(
         ant=4,
@@ -24,6 +27,17 @@ class LocoNav(embodied.Env):
         termination=False,
         weaker=1.0,
     ):
+        """Initialize the loco nav.
+
+        Args:
+            name: Name value.
+            repeat: Repeat value.
+            size: Requested number of elements.
+            camera: Camera value.
+            again: Again value.
+            termination: Termination value.
+            weaker: Weaker value.
+        """
         if name.endswith("hz"):
             name, freq = name.rsplit("_", 1)
             freq = int(freq.strip("hz"))
@@ -77,15 +91,33 @@ class LocoNav(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         spaces = self._env.obs_space.copy()
         spaces["log/coverage"] = elements.Space(np.int32, low=-1)
         return spaces
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return self._env.act_space
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", ".*is a deprecated alias for.*")
             action = action.copy()
@@ -118,6 +150,8 @@ class LocoNav(embodied.Env):
         import matplotlib.pyplot as plt
 
         class WallTexture(labmaze_textures.WallTextures):
+            """Represent wall texture."""
+
             def _build(self, color=[0.8, 0.8, 0.8], model="labmaze_style_01"):
                 self._mjcf_root = mjcf.RootElement(model=model)
                 self._textures = [

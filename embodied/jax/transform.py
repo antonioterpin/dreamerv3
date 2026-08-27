@@ -1,3 +1,5 @@
+"""Provide transform functionality."""
+
 import threading
 import re
 from collections import Counter
@@ -27,12 +29,45 @@ def init(
     dummy_inputs=(),
     print_partition=False,
 ):
+    """Handle init.
+
+    Args:
+        fn: Function to apply.
+        mesh: Mesh value.
+        arg_shardings: Arg shardings value.
+        param_partition_rules: Param partition rules value.
+        act_partition_rules: Act partition rules value.
+        static_argnums: Static argnums value.
+        dummy_inputs: Dummy inputs value.
+        print_partition: Print partition value.
+
+    Returns:
+        Result of the operation.
+    """
 
     def init(fun, **jit_kwargs):
+        """Handle init.
+
+        Args:
+            fun: Fun value.
+            jit_kwargs: Jit kwargs value.
+
+        Returns:
+            Result of the operation.
+        """
         if not getattr(fun, "_is_pure", False):
             fun = nj.pure(fun)
 
         def wrapper(*args, **kwargs):
+            """Handle wrapper.
+
+            Args:
+                args: Positional arguments forwarded to the wrapped callable.
+                kwargs: Keyword arguments forwarded to the wrapped callable.
+
+            Returns:
+                Result of the operation.
+            """
             state, out = fun(*args, create=True, modify=True, ignore=True, **kwargs)
             del out
             return state, ()
@@ -42,6 +77,15 @@ def init(
     fn = init(fn)
 
     def fn(*args, inner=fn):
+        """Handle function.
+
+        Args:
+            inner: Inner value.
+            args: Positional arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result of the operation.
+        """
         params, seed, *args = args
         old = nn.LAYER_CALLBACK
         nn.LAYER_CALLBACK = create_layer_callback(mesh, act_partition_rules)
@@ -85,11 +129,38 @@ def apply(
     use_shardmap=False,
     first_outnums=(),
 ):
+    """Apply state.
 
+    Args:
+        fn: Function to apply.
+        mesh: Mesh value.
+        in_shardings: In shardings value.
+        out_shardings: Out shardings value.
+        partition_rules: Partition rules value.
+        static_argnums: Static argnums value.
+        single_output: Single output value.
+        return_params: Return parameters value.
+        donate_params: Donate parameters value.
+        split_rng: Split random number generator value.
+        use_shardmap: Use shardmap value.
+        first_outnums: First outnums value.
+
+    Returns:
+        Result of the operation.
+    """
     if single_output:
         assert len(out_shardings) == 1
 
     def fn(*args, inner=fn):
+        """Handle function.
+
+        Args:
+            inner: Inner value.
+            args: Positional arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result of the operation.
+        """
         if donate_params:
             donated, allocated, seed, *args = args
             params = {**donated, **allocated}
@@ -158,7 +229,32 @@ def apply(
 
 
 def create_layer_callback(mesh, partition_rules):
+    """Create layer callback.
+
+    Args:
+        mesh: Mesh value.
+        partition_rules: Partition rules value.
+
+    Returns:
+        Result of the operation.
+
+    Raises:
+        Exception: If the operation cannot be completed.
+    """
+
     def layer_callback(y, name):
+        """Handle layer callback.
+
+        Args:
+            y: Y value.
+            name: Name value.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            Exception: If the operation cannot be completed.
+        """
         name = f"{nj.ninjax.SCOPE}/{name}"
         for rule, spec in partition_rules:
             if re.search(rule, name):
@@ -181,6 +277,19 @@ def create_layer_callback(mesh, partition_rules):
 
 
 def resolve_rules(params, partition_rules, mesh):
+    """Handle resolve rules.
+
+    Args:
+        params: Parameters value.
+        partition_rules: Partition rules value.
+        mesh: Mesh value.
+
+    Returns:
+        Result of the operation.
+
+    Raises:
+        Exception: If the operation cannot be completed.
+    """
     if len(partition_rules) == 0:
         partition_rules = [(".*", P())]
     params_spec, grouping = dict(), dict()
@@ -202,6 +311,11 @@ def resolve_rules(params, partition_rules, mesh):
 
 
 def print_grouping(grouping):
+    """Handle print grouping.
+
+    Args:
+        grouping: Grouping value.
+    """
     for rule, ps in grouping.items():
         if len(ps) == 0:
             continue

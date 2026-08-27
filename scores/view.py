@@ -1,3 +1,5 @@
+"""Provide view functionality."""
+
 import pathlib
 import sys
 

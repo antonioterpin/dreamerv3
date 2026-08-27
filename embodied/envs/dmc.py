@@ -1,3 +1,5 @@
+"""Provide dmc functionality."""
+
 import functools
 import os
 
@@ -12,6 +14,7 @@ from . import from_dm
 
 
 class DMC(embodied.Env):
+    """Represent dmc."""
 
     DEFAULT_CAMERAS = dict(
         quadruped=2,
@@ -21,6 +24,16 @@ class DMC(embodied.Env):
     def __init__(
         self, env, repeat=1, size=(64, 64), proprio=True, image=True, camera=-1
     ):
+        """Initialize the dmc.
+
+        Args:
+            env: Environment value.
+            repeat: Repeat value.
+            size: Requested number of elements.
+            proprio: Proprio value.
+            image: Image value.
+            camera: Camera value.
+        """
         if "MUJOCO_GL" not in os.environ:
             os.environ["MUJOCO_GL"] = "egl"
         if isinstance(env, str):
@@ -49,6 +62,11 @@ class DMC(embodied.Env):
 
     @functools.cached_property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         basic = ("is_first", "is_last", "is_terminal", "reward")
         spaces = self._env.obs_space.copy()
         if not self._proprio:
@@ -59,9 +77,22 @@ class DMC(embodied.Env):
 
     @functools.cached_property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return self._env.act_space
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         for key, space in self.act_space.items():
             if not space.discrete:
                 assert np.isfinite(action[key]).all(), (key, action[key])

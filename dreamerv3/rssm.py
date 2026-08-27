@@ -1,3 +1,5 @@
+"""Provide rssm functionality."""
+
 import math
 
 import einops
@@ -14,6 +16,7 @@ sg = jax.lax.stop_gradient
 
 
 class RSSM(nj.Module):
+    """Represent rssm."""
 
     deter: int = 4096
     hidden: int = 2048
@@ -32,18 +35,37 @@ class RSSM(nj.Module):
     free_nats: float = 1.0
 
     def __init__(self, act_space, **kw):
+        """Initialize the rssm.
+
+        Args:
+            act_space: Act space value.
+            kw: Kw value.
+        """
         assert self.deter % self.blocks == 0
         self.act_space = act_space
         self.kw = kw
 
     @property
     def entry_space(self):
+        """Handle entry space.
+
+        Returns:
+            Result of the operation.
+        """
         return dict(
             deter=elements.Space(np.float32, self.deter),
             stoch=elements.Space(np.float32, (self.stoch, self.classes)),
         )
 
     def initial(self, bsize):
+        """Handle initial.
+
+        Args:
+            bsize: Bsize value.
+
+        Returns:
+            Result of the operation.
+        """
         carry = nn.cast(
             dict(
                 deter=jnp.zeros([bsize, self.deter], f32),
@@ -53,17 +75,49 @@ class RSSM(nj.Module):
         return carry
 
     def truncate(self, entries, carry=None):
+        """Handle truncate.
+
+        Args:
+            entries: Entries value.
+            carry: Carry value.
+
+        Returns:
+            Result of the operation.
+        """
         assert entries["deter"].ndim == 3, entries["deter"].shape
         carry = jax.tree.map(lambda x: x[:, -1], entries)
         return carry
 
     def starts(self, entries, carry, nlast):
+        """Handle starts.
+
+        Args:
+            entries: Entries value.
+            carry: Carry value.
+            nlast: Nlast value.
+
+        Returns:
+            Result of the operation.
+        """
         B = len(jax.tree.leaves(carry)[0])
         return jax.tree.map(
             lambda x: x[:, -nlast:].reshape((B * nlast, *x.shape[2:])), entries
         )
 
     def observe(self, carry, tokens, action, reset, training, single=False):
+        """Handle observe.
+
+        Args:
+            carry: Carry value.
+            tokens: Tokens value.
+            action: Action value.
+            reset: Reset value.
+            training: Training value.
+            single: Single value.
+
+        Returns:
+            Result of the operation.
+        """
         carry, tokens, action = nn.cast((carry, tokens, action))
         if single:
             carry, (entry, feat) = self._observe(carry, tokens, action, reset, training)
@@ -98,6 +152,18 @@ class RSSM(nj.Module):
         return carry, (entry, feat)
 
     def imagine(self, carry, policy, length, training, single=False):
+        """Handle imagine.
+
+        Args:
+            carry: Carry value.
+            policy: Policy value.
+            length: Length value.
+            training: Training value.
+            single: Single value.
+
+        Returns:
+            Result of the operation.
+        """
         if single:
             action = policy(sg(carry)) if callable(policy) else policy
             actemb = nn.DictConcat(self.act_space, 1)(action)
@@ -134,6 +200,18 @@ class RSSM(nj.Module):
             return carry, feat, action
 
     def loss(self, carry, tokens, acts, reset, training):
+        """Handle loss.
+
+        Args:
+            carry: Carry value.
+            tokens: Tokens value.
+            acts: Acts value.
+            reset: Reset value.
+            training: Training value.
+
+        Returns:
+            Result of the operation.
+        """
         metrics = {}
         carry, entries, feat = self.observe(carry, tokens, acts, reset, training)
         prior = self._prior(feat["deter"])
@@ -193,6 +271,7 @@ class RSSM(nj.Module):
 
 
 class Encoder(nj.Module):
+    """Represent encoder."""
 
     units: int = 1024
     norm: str = "rms"
@@ -206,6 +285,12 @@ class Encoder(nj.Module):
     strided: bool = False
 
     def __init__(self, obs_space, **kw):
+        """Initialize the encoder.
+
+        Args:
+            obs_space: Observation space value.
+            kw: Kw value.
+        """
         assert all(len(s.shape) <= 3 for s in obs_space.values()), obs_space
         self.obs_space = obs_space
         self.veckeys = [k for k, s in obs_space.items() if len(s.shape) <= 2]
@@ -215,15 +300,49 @@ class Encoder(nj.Module):
 
     @property
     def entry_space(self):
+        """Handle entry space.
+
+        Returns:
+            Result of the operation.
+        """
         return {}
 
     def initial(self, batch_size):
+        """Handle initial.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return {}
 
     def truncate(self, entries, carry=None):
+        """Handle truncate.
+
+        Args:
+            entries: Entries value.
+            carry: Carry value.
+
+        Returns:
+            Result of the operation.
+        """
         return {}
 
     def __call__(self, carry, obs, reset, training, single=False):
+        """Apply the encoder.
+
+        Args:
+            carry: Carry to process.
+            obs: Obs to process.
+            reset: Reset to process.
+            training: Training to process.
+            single: Single to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         bdims = 1 if single else 2
         outs = []
         bshape = reset.shape
@@ -277,6 +396,7 @@ class Encoder(nj.Module):
 
 
 class Decoder(nj.Module):
+    """Represent decoder."""
 
     units: int = 1024
     norm: str = "rms"
@@ -292,6 +412,12 @@ class Decoder(nj.Module):
     strided: bool = False
 
     def __init__(self, obs_space, **kw):
+        """Initialize the decoder.
+
+        Args:
+            obs_space: Observation space value.
+            kw: Kw value.
+        """
         assert all(len(s.shape) <= 3 for s in obs_space.values()), obs_space
         self.obs_space = obs_space
         self.veckeys = [k for k, s in obs_space.items() if len(s.shape) <= 2]
@@ -303,15 +429,49 @@ class Decoder(nj.Module):
 
     @property
     def entry_space(self):
+        """Handle entry space.
+
+        Returns:
+            Result of the operation.
+        """
         return {}
 
     def initial(self, batch_size):
+        """Handle initial.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return {}
 
     def truncate(self, entries, carry=None):
+        """Handle truncate.
+
+        Args:
+            entries: Entries value.
+            carry: Carry value.
+
+        Returns:
+            Result of the operation.
+        """
         return {}
 
     def __call__(self, carry, feat, reset, training, single=False):
+        """Apply the decoder.
+
+        Args:
+            carry: Carry to process.
+            feat: Feat to process.
+            reset: Reset to process.
+            training: Training to process.
+            single: Single to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         assert feat["deter"].shape[-1] % self.bspace == 0
         K = self.kernel
         recons = {}

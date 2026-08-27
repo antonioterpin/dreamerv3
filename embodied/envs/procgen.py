@@ -1,3 +1,5 @@
+"""Provide procgen functionality."""
+
 import elements
 import embodied
 import numpy as np
@@ -7,8 +9,17 @@ from PIL import Image
 
 
 class ProcGen(embodied.Env):
+    """Represent proc gen."""
 
     def __init__(self, task, size=(64, 64), resize="pillow", **kwargs):
+        """Initialize the proc gen.
+
+        Args:
+            task: Task value.
+            size: Requested number of elements.
+            resize: Resize value.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         assert resize in ("opencv", "pillow"), resize
         from . import from_gym
 
@@ -31,15 +42,36 @@ class ProcGen(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         spaces = self.env.obs_space.copy()
         spaces["image"] = elements.Space(np.uint8, (*self.size, 3))
         return spaces
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return self.env.act_space
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         obs = self.env.step(action)
         if self.source == "step":
             pass

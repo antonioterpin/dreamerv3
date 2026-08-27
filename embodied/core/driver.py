@@ -1,3 +1,5 @@
+"""Provide driver functionality."""
+
 import time
 
 import cloudpickle
@@ -7,8 +9,16 @@ import portal
 
 
 class Driver:
+    """Represent driver."""
 
     def __init__(self, make_env_fns, parallel=True, **kwargs):
+        """Initialize the driver.
+
+        Args:
+            make_env_fns: Make environment fns value.
+            parallel: Parallel value.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+        """
         assert len(make_env_fns) >= 1
         self.parallel = parallel
         self.kwargs = kwargs
@@ -35,6 +45,11 @@ class Driver:
         self.reset()
 
     def reset(self, init_policy=None):
+        """Reset state.
+
+        Args:
+            init_policy: Init policy value.
+        """
         self.acts = {
             k: np.zeros((self.length,) + v.shape, v.dtype)
             for k, v in self.act_space.items()
@@ -43,15 +58,28 @@ class Driver:
         self.carry = init_policy and init_policy(self.length)
 
     def close(self):
+        """Close state."""
         if self.parallel:
             [proc.kill() for proc in self.procs]
         else:
             [env.close() for env in self.envs]
 
     def on_step(self, callback):
+        """Handle on step.
+
+        Args:
+            callback: Function invoked when the operation completes.
+        """
         self.callbacks.append(callback)
 
     def __call__(self, policy, steps=0, episodes=0):
+        """Apply the driver.
+
+        Args:
+            policy: Policy to process.
+            steps: Steps to process.
+            episodes: Episodes to process.
+        """
         step, episode = 0, 0
         while step < steps or episode < episodes:
             step, episode = self._step(policy, step, episode)

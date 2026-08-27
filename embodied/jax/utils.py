@@ -1,3 +1,5 @@
+"""Provide utils functionality."""
+
 import functools
 
 import jax
@@ -14,6 +16,7 @@ COMPUTE_DTYPE = jnp.bfloat16
 
 
 class Normalize(nj.Module):
+    """Represent normalize."""
 
     rate: float = 0.01
     limit: float = 1e-8
@@ -22,6 +25,14 @@ class Normalize(nj.Module):
     debias: bool = True
 
     def __init__(self, impl):
+        """Initialize the normalize.
+
+        Args:
+            impl: Impl value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         self.impl = impl
         if self.debias and self.impl != "none":
             self.corr = nj.Variable(jnp.zeros, (), f32, name="corr")
@@ -37,11 +48,28 @@ class Normalize(nj.Module):
             raise NotImplementedError(self.impl)
 
     def __call__(self, x, update):
+        """Apply the normalize.
+
+        Args:
+            x: X to process.
+            update: Update to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         if update:
             self.update(x)
         return self.stats()
 
     def update(self, x):
+        """Update state.
+
+        Args:
+            x: X value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         x = sg(f32(x))
         if self.impl == "none":
             pass
@@ -57,6 +85,14 @@ class Normalize(nj.Module):
             self._update(self.corr, 1.0)
 
     def stats(self):
+        """Handle statistics.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         corr = 1.0
         if self.debias and self.impl != "none":
             corr /= jnp.maximum(self.rate, self.corr.read())
@@ -92,8 +128,17 @@ class Normalize(nj.Module):
 
 
 class SlowModel:
+    """Represent slow model."""
 
     def __init__(self, model, *, source, rate=1.0, every=1):
+        """Initialize the slow model.
+
+        Args:
+            model: Model value.
+            source: Source value.
+            rate: Rate value.
+            every: Every value.
+        """
         assert rate == 1 or rate < 0.5, rate
         self.source = source
         self.model = model
@@ -107,10 +152,20 @@ class SlowModel:
         return getattr(self.model, name)
 
     def __call__(self, *args, **kwargs):
+        """Apply the slow model.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result produced by the operation.
+        """
         self._initonce()
         return self.model(*args, **kwargs)
 
     def update(self):
+        """Update state."""
         self._initonce()
         mix = jnp.where(self.count.read() % self.every == 0, self.rate, 0)
         fn = lambda src, dst: mix * src + (1 - mix) * dst
@@ -130,14 +185,31 @@ class SlowModel:
 
 
 class LayerScan:
+    """Represent layer scan."""
 
     def __init__(self, module, count, names=("__call__",)):
+        """Initialize the layer scan.
+
+        Args:
+            module: Module value.
+            count: Count value.
+            names: Names value.
+        """
         self.module = module
         self.count = count
         self.names = names
 
     def __call__(self, *args, **kwargs):
         # Magic methods need to be forwarded explicitly.
+        """Apply the layer scan.
+
+        Args:
+            args: Positional arguments forwarded to the wrapped callable.
+            kwargs: Keyword arguments forwarded to the wrapped callable.
+
+        Returns:
+            Result produced by the operation.
+        """
         return self.__getattr__("__call__")(*args, **kwargs)
 
     def __getattr__(self, name):
@@ -150,6 +222,19 @@ class LayerScan:
 
 
 def layer_scan(fn, scope, count, inp, *args, **kwargs):
+    """Handle layer scan.
+
+    Args:
+        fn: Function to apply.
+        scope: Scope value.
+        count: Count value.
+        inp: Inp value.
+        args: Positional arguments forwarded to the wrapped callable.
+        kwargs: Keyword arguments forwarded to the wrapped callable.
+
+    Returns:
+        Result of the operation.
+    """
     isinner = lambda k: k.startswith(scope + "/")
 
     args_ = jax.tree.map(lambda x: x[0], args)  # Copy structure
@@ -211,6 +296,15 @@ def layer_scan(fn, scope, count, inp, *args, **kwargs):
     # print('changing_outer', f(changing_outer))
 
     def body(carry, x):
+        """Handle body.
+
+        Args:
+            carry: Carry value.
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         inp, changing_outer = carry
         arg, seed, unchanging_inner, changing_inner = x
         state = {

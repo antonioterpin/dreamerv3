@@ -1,8 +1,18 @@
+"""Provide setup functionality."""
+
 import pathlib
 import setuptools
 
 
 def parse_reqs(filename):
+    """Parse reqs.
+
+    Args:
+        filename: Filename value.
+
+    Returns:
+        Result of the operation.
+    """
     requirements = pathlib.Path(filename)
     requirements = requirements.read_text().split("\n")
     requirements = [x for x in requirements if x.strip()]

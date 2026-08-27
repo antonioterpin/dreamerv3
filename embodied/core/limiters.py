@@ -1,8 +1,22 @@
+"""Provide limiters functionality."""
+
 import threading
 import time
 
 
 def wait(predicate, message, info=None, sleep=0.01, notify=60):
+    """Wait for state.
+
+    Args:
+        predicate: Predicate value.
+        message: Message value.
+        info: Info value.
+        sleep: Sleep value.
+        notify: Notify value.
+
+    Returns:
+        Result of the operation.
+    """
     if predicate():
         return 0
     start = last_notify = time.time()
@@ -17,8 +31,16 @@ def wait(predicate, message, info=None, sleep=0.01, notify=60):
 
 
 class SamplesPerInsert:
+    """Represent samples per insert."""
 
     def __init__(self, samples_per_insert, tolerance, minsize):
+        """Initialize the samples per insert.
+
+        Args:
+            samples_per_insert: Samples per insert value.
+            tolerance: Tolerance value.
+            minsize: Minsize value.
+        """
         assert 1 <= minsize
         self.samples_per_insert = samples_per_insert
         self.minsize = minsize
@@ -29,9 +51,19 @@ class SamplesPerInsert:
         self.lock = threading.Lock()
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         return {"size": self.size, "avail": self.avail}
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         self.size = data["size"]
         self.avail = data["avail"]
 
@@ -41,7 +73,11 @@ class SamplesPerInsert:
         # if self.avail >= self.max_avail:
         #   return False, f'rate limited: {self.avail:.3f} >= {self.max_avail:.3f}'
         # return True, 'ok'
+        """Handle want insert.
 
+        Returns:
+            Result of the operation.
+        """
         if self.size < self.minsize:
             return True
         if self.samples_per_insert <= 0:
@@ -56,7 +92,11 @@ class SamplesPerInsert:
         # if self.samples_per_insert > 0 and self.avail <= self.min_avail:
         #   return False, f'rate limited: {self.avail:.3f} <= {self.min_avail:.3f}'
         # return True, 'ok'
+        """Handle want sample.
 
+        Returns:
+            Result of the operation.
+        """
         if self.size < self.minsize:
             return False
         if self.samples_per_insert <= 0:
@@ -66,6 +106,7 @@ class SamplesPerInsert:
         return False
 
     def insert(self):
+        """Handle insert."""
         with self.lock:
             self.size += 1
             if self.size >= self.minsize:
@@ -76,5 +117,6 @@ class SamplesPerInsert:
     #     self.size -= 1
 
     def sample(self):
+        """Sample state."""
         with self.lock:
             self.avail -= 1

@@ -1,3 +1,5 @@
+"""Provide heads functionality."""
+
 from typing import Callable
 
 import elements
@@ -14,6 +16,7 @@ f32 = jnp.float32
 
 
 class MLPHead(nj.Module):
+    """Represent mlphead."""
 
     units: int = 1024
     layers: int = 5
@@ -24,6 +27,13 @@ class MLPHead(nj.Module):
     binit: str | Callable = nets.Initializer("zeros")
 
     def __init__(self, space, output, **hkw):
+        """Initialize the mlphead.
+
+        Args:
+            space: Space value.
+            output: Output value.
+            hkw: Hkw value.
+        """
         shared = dict(bias=self.bias, winit=self.winit, binit=self.binit)
         mkw = dict(**shared, act=self.act, norm=self.norm)
         hkw = dict(**shared, **hkw)
@@ -34,6 +44,15 @@ class MLPHead(nj.Module):
             self.head = Head(space, output, **hkw, name="head")
 
     def __call__(self, x, bdims):
+        """Apply the mlphead.
+
+        Args:
+            x: X to process.
+            bdims: Bdims to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         bshape = jax.tree.leaves(x)[0].shape[:bdims]
         x = x.reshape((*bshape, -1))
         x = self.mlp(x)
@@ -42,8 +61,16 @@ class MLPHead(nj.Module):
 
 
 class DictHead(nj.Module):
+    """Represent dict head."""
 
     def __init__(self, spaces, outputs, **kw):
+        """Initialize the dict head.
+
+        Args:
+            spaces: Spaces value.
+            outputs: Outputs value.
+            kw: Kw value.
+        """
         assert spaces, spaces
         if not isinstance(spaces, dict):
             spaces = {"output": spaces}
@@ -55,6 +82,14 @@ class DictHead(nj.Module):
         self.kw = kw
 
     def __call__(self, x):
+        """Apply the dict head.
+
+        Args:
+            x: X to process.
+
+        Returns:
+            Result produced by the operation.
+        """
         outputs = {}
         for key, impl in self.outputs.items():
             space = self.spaces[key]
@@ -63,6 +98,7 @@ class DictHead(nj.Module):
 
 
 class Head(nj.Module):
+    """Represent head."""
 
     minstd: float = 1.0
     maxstd: float = 1.0
@@ -71,6 +107,13 @@ class Head(nj.Module):
     outscale: float = 1.0
 
     def __init__(self, space, output, **kw):
+        """Initialize the head.
+
+        Args:
+            space: Space value.
+            output: Output value.
+            kw: Kw value.
+        """
         if isinstance(space, tuple):
             space = elements.Space(np.float32, space)
         if output == "onehot":
@@ -83,6 +126,17 @@ class Head(nj.Module):
         self.kw = {**kw, "outscale": self.outscale}
 
     def __call__(self, x):
+        """Apply the head.
+
+        Args:
+            x: X to process.
+
+        Returns:
+            Result produced by the operation.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         if not hasattr(self, self.impl):
             raise NotImplementedError(self.impl)
         x = nets.ensure_dtypes(x)
@@ -98,11 +152,27 @@ class Head(nj.Module):
         return output
 
     def binary(self, x):
+        """Handle binary.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert np.all(self.space.classes == 2), self.space
         logit = self.sub("logit", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.Binary(logit)
 
     def categorical(self, x):
+        """Handle categorical.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert self.space.discrete
         classes = np.asarray(self.space.classes).flatten()
         assert (classes == classes[0]).all(), classes
@@ -114,26 +184,66 @@ class Head(nj.Module):
         return output
 
     def onehot(self, x):
+        """Handle onehot.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         logits = self.sub("logits", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.OneHot(logits, self.unimix)
 
     def mse(self, x):
+        """Handle mse.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.MSE(pred)
 
     def huber(self, x):
+        """Handle huber.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.Huber(pred)
 
     def symlog_mse(self, x):
+        """Handle symlog mse.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.MSE(pred, nets.symlog)
 
     def symexp_twohot(self, x):
+        """Handle symexp twohot.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         shape = (*self.space.shape, self.bins)
         logits = self.sub("logits", nets.Linear, shape, **self.kw)(x)
@@ -148,6 +258,14 @@ class Head(nj.Module):
         return outs.TwoHot(logits, bins)
 
     def bounded_normal(self, x):
+        """Handle bounded normal.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         mean = self.sub("mean", nets.Linear, self.space.shape, **self.kw)(x)
         stddev = self.sub("stddev", nets.Linear, self.space.shape, **self.kw)(x)
@@ -159,6 +277,14 @@ class Head(nj.Module):
         return output
 
     def normal_logstd(self, x):
+        """Handle normal logstd.
+
+        Args:
+            x: X value.
+
+        Returns:
+            Result of the operation.
+        """
         assert not self.space.discrete
         mean = self.sub("mean", nets.Linear, self.space.shape, **self.kw)(x)
         stddev = self.sub("stddev", nets.Linear, self.space.shape, **self.kw)(x)

@@ -1,3 +1,5 @@
+"""Provide dmlab functionality."""
+
 import functools
 import re
 import zlib
@@ -9,6 +11,7 @@ import numpy as np
 
 
 class DMLab(embodied.Env):
+    """Represent dmlab."""
 
     TOKENIZER = re.compile(r"([A-Za-z_]+|[^A-Za-z_ ]+)")
 
@@ -23,6 +26,21 @@ class DMLab(embodied.Env):
         text=None,
         seed=None,
     ):
+        """Initialize the dmlab.
+
+        Args:
+            level: Level value.
+            repeat: Repeat value.
+            size: Requested number of elements.
+            mode: Mode value.
+            actions: Actions value.
+            episodic: Episodic value.
+            text: Text value.
+            seed: Random seed.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         if level == "goals":  # Shortcut for convenience
             level = "dmlab_explore_goal_locations_small"
         self._size = size
@@ -64,6 +82,11 @@ class DMLab(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         spaces = {
             "image": elements.Space(np.uint8, self._size + (3,)),
             "reward": elements.Space(np.float32),
@@ -79,12 +102,25 @@ class DMLab(embodied.Env):
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "action": elements.Space(np.int32, (), 0, len(self._actions)),
             "reset": elements.Space(bool),
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         if action["reset"] or self._done:
             self._env.reset(seed=self._random.randint(0, 2**31 - 1))
             self._done = False
@@ -123,6 +159,7 @@ class DMLab(embodied.Env):
         return zlib.crc32(token.encode("utf-8")) % self._vocab_buckets
 
     def close(self):
+        """Close state."""
         self._env.close()
 
 

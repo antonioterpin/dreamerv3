@@ -16,7 +16,11 @@ P = jax.sharding.PartitionSpec
 
 
 def _agent(mode, steps=1):
-    """A JAX agent skeleton with a real policy path on one CPU device."""
+    """Create a JAX agent skeleton with a real policy path on one CPU device.
+
+    Returns:
+        Agent configured for policy synchronization tests.
+    """
     agent = object.__new__(JaxAgent)
     agent.jaxcfg = Options(policy_sync_mode=mode, policy_sync_steps=steps)
     agent.config = elements.Config(seed=0)
@@ -80,6 +84,7 @@ def _stage(agent, value):
 
 
 def test_options_default_to_upstream_behavior():
+    """Verify options default to upstream behavior."""
     assert Options().policy_sync_mode == "immediate"
     assert Options().policy_sync_steps == 1
 
@@ -88,6 +93,12 @@ def test_options_default_to_upstream_behavior():
     "mode, steps", [("immediate", 1), ("episode", 1), ("steps", 3)]
 )
 def test_sync_due_per_mode(mode, steps):
+    """Verify sync due per mode.
+
+    Args:
+        mode: Mode value.
+        steps: Steps value.
+    """
     agent = _agent(mode, steps)
     due = lambda last, counter: agent._policy_sync_due(_obs(last), counter)
     if mode == "immediate":
@@ -111,6 +122,7 @@ def test_sync_due_per_mode(mode, steps):
 
 
 def test_immediate_mode_installs_on_the_next_call():
+    """Verify immediate mode installs on the next call."""
     agent = _agent("immediate")
     assert _act(agent) == 1.0
     _stage(agent, 2.0)
@@ -120,6 +132,7 @@ def test_immediate_mode_installs_on_the_next_call():
 
 
 def test_episode_mode_installs_after_an_episode_end():
+    """Verify episode mode installs after an episode end."""
     agent = _agent("episode")
     _stage(agent, 2.0)
     assert _act(agent) == 1.0 and _act(agent) == 1.0
@@ -130,6 +143,7 @@ def test_episode_mode_installs_after_an_episode_end():
 
 
 def test_steps_mode_installs_every_nth_call():
+    """Verify steps mode installs every nth call."""
     agent = _agent("steps", steps=3)
     _stage(agent, 2.0)
     assert [_act(agent) for _ in range(3)] == [1.0, 1.0, 1.0]
@@ -144,6 +158,7 @@ def test_steps_mode_installs_every_nth_call():
 
 
 def test_immediate_mode_keeps_the_first_staged_params():
+    """Verify immediate mode keeps the first staged parameters."""
     agent = _agent("immediate")
     _stage(agent, 2.0)
     first = agent.pending_sync["w"]
@@ -155,6 +170,7 @@ def test_immediate_mode_keeps_the_first_staged_params():
 
 
 def test_scheduled_modes_keep_the_newest_staged_params():
+    """Verify scheduled modes keep the newest staged parameters."""
     agent = _agent("episode")
     _stage(agent, 2.0)
     first = agent.pending_sync["w"]
@@ -166,6 +182,7 @@ def test_scheduled_modes_keep_the_newest_staged_params():
 
 
 def test_precompile_does_not_disturb_scheduled_sync():
+    """Verify precompile does not disturb scheduled sync."""
     agent = _agent("steps", steps=3)
     agent.init_policy = lambda batch: {"state": [np.zeros((1,), np.float32)] * batch}
     agent.precompile_policy(1)

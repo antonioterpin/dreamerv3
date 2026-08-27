@@ -1,3 +1,5 @@
+"""Provide test driver functionality."""
+
 import pathlib
 import sys
 from functools import partial as bind
@@ -9,8 +11,14 @@ import embodied
 
 
 class TestDriver:
+    """Represent test driver."""
 
     def test_throughput_dummy(self, parallel=True):
+        """Verify throughput dummy.
+
+        Args:
+            parallel: Parallel value.
+        """
         from embodied.envs import dummy
 
         make_env_fns = [bind(dummy.Dummy, "disc") for _ in range(32)]
@@ -26,6 +34,11 @@ class TestDriver:
             print(f"FPS: {fps.result():.0f}")
 
     def test_throughput_crafter(self, parallel=True):
+        """Verify throughput crafter.
+
+        Args:
+            parallel: Parallel value.
+        """
         from embodied.envs import crafter
 
         make_env_fns = [bind(crafter.Crafter, "reward") for _ in range(32)]

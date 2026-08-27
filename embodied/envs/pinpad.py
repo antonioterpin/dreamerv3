@@ -1,3 +1,5 @@
+"""Provide pinpad functionality."""
+
 import collections
 
 import elements
@@ -6,6 +8,7 @@ import numpy as np
 
 
 class PinPad(embodied.Env):
+    """Represent pin pad."""
 
     COLORS = {
         "1": (255, 0, 0),
@@ -19,6 +22,12 @@ class PinPad(embodied.Env):
     }
 
     def __init__(self, task, length=10000):
+        """Initialize the pin pad.
+
+        Args:
+            task: Task value.
+            length: Length value.
+        """
         assert length > 0
         layout = {
             "three": LAYOUT_THREE,
@@ -47,6 +56,11 @@ class PinPad(embodied.Env):
 
     @property
     def act_space(self):
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "action": elements.Space(np.int32, (), 0, 5),
             "reset": elements.Space(bool),
@@ -54,6 +68,11 @@ class PinPad(embodied.Env):
 
     @property
     def obs_space(self):
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
         return {
             "image": elements.Space(np.uint8, (64, 64, 3)),
             "reward": elements.Space(np.float32),
@@ -63,6 +82,14 @@ class PinPad(embodied.Env):
         }
 
     def step(self, action):
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
         if self.done or action["reset"]:
             self.player = self.spawns[self.random.randint(len(self.spawns))]
             self.sequence.clear()

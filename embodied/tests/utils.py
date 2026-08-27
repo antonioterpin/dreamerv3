@@ -1,3 +1,5 @@
+"""Provide utils functionality."""
+
 import time
 
 import elements
@@ -6,8 +8,16 @@ import numpy as np
 
 
 class TestAgent:
+    """Represent test agent."""
 
     def __init__(self, obs_space, act_space, addr=None):
+        """Initialize the test agent.
+
+        Args:
+            obs_space: Observation space value.
+            act_space: Act space value.
+            addr: Address value.
+        """
         self.obs_space = obs_space
         self.act_space = act_space
         if addr:
@@ -32,20 +42,59 @@ class TestAgent:
                 time.sleep(0.01)
 
     def stats(self):
+        """Handle statistics.
+
+        Returns:
+            Result of the operation.
+        """
         stats = self._stats.copy()
         stats["lifetime"] = time.time() - stats.pop("created")
         return stats
 
     def init_policy(self, batch_size):
+        """Handle init policy.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return (np.zeros(batch_size),)
 
     def init_train(self, batch_size):
+        """Handle init train.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return (np.zeros(batch_size),)
 
     def init_report(self, batch_size):
+        """Handle init report.
+
+        Args:
+            batch_size: Batch size value.
+
+        Returns:
+            Result of the operation.
+        """
         return ()
 
     def policy(self, carry, obs, mode="train"):
+        """Handle policy.
+
+        Args:
+            carry: Carry value.
+            obs: Observation value.
+            mode: Mode value.
+
+        Returns:
+            Result of the operation.
+        """
         assert set(obs.keys()) == set(self.obs_space.keys())
         B = len(obs["is_first"])
         self._stats["env_steps"] += B
@@ -70,6 +119,15 @@ class TestAgent:
         return (carry,), act, {}
 
     def train(self, carry, data):
+        """Train state.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         expected = sorted(set(self.obs_space | self.act_space) | {"stepid"})
         assert sorted(data.keys()) == expected, (sorted(data.keys()), expected)
         B, T = data["count"].shape
@@ -89,6 +147,15 @@ class TestAgent:
         return (carry,), outs, metrics
 
     def report(self, carry, data):
+        """Handle report.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Returns:
+            Result of the operation.
+        """
         self._stats["reports"] += 1
         return carry, {
             "scalar": np.float32(0),
@@ -99,12 +166,30 @@ class TestAgent:
         }
 
     def dataset(self, generator):
+        """Handle dataset.
+
+        Args:
+            generator: Generator value.
+
+        Returns:
+            Result of the operation.
+        """
         return generator()
 
     def save(self):
+        """Save state.
+
+        Returns:
+            Result of the operation.
+        """
         self._stats["saves"] += 1
         return self._stats
 
     def load(self, data):
+        """Load state.
+
+        Args:
+            data: Data to process.
+        """
         self._stats = data
         self._stats["loads"] += 1

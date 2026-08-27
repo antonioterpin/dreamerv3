@@ -1,3 +1,5 @@
+"""Provide init functionality."""
+
 from .base import Agent, Env
 
 from .clock import GlobalClock
