@@ -28,7 +28,7 @@ class PinPad(embodied.Env):
             task: Task value.
             length: Length value.
         """
-        assert length > 0
+        assert length > 0, "Expected length to be greater than 0."
         layout = {
             "three": LAYOUT_THREE,
             "four": LAYOUT_FOUR,

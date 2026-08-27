@@ -20,7 +20,9 @@ class TestSampleTree:
         tree = selectors.SampleTree(branching)
         entries = range(50)
         for index, uprob in enumerate(entries):
-            assert tree.root.uprob == sum(entries[:index])
+            assert tree.root.uprob == sum(
+                entries[:index]
+            ), "Expected tree root uprob to equal sum(entries[:index])."
             tree.insert(index, uprob)
 
     @pytest.mark.parametrize("inserts", [1, 2, 10, 100])
@@ -35,10 +37,12 @@ class TestSampleTree:
         tree = selectors.SampleTree(branching)
         for index in range(inserts):
             tree.insert(index, 1)
-        assert len(tree) == inserts
+        assert len(tree) == inserts, "Expected number of tree to equal inserts."
         depths = self._find_leave_depths(tree)
         target = max(1, int(np.ceil(np.log(inserts) / np.log(branching))))
-        assert all(x == target for x in depths)
+        assert all(
+            x == target for x in depths
+        ), "Expected every element to satisfy that x to equal target."
 
     @pytest.mark.parametrize("inserts", [2, 10, 100])
     @pytest.mark.parametrize("remove_every", [2, 3, 4])
@@ -57,10 +61,14 @@ class TestSampleTree:
         removals = list(range(0, inserts, remove_every))
         for index in removals:
             tree.remove(index)
-        assert len(tree) == inserts - len(removals)
+        assert len(tree) == inserts - len(
+            removals
+        ), "Expected number of tree to equal inserts - len(removals)."
         depths = self._find_leave_depths(tree)
         target = max(1, int(np.ceil(np.log(inserts) / np.log(branching))))
-        assert all(x == target for x in depths)
+        assert all(
+            x == target for x in depths
+        ), "Expected every element to satisfy that x to equal target."
 
     @pytest.mark.parametrize("inserts", [2, 10, 100])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
@@ -72,17 +80,23 @@ class TestSampleTree:
             branching: Branching value.
         """
         tree = selectors.SampleTree(branching)
-        assert len(self._get_flat_nodes(tree)) == 1
+        assert (
+            len(self._get_flat_nodes(tree)) == 1
+        ), "Expected number of self get flat nodes(tree) to equal 1."
         rng = np.random.default_rng(seed=0)
         for key in rng.permutation(np.arange(inserts)):
             tree.insert(key, 1)
         num_nodes = len(self._get_flat_nodes(tree))
         for key in rng.permutation(np.arange(inserts)):
             tree.remove(key)
-        assert len(self._get_flat_nodes(tree)) == 1
+        assert (
+            len(self._get_flat_nodes(tree)) == 1
+        ), "Expected number of self get flat nodes(tree) to equal 1."
         for key in rng.permutation(np.arange(inserts)):
             tree.insert(key, 1)
-        assert len(self._get_flat_nodes(tree)) == num_nodes
+        assert (
+            len(self._get_flat_nodes(tree)) == num_nodes
+        ), "Expected number of self get flat nodes(tree) to equal num_nodes."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
     def test_sample_single(self, branching):
@@ -98,7 +112,7 @@ class TestSampleTree:
         tree.remove(12)
         tree.remove(42)
         for _ in range(10):
-            assert tree.sample() == 123
+            assert tree.sample() == 123, "Expected tree sample() to equal 123."
 
     @pytest.mark.parametrize("inserts", [2, 10])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
@@ -122,12 +136,18 @@ class TestSampleTree:
         for _ in range(100 * len(keys)):
             key = tree.sample()
             histogram[key] += 1
-        assert len(histogram) > 0
-        assert len(histogram) == len(keys)
-        assert all(k in histogram for k in keys)
+        assert len(histogram) > 0, "Expected number of histogram to be greater than 0."
+        assert len(histogram) == len(
+            keys
+        ), "Expected number of histogram to equal len(keys)."
+        assert all(
+            k in histogram for k in keys
+        ), "Expected every element to satisfy that k to be present in histogram."
         for key, count in histogram.items():
             prob = count / (100 * len(keys))
-            assert prob > 0.5 * (1 / len(keys))
+            assert prob > 0.5 * (
+                1 / len(keys)
+            ), "Expected prob to be greater than 0.5 * (1 / len(keys))."
 
     @pytest.mark.parametrize("scale", [1e-5, 1, 1e5])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
@@ -148,15 +168,17 @@ class TestSampleTree:
         for _ in range(100 * len(entries)):
             key = tree.sample()
             histogram[key] += 1
-        assert len(histogram) > 0
+        assert len(histogram) > 0, "Expected number of histogram to be greater than 0."
         total = sum(entries.values())
         for key, uprob in entries.items():
             if uprob == 0:
-                assert key not in histogram
+                assert key not in histogram, "Expected key to be absent from histogram."
         for key, count in histogram.items():
             prob = count / (100 * len(entries))
             target = entries[key] / total
-            assert 0.7 * target < prob < 1.3 * target
+            assert (
+                0.7 * target < prob < 1.3 * target
+            ), "Expected 0.7 * target < prob < 1.3 * target to hold."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
     def test_update_frequencies(self, branching):
@@ -177,15 +199,17 @@ class TestSampleTree:
         for _ in range(100 * len(entries)):
             key = tree.sample()
             histogram[key] += 1
-        assert len(histogram) > 0
+        assert len(histogram) > 0, "Expected number of histogram to be greater than 0."
         total = sum(entries.values())
         for key, uprob in entries.items():
             if uprob == 0:
-                assert key not in histogram
+                assert key not in histogram, "Expected key to be absent from histogram."
         for key, count in histogram.items():
             prob = count / (100 * len(entries))
             target = entries[key] / total
-            assert 0.7 * target < prob < 1.3 * target
+            assert (
+                0.7 * target < prob < 1.3 * target
+            ), "Expected 0.7 * target < prob < 1.3 * target to hold."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
     def test_zero_probs_mixed(self, branching):
@@ -203,7 +227,9 @@ class TestSampleTree:
                 tree.insert(index, 0.0)
                 impossible.append(index)
         for _ in range(1000):
-            assert tree.sample() not in impossible
+            assert (
+                tree.sample() not in impossible
+            ), "Expected tree sample() to be absent from impossible."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
     def test_zero_probs_only(self, branching):
@@ -216,7 +242,9 @@ class TestSampleTree:
         for index in range(100):
             tree.insert(index, 0.0)
         for _ in range(1000):
-            assert tree.sample() in range(100)
+            assert tree.sample() in range(
+                100
+            ), "Expected tree sample() to be present in range(100)."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
     def test_infinity_probs(self, branching):
@@ -234,7 +262,9 @@ class TestSampleTree:
             else:
                 tree.insert(index, 1.0)
         for _ in range(1000):
-            assert tree.sample() in possible
+            assert (
+                tree.sample() in possible
+            ), "Expected tree sample() to be present in possible."
 
     def _find_leave_depths(self, tree):
         depths = []
@@ -246,7 +276,7 @@ class TestSampleTree:
                     queue.append((child, depth + 1))
             else:
                 depths.append(depth)
-        assert len(depths) > 0
+        assert len(depths) > 0, "Expected number of depths to be greater than 0."
         return depths
 
     def _get_flat_nodes(self, tree):

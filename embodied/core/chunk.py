@@ -62,7 +62,9 @@ class Chunk:
         Args:
             step: Step value.
         """
-        assert self.length < self.size
+        assert (
+            self.length < self.size
+        ), "Expected self length to be less than self.size."
         if not self.data:
             example = step
             self.data = {
@@ -97,7 +99,9 @@ class Chunk:
         Returns:
             Result of the operation.
         """
-        assert 0 <= index and index + length <= self.length
+        assert (
+            0 <= index and index + length <= self.length
+        ), "Expected all parts of the 0 <= index and index + length <= self.length invariant to hold."
         return {k: v[index : index + length] for k, v in self.data.items()}
 
     @elements.timer.section("chunk_save")
@@ -108,7 +112,7 @@ class Chunk:
             directory: Directory value.
             log: Log value.
         """
-        assert not self.saved
+        assert not self.saved, "Expected self saved to be false or empty."
         self.saved = True
         filename = elements.Path(directory) / self.filename
         data = {k: v[: self.length] for k, v in self.data.items()}
@@ -129,7 +133,10 @@ class Chunk:
         Returns:
             Result of the operation.
         """
-        assert error in ("raise", "none")
+        assert error in (
+            "raise",
+            "none",
+        ), 'Expected error to be present in ("raise", "none").'
         time, uuid, succ, length = filename.stem.split("-")
         length = int(length)
         try:

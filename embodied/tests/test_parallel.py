@@ -53,15 +53,21 @@ class TestParallel:
 
         stats = received[0]
         print("Stats:", stats)
-        assert stats["env_steps"] > 400
+        assert (
+            stats["env_steps"] > 400
+        ), "Expected stats env steps to be greater than 400."
         if args.train_ratio > -1:
             replay_steps = stats["env_steps"] * args.train_ratio
-            assert np.allclose(stats["replay_steps"], replay_steps, 100, 0.1)
+            assert np.allclose(
+                stats["replay_steps"], replay_steps, 100, 0.1
+            ), "Expected np allclose(stats replay steps, replay steps, 100, 0 1) to be initialized or truthy."
         else:
-            assert stats["replay_steps"] > 100
-        assert stats["reports"] >= 1
-        assert stats["saves"] >= 2
-        assert stats["loads"] == 0
+            assert (
+                stats["replay_steps"] > 100
+            ), "Expected stats replay steps to be greater than 100."
+        assert stats["reports"] >= 1, "Expected stats reports to be at least 1."
+        assert stats["saves"] >= 2, "Expected stats saves to be at least 2."
+        assert stats["loads"] == 0, "Expected stats loads to equal 0."
 
         embodied.run.parallel.combined(
             bind(self._make_agent, addr),
@@ -73,7 +79,7 @@ class TestParallel:
             args,
         )
         stats = received[0]
-        assert stats["loads"] == 1
+        assert stats["loads"] == 1, "Expected stats loads to equal 1."
 
     def _make_agent(self, queue):
         env = self._make_env(0)

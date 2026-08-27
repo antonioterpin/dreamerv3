@@ -215,7 +215,7 @@ class LayerScan:
     def __getattr__(self, name):
         value = getattr(self.module, name)
         if name in self.names:
-            assert callable(value)
+            assert callable(value), "Expected the wrapped attribute to be callable."
             value = nj.pure(value, nested=True)
             value = functools.partial(layer_scan, value, self.module.path, self.count)
         return value

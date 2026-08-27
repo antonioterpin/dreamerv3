@@ -27,9 +27,11 @@ class Layer(nj.Module):
         Returns:
             Result produced by the operation.
         """
-        assert x.shape[1:] == (self.units,)
-        assert c.shape == (7,)
-        assert k.shape == (13, 7)
+        assert x.shape[1:] == (
+            self.units,
+        ), "Expected x shape[1:] to equal (self.units,)."
+        assert c.shape == (7,), "Expected c shape to equal (7,)."
+        assert k.shape == (13, 7), "Expected k shape to equal (13, 7)."
         shape = (x.shape[-1], self.units)
         winit = lambda: jax.random.normal(nj.seed(), shape, f32)
         x = x @ self.value("kernel", winit)
@@ -102,17 +104,25 @@ class TestLayerScan:
             "outer3",
             "net/linear/kernel",
             "net/linear/inner",
-        }
-        assert params["net/linear/kernel"].shape == (L, D, D)
-        assert params["outer1"] == 1
-        assert params["outer2"] == 1
-        assert params["outer3"] == 0
-        assert params["net/linear/inner"].shape == (L,)
-        assert (params["net/linear/inner"] == 0).all()
+        }, 'Expected keys in params keys() to equal {"outer1", "outer2", "outer3", "net/linear/kernel", "net/linear/inner"}.'
+        assert params["net/linear/kernel"].shape == (
+            L,
+            D,
+            D,
+        ), "Expected params net/linear/kernel shape to equal (L, D, D)."
+        assert params["outer1"] == 1, "Expected params outer1 to equal 1."
+        assert params["outer2"] == 1, "Expected params outer2 to equal 1."
+        assert params["outer3"] == 0, "Expected params outer3 to equal 0."
+        assert params["net/linear/inner"].shape == (
+            L,
+        ), "Expected params net/linear/inner shape to equal (L,)."
+        assert (
+            params["net/linear/inner"] == 0
+        ).all(), "Expected params net/linear/inner to equal 0."
         for i in range(1, L):
             assert not jnp.allclose(
                 params["net/linear/kernel"][0], params["net/linear/kernel"][i]
-            )
+            ), "Expected jnp allclose(params net/linear/kernel[0], params net/linear/kernel[i]) to be false or empty."
 
     def test_apply(self, L=4, B=2, D=8):
         """Verify apply.
@@ -126,12 +136,16 @@ class TestLayerScan:
         net = Net(layers=L, units=D, name="net")
         params = nj.init(net)({}, x, seed=0)
         params, out = nj.pure(net)(params, x)
-        assert out.shape == (B, D)
-        assert params["outer1"] == L + 2
-        assert params["outer2"] == 1
-        assert params["outer3"] == L
-        assert params["net/linear/inner"].shape == (L,)
-        assert (params["net/linear/inner"] == 1).all()
+        assert out.shape == (B, D), "Expected out shape to equal (B, D)."
+        assert params["outer1"] == L + 2, "Expected params outer1 to equal L + 2."
+        assert params["outer2"] == 1, "Expected params outer2 to equal 1."
+        assert params["outer3"] == L, "Expected params outer3 to equal L."
+        assert params["net/linear/inner"].shape == (
+            L,
+        ), "Expected params net/linear/inner shape to equal (L,)."
+        assert (
+            params["net/linear/inner"] == 1
+        ).all(), "Expected params net/linear/inner to equal 1."
 
     def test_grad(self, L=4, B=2, D=8):
         """Verify grad.
@@ -167,4 +181,4 @@ class TestLayerScan:
 
         params = nj.init(net)({}, x, seed=0)
         params, loss = nj.pure(fn)(params, x)
-        assert loss.shape == ()
+        assert loss.shape == (), "Expected loss shape to equal ()."

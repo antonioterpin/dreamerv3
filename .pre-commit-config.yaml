@@ -25,6 +25,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: assert-messages
+        name: assert-messages
+        entry: scripts/check_assert_messages.py
+        language: script
+        types: [python]
+        files: ^(dreamerv3|embodied|scores)/|^(plot|setup)\.py$
+
       - id: basedpyright
         name: basedpyright
         entry: .venv/bin/basedpyright

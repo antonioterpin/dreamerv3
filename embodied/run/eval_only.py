@@ -17,7 +17,7 @@ def eval_only(make_agent, make_env, make_logger, args):
         make_logger: Make logger value.
         args: Positional arguments forwarded to the wrapped callable.
     """
-    assert args.from_checkpoint
+    assert args.from_checkpoint, "Evaluation requires a checkpoint path."
 
     agent = make_agent()
     logger = make_logger()

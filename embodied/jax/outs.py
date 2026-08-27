@@ -226,7 +226,9 @@ class Concat:
             midpoints: Midpoints value.
             axis: Axis value.
         """
-        assert len(midpoints) == len(outputs) - 1
+        assert (
+            len(midpoints) == len(outputs) - 1
+        ), "Expected number of midpoints to equal len(outputs) - 1."
         self.outputs = outputs
         self.midpoints = tuple(midpoints)
         self.axis = axis

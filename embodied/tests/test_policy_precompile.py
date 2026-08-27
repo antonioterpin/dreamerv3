@@ -199,10 +199,16 @@ def test_learner_waits_for_warmup(monkeypatch):
     assert "server_start" not in events, events
     finish_warmup.set()
     [t.join(5.0) for t in threads]
-    assert not any(t.is_alive() for t in threads)
+    assert not any(
+        t.is_alive() for t in threads
+    ), "Expected no elements to violate the invariant."
     assert not errors, errors
-    assert events.index("warmup_end") < events.index("learner_continues")
-    assert events.index("warmup_end") < events.index("server_start")
+    assert events.index("warmup_end") < events.index(
+        "learner_continues"
+    ), 'Expected events index("warmup end") to be less than events.index("learner_continues").'
+    assert events.index("warmup_end") < events.index(
+        "server_start"
+    ), 'Expected events index("warmup end") to be less than events.index("server_start").'
 
 
 def test_jax_warmup_compiles_real_shape_without_state_leaks():
@@ -276,14 +282,20 @@ def test_jax_warmup_compiles_real_shape_without_state_leaks():
     agent.policy(real_carry, agent._zeros(agent.obs_space, (4,)), mode="train")
 
     dummy = observations[0]
-    assert set(dummy) == set(agent.obs_space)
+    assert set(dummy) == set(
+        agent.obs_space
+    ), "Expected keys in dummy to equal set(agent.obs_space)."
     for key, space in agent.obs_space.items():
         assert dummy[key].shape == (4, *space.shape), key
         assert dummy[key].dtype == space.dtype, key
-    assert np.all(dummy["is_first"]) and not np.any(dummy["is_last"])
-    assert not np.any(dummy["is_terminal"]) and np.all(dummy["reward"] == 0)
-    assert modes == ["train", "train"]
+    assert np.all(dummy["is_first"]) and not np.any(
+        dummy["is_last"]
+    ), 'Expected all parts of the np.all(dummy["is_first"]) and (not np.any(dummy["is_last"])) invariant to hold.'
+    assert not np.any(dummy["is_terminal"]) and np.all(
+        dummy["reward"] == 0
+    ), 'Expected all parts of the not np.any(dummy["is_terminal"]) and np.all(dummy["reward"] == 0) invariant to hold.'
+    assert modes == ["train", "train"], 'Expected modes to equal ["train", "train"].'
     assert traces == ["trace"], "the real call must reuse the warmup compilation"
     assert int(agent.n_actions) == 18, "warmup must not consume an action index"
     assert np.all(real_carry["state"] == 0), "dummy carry must not leak"
-    assert agent.pending_sync is None
+    assert agent.pending_sync is None, "Expected agent pending sync to be None."

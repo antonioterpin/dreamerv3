@@ -97,11 +97,29 @@ def _rollout(env):
 def test_legacy_api_unchanged():
     """Verify legacy api unchanged."""
     obs = _rollout(_LegacyEnv())
-    assert [o["is_first"] for o in obs] == [True, False, False]
-    assert [o["is_last"] for o in obs] == [False, False, True]
-    assert [o["is_terminal"] for o in obs] == [False, False, True]
-    assert obs[0]["image"].tolist() == [0, 0]
-    assert obs[-1]["image"].tolist() == [2, 2]
+    assert [o["is_first"] for o in obs] == [
+        True,
+        False,
+        False,
+    ], "Expected [o is first for o in obs] to equal [True, False, False]."
+    assert [o["is_last"] for o in obs] == [
+        False,
+        False,
+        True,
+    ], "Expected [o is last for o in obs] to equal [False, False, True]."
+    assert [o["is_terminal"] for o in obs] == [
+        False,
+        False,
+        True,
+    ], "Expected [o is terminal for o in obs] to equal [False, False, True]."
+    assert obs[0]["image"].tolist() == [
+        0,
+        0,
+    ], "Expected obs[0] image tolist() to equal [0, 0]."
+    assert obs[-1]["image"].tolist() == [
+        2,
+        2,
+    ], "Expected obs[-1] image tolist() to equal [2, 2]."
 
 
 @pytest.mark.parametrize("truncate", [False, True])
@@ -115,19 +133,31 @@ def test_modern_api_reset_tuple_and_five_tuple_step(truncate):
     wrapped = FromGym(env)
     act = {k: v.sample() for k, v in wrapped.act_space.items()}
     first = wrapped.step({**act, "reset": True})
-    assert first["is_first"] and first["image"].tolist() == [0, 0]
-    assert wrapped.info == {"source": "reset"}
+    assert first["is_first"] and first["image"].tolist() == [
+        0,
+        0,
+    ], 'Expected all parts of the first["is_first"] and first["image"].tolist() == [0, 0] invariant to hold.'
+    assert wrapped.info == {
+        "source": "reset"
+    }, 'Expected wrapped info to equal {"source": "reset"}.'
     obs = [first]
     while not obs[-1]["is_last"]:
         obs.append(wrapped.step({**act, "reset": False}))
-    assert len(obs) == 3
-    assert obs[-1]["is_last"]
+    assert len(obs) == 3, "Expected number of obs to equal 3."
+    assert obs[-1]["is_last"], "Expected obs[-1] is last to be initialized or truthy."
     # A truncated episode ends without being terminal; a terminated one is.
-    assert obs[-1]["is_terminal"] == (not truncate)
-    assert obs[-1]["reward"] == np.float32(1.0)
+    assert obs[-1]["is_terminal"] == (
+        not truncate
+    ), "Expected obs[-1] is terminal to equal not truncate."
+    assert obs[-1]["reward"] == np.float32(
+        1.0
+    ), "Expected obs[-1] reward to equal np.float32(1.0)."
     # The episode end triggers an automatic reset on the next step.
     again = wrapped.step({**act, "reset": False})
-    assert again["is_first"] and again["image"].tolist() == [0, 0]
+    assert again["is_first"] and again["image"].tolist() == [
+        0,
+        0,
+    ], 'Expected all parts of the again["is_first"] and again["image"].tolist() == [0, 0] invariant to hold.'
 
 
 def test_modern_api_info_overrides_is_terminal():
@@ -153,7 +183,9 @@ def test_modern_api_info_overrides_is_terminal():
             return obs, rew, term, trunc, {"is_terminal": False}
 
     obs = _rollout(Env())
-    assert obs[-1]["is_last"] and not obs[-1]["is_terminal"]
+    assert (
+        obs[-1]["is_last"] and not obs[-1]["is_terminal"]
+    ), 'Expected all parts of the obs[-1]["is_last"] and (not obs[-1]["is_terminal"]) invariant to hold.'
 
 
 def test_reset_key_is_not_forwarded_to_dict_action_envs():
@@ -199,7 +231,10 @@ def test_reset_key_is_not_forwarded_to_dict_action_envs():
 
     raw = DictActionEnv()
     env = FromGym(raw)
-    assert set(env.act_space) == {"move", "reset"}
+    assert set(env.act_space) == {
+        "move",
+        "reset",
+    }, 'Expected keys in env act space to equal {"move", "reset"}.'
     act = {k: v.sample() for k, v in env.act_space.items()}
     env.step({**act, "reset": True})
     env.step({**act, "reset": False})

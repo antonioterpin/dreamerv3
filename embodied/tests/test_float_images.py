@@ -40,7 +40,9 @@ def test_float_images_in_unit_range_match_uint8_images():
     as_float = _encode(
         elements.Space(np.float32, (16, 16, 3)), pixels.astype(np.float32) / 255
     )
-    assert as_uint8.shape == as_float.shape
+    assert (
+        as_uint8.shape == as_float.shape
+    ), "Expected as uint8 shape to equal as_float.shape."
     assert np.allclose(
         as_uint8, as_float, atol=1e-2
     ), "A float image in [0, 1] must encode like the same uint8 image"

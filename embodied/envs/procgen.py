@@ -77,7 +77,7 @@ class ProcGen(embodied.Env):
             pass
         elif self.source == "info":
             info = self.inner.get_info()
-            assert len(info) == 1
+            assert len(info) == 1, "Expected number of info to equal 1."
             obs["image"] = self._resize(info[0]["rgb"], self.size, self.resize)
         elif self.source == "render":
             obs["image"] = self._resize(

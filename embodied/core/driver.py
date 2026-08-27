@@ -19,7 +19,9 @@ class Driver:
             parallel: Parallel value.
             kwargs: Keyword arguments forwarded to the wrapped callable.
         """
-        assert len(make_env_fns) >= 1
+        assert (
+            len(make_env_fns) >= 1
+        ), "Expected number of make env fns to be at least 1."
         self.parallel = parallel
         self.kwargs = kwargs
         self.length = len(make_env_fns)
@@ -86,8 +88,12 @@ class Driver:
 
     def _step(self, policy, step, episode):
         acts = self.acts
-        assert all(len(x) == self.length for x in acts.values())
-        assert all(isinstance(v, np.ndarray) for v in acts.values())
+        assert all(
+            len(x) == self.length for x in acts.values()
+        ), "Expected every element to satisfy that number of x to equal self.length."
+        assert all(
+            isinstance(v, np.ndarray) for v in acts.values()
+        ), "Expected all elements to satisfy the invariant."
         acts = [{k: v[i] for k, v in acts.items()} for i in range(self.length)]
         if self.parallel:
             [pipe.send(("step", act)) for pipe, act in zip(self.pipes, acts)]
@@ -122,7 +128,7 @@ class Driver:
             msg, arg = pipe.recv()
             if msg == "error":
                 raise RuntimeError(arg)
-            assert msg == "result"
+            assert msg == "result", 'Expected msg to equal "result".'
             return arg
         except Exception:
             print("Terminating workers due to an exception.")
@@ -143,15 +149,15 @@ class Driver:
                 except EOFError:
                     return
                 if msg == "step":
-                    assert len(args) == 1
+                    assert len(args) == 1, "Expected number of args to equal 1."
                     act = args[0]
                     obs = env.step(act)
                     pipe.send(("result", obs))
                 elif msg == "obs_space":
-                    assert len(args) == 0
+                    assert len(args) == 0, "Expected number of args to equal 0."
                     pipe.send(("result", env.obs_space))
                 elif msg == "act_space":
-                    assert len(args) == 0
+                    assert len(args) == 0, "Expected number of args to equal 0."
                     pipe.send(("result", env.act_space))
                 else:
                     raise ValueError(f"Invalid message {msg}")

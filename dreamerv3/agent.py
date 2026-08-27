@@ -306,8 +306,12 @@ class Agent(embodied.jax.Agent):
         lastact = policyfn(jax.tree.map(lambda x: x[:, -1], imgfeat))
         lastact = jax.tree.map(lambda x: x[:, None], lastact)
         imgact = concat([imgprevact, lastact], 1)
-        assert all(x.shape[:2] == (B * K, H + 1) for x in jax.tree.leaves(imgfeat))
-        assert all(x.shape[:2] == (B * K, H + 1) for x in jax.tree.leaves(imgact))
+        assert all(
+            x.shape[:2] == (B * K, H + 1) for x in jax.tree.leaves(imgfeat)
+        ), "Expected every element to satisfy that x shape[:2] to equal (B * K, H + 1)."
+        assert all(
+            x.shape[:2] == (B * K, H + 1) for x in jax.tree.leaves(imgact)
+        ), "Expected every element to satisfy that x shape[:2] to equal (B * K, H + 1)."
         inp = self.feat2tensor(imgfeat)
         los, imgloss_out, mets = imag_loss(
             imgact,
@@ -507,7 +511,9 @@ class Agent(embodied.jax.Agent):
             pattern = re.compile(wdregex)
             wdmask = lambda params: {k: bool(pattern.search(k)) for k in params}
             chain.append(optax.add_decayed_weights(wd, wdmask))
-        assert anneal > 0 or schedule == "const"
+        assert (
+            anneal > 0 or schedule == "const"
+        ), 'Expected all parts of the anneal > 0 or schedule == "const" invariant to hold.'
         if schedule == "const":
             sched = optax.constant_schedule(lr)
         elif schedule == "linear":

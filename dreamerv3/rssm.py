@@ -41,7 +41,9 @@ class RSSM(nj.Module):
             act_space: Act space value.
             kw: Kw value.
         """
-        assert self.deter % self.blocks == 0
+        assert (
+            self.deter % self.blocks == 0
+        ), "Expected self deter % self blocks to equal 0."
         self.act_space = act_space
         self.kw = kw
 
@@ -148,7 +150,9 @@ class RSSM(nj.Module):
         carry = dict(deter=deter, stoch=stoch)
         feat = dict(deter=deter, stoch=stoch, logit=logit)
         entry = dict(deter=deter, stoch=stoch)
-        assert all(x.dtype == nn.COMPUTE_DTYPE for x in (deter, stoch, logit))
+        assert all(
+            x.dtype == nn.COMPUTE_DTYPE for x in (deter, stoch, logit)
+        ), "Expected every element to satisfy that x dtype to equal nn.COMPUTE_DTYPE."
         return carry, (entry, feat)
 
     def imagine(self, carry, policy, length, training, single=False):
@@ -172,7 +176,9 @@ class RSSM(nj.Module):
             stoch = nn.cast(self._dist(logit).sample(seed=nj.seed()))
             carry = nn.cast(dict(deter=deter, stoch=stoch))
             feat = nn.cast(dict(deter=deter, stoch=stoch, logit=logit))
-            assert all(x.dtype == nn.COMPUTE_DTYPE for x in (deter, stoch, logit))
+            assert all(
+                x.dtype == nn.COMPUTE_DTYPE for x in (deter, stoch, logit)
+            ), "Expected every element to satisfy that x dtype to equal nn.COMPUTE_DTYPE."
             return carry, (feat, action)
         else:
             unroll = length if self.unroll else 1
@@ -472,7 +478,9 @@ class Decoder(nj.Module):
         Returns:
             Result produced by the operation.
         """
-        assert feat["deter"].shape[-1] % self.bspace == 0
+        assert (
+            feat["deter"].shape[-1] % self.bspace == 0
+        ), "Expected feat deter shape[-1] % self bspace to equal 0."
         K = self.kernel
         recons = {}
         bshape = reset.shape

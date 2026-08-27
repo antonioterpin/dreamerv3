@@ -425,7 +425,7 @@ def test_finite_run_flushes_and_exits_cleanly(tmp_path):
     assert last_checkpoint < recorded.index(
         "logger_closed"
     ), "The final checkpoint must be persisted before the logger shuts down"
-    assert "env_closed" in recorded
+    assert "env_closed" in recorded, 'Expected "env closed" to be present in recorded.'
 
 
 def test_unrelated_environment_error_still_crashes_the_worker(tmp_path):
@@ -472,7 +472,9 @@ def test_agent_with_prefetching_streams_exits_cleanly(tmp_path):
         run_combined(tmp_path, events, prefetch=True)
         recorded = list(events)
     assert "train" in recorded, "The learner must have trained on the stream"
-    assert "replay:True" in recorded
+    assert (
+        "replay:True" in recorded
+    ), 'Expected "replay:True" to be present in recorded.'
 
 
 def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path):
@@ -508,7 +510,9 @@ def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path):
         "would hang here"
     )
     assert isinstance(outcome[0], RuntimeError), outcome
-    assert "crashed" in str(outcome[0])
+    assert "crashed" in str(
+        outcome[0]
+    ), 'Expected "crashed" to be present in str(outcome[0]).'
 
 
 def test_prefetch_treats_source_exhaustion_as_normal_completion():
@@ -535,7 +539,9 @@ def test_episode_checkpoints_are_opt_in(tmp_path):
             tmp_path / "off" / "ckpt" / "agent_best"
         ).exists(), "No best checkpoint is written unless save_on_episode is set"
         run_combined(tmp_path / "on", events, save_on_episode=True)
-    assert (tmp_path / "on" / "ckpt" / "agent").exists()
+    assert (
+        tmp_path / "on" / "ckpt" / "agent"
+    ).exists(), 'Expected (tmp path / "on" / "ckpt" / "agent") exists() to be initialized or truthy.'
     assert (
         tmp_path / "on" / "ckpt" / "agent_best"
     ).exists(), "The first completed episode is the best one so far"

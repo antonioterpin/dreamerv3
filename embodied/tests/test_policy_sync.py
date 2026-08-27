@@ -85,8 +85,12 @@ def _stage(agent, value):
 
 def test_options_default_to_upstream_behavior():
     """Verify options default to upstream behavior."""
-    assert Options().policy_sync_mode == "immediate"
-    assert Options().policy_sync_steps == 1
+    assert (
+        Options().policy_sync_mode == "immediate"
+    ), 'Expected Options() policy sync mode to equal "immediate".'
+    assert (
+        Options().policy_sync_steps == 1
+    ), "Expected Options() policy sync steps to equal 1."
 
 
 @pytest.mark.parametrize(
@@ -102,10 +106,16 @@ def test_sync_due_per_mode(mode, steps):
     agent = _agent(mode, steps)
     due = lambda last, counter: agent._policy_sync_due(_obs(last), counter)
     if mode == "immediate":
-        assert all(due(last, i) for last in (False, True) for i in range(4))
+        assert all(
+            due(last, i) for last in (False, True) for i in range(4)
+        ), "Expected all elements to satisfy the invariant."
     elif mode == "episode":
-        assert not any(due(False, i) for i in range(4))
-        assert all(due(True, i) for i in range(4))
+        assert not any(
+            due(False, i) for i in range(4)
+        ), "Expected no elements to violate the invariant."
+        assert all(
+            due(True, i) for i in range(4)
+        ), "Expected all elements to satisfy the invariant."
         assert agent._policy_sync_due(
             _obs(False, batch=3) | {"is_last": np.array([False, True, False])}, 0
         ), "Any environment of the batch ending its episode counts"
@@ -118,27 +128,29 @@ def test_sync_due_per_mode(mode, steps):
             False,
             True,
             False,
-        ]
+        ], "Expected [due(False, i) for i in range(7)] to equal [False, False, True, False, False, True, False]."
 
 
 def test_immediate_mode_installs_on_the_next_call():
     """Verify immediate mode installs on the next call."""
     agent = _agent("immediate")
-    assert _act(agent) == 1.0
+    assert _act(agent) == 1.0, "Expected act(agent) to equal 1.0."
     _stage(agent, 2.0)
     assert _act(agent) == 1.0, "the call that installs still uses old params"
-    assert agent.pending_sync is None
-    assert _act(agent) == 2.0
+    assert agent.pending_sync is None, "Expected agent pending sync to be None."
+    assert _act(agent) == 2.0, "Expected act(agent) to equal 2.0."
 
 
 def test_episode_mode_installs_after_an_episode_end():
     """Verify episode mode installs after an episode end."""
     agent = _agent("episode")
     _stage(agent, 2.0)
-    assert _act(agent) == 1.0 and _act(agent) == 1.0
+    assert (
+        _act(agent) == 1.0 and _act(agent) == 1.0
+    ), "Expected all parts of the _act(agent) == 1.0 and _act(agent) == 1.0 invariant to hold."
     assert agent.pending_sync is not None, "mid-episode calls never install"
     assert _act(agent, last=True) == 1.0, "the terminal step uses old params"
-    assert agent.pending_sync is None
+    assert agent.pending_sync is None, "Expected agent pending sync to be None."
     assert _act(agent) == 2.0, "the next episode starts with the new params"
 
 
@@ -146,15 +158,19 @@ def test_steps_mode_installs_every_nth_call():
     """Verify steps mode installs every nth call."""
     agent = _agent("steps", steps=3)
     _stage(agent, 2.0)
-    assert [_act(agent) for _ in range(3)] == [1.0, 1.0, 1.0]
+    assert [_act(agent) for _ in range(3)] == [
+        1.0,
+        1.0,
+        1.0,
+    ], "Expected [ act(agent) for in range(3)] to equal [1.0, 1.0, 1.0]."
     assert agent.pending_sync is None, "installed after the third call"
-    assert _act(agent) == 2.0
+    assert _act(agent) == 2.0, "Expected act(agent) to equal 2.0."
     _stage(agent, 3.0)  # Staged between calls 3 and 4; call 5 installs.
-    assert _act(agent) == 2.0
+    assert _act(agent) == 2.0, "Expected act(agent) to equal 2.0."
     assert agent.pending_sync is not None, "only every third call installs"
-    assert _act(agent) == 2.0
-    assert agent.pending_sync is None
-    assert _act(agent) == 3.0
+    assert _act(agent) == 2.0, "Expected act(agent) to equal 2.0."
+    assert agent.pending_sync is None, "Expected agent pending sync to be None."
+    assert _act(agent) == 3.0, "Expected act(agent) to equal 3.0."
 
 
 def test_immediate_mode_keeps_the_first_staged_params():
@@ -164,9 +180,13 @@ def test_immediate_mode_keeps_the_first_staged_params():
     first = agent.pending_sync["w"]
     newer = {"w": jnp.float32(3.0)}
     agent._stage_policy_sync(newer)
-    assert agent.pending_sync["w"] is first
+    assert (
+        agent.pending_sync["w"] is first
+    ), "Expected agent pending sync w to be first."
     assert newer["w"].is_deleted(), "the dropped params are released"
-    assert _act(agent) == 1.0 and _act(agent) == 2.0
+    assert (
+        _act(agent) == 1.0 and _act(agent) == 2.0
+    ), "Expected all parts of the _act(agent) == 1.0 and _act(agent) == 2.0 invariant to hold."
 
 
 def test_scheduled_modes_keep_the_newest_staged_params():
@@ -176,8 +196,10 @@ def test_scheduled_modes_keep_the_newest_staged_params():
     first = agent.pending_sync["w"]
     _stage(agent, 3.0)
     assert first.is_deleted(), "the replaced staged params are released"
-    assert float(agent.pending_sync["w"]) == 3.0
-    assert _act(agent, last=True) == 1.0
+    assert (
+        float(agent.pending_sync["w"]) == 3.0
+    ), "Expected float(agent pending sync w) to equal 3.0."
+    assert _act(agent, last=True) == 1.0, "Expected act(agent, last=True) to equal 1.0."
     assert _act(agent) == 3.0, "the episode starts with the newest params"
 
 
@@ -186,7 +208,11 @@ def test_precompile_does_not_disturb_scheduled_sync():
     agent = _agent("steps", steps=3)
     agent.init_policy = lambda batch: {"state": [np.zeros((1,), np.float32)] * batch}
     agent.precompile_policy(1)
-    assert int(agent.n_actions) == 0
+    assert int(agent.n_actions) == 0, "Expected int(agent n actions) to equal 0."
     _stage(agent, 2.0)
-    assert [_act(agent) for _ in range(3)] == [1.0, 1.0, 1.0]
-    assert _act(agent) == 2.0
+    assert [_act(agent) for _ in range(3)] == [
+        1.0,
+        1.0,
+        1.0,
+    ], "Expected [ act(agent) for in range(3)] to equal [1.0, 1.0, 1.0]."
+    assert _act(agent) == 2.0, "Expected act(agent) to equal 2.0."

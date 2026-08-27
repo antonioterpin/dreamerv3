@@ -121,8 +121,8 @@ def setup(
         # will assign later. It is only used to establish initial communication and
         # for error handling, whereas jax.process_index() depends on the underlying
         # hardware mesh.
-        assert process_id >= 0
-        assert coordinator_address
+        assert process_id >= 0, "Expected process id to be at least 0."
+        assert coordinator_address, "Expected a non-empty coordinator address."
         jax.distributed.initialize(coordinator_address, num_processes, process_id)
         index, count = jax.process_index(), jax.process_count()
         print(f"JAX multi-host initialized: ({process_id}) {index} / {count}")
@@ -238,7 +238,9 @@ def _to_local(x):
     shape, sharding = x.shape, x.sharding
     spec, mesh = sharding.spec, sharding.mesh
     fullspec = [*spec, *([None] * (len(shape) - len(spec)))]
-    assert len(shape) == len(fullspec)
+    assert len(shape) == len(
+        fullspec
+    ), "Expected number of shape to equal len(fullspec)."
     shard_shape = []
     for d, s in zip(shape, fullspec):
         if s is None:
@@ -276,7 +278,9 @@ def _to_global(x, global_sharding):
     shape, sharding = x.shape, x.sharding
     spec = sharding.spec
     fullspec = [*spec, *([None] * (len(shape) - len(spec)))]
-    assert len(shape) == len(fullspec)
+    assert len(shape) == len(
+        fullspec
+    ), "Expected number of shape to equal len(fullspec)."
     shard_shape = []
     for d, s in zip(shape, fullspec):
         if s is None:
@@ -325,12 +329,14 @@ def mesh(devices, shape, names):
     """
     shape = list(map(int, shape.split(",")))
     # At most a single -1 is allowed
-    assert sum(i == -1 for i in shape) <= 1
+    assert (
+        sum(i == -1 for i in shape) <= 1
+    ), "Expected sum((i == -1 for i in shape)) to be at most 1."
     n = len(devices)
     prod = math.prod(i for i in shape if i != -1)
-    assert n % prod == 0
+    assert n % prod == 0, "Expected n % prod to equal 0."
     shape = [i if i != -1 else n // prod for i in shape]
-    assert math.prod(shape) == n
+    assert math.prod(shape) == n, "Expected math prod(shape) to equal n."
     devices = np.array(devices).reshape(shape)
     return jax.sharding.Mesh(devices, names)
 
@@ -358,8 +364,12 @@ def grouped_ckpt_fns(params, chunksize):
                 groups.append(keys)
                 keys, size = [k], v.nbytes
         keys and groups.append(keys)
-    assert sum(len(keys) for keys in groups) == len(params)
-    assert all(len(keys) for keys in groups)
+    assert sum(len(keys) for keys in groups) == len(
+        params
+    ), "Expected sum((len(keys) for keys in groups)) to equal len(params)."
+    assert all(
+        len(keys) for keys in groups
+    ), "Expected every parameter group to be non-empty."
     msg = f"Compiling {len(groups)} checkpoint groups..."
     elements.print(msg, color="yellow")
     maxsize = max(sum(params[k].nbytes for k in g) for g in groups)

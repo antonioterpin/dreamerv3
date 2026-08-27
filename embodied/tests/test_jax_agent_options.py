@@ -16,7 +16,7 @@ def _agent(**options):
 
 def test_options_default_to_verbose():
     """Verify options default to verbose."""
-    assert Options().verbose is True
+    assert Options().verbose is True, "Expected Options() verbose to be True."
 
 
 @pytest.mark.parametrize("verbose", [True, False])

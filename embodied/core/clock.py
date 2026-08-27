@@ -20,7 +20,7 @@ def setup(is_server, replica, replicas, port, addr):
         addr: Address value.
     """
     global CLIENT, REPLICA
-    assert CLIENT is None
+    assert CLIENT is None, "Expected CLIENT to be None."
     if replicas <= 1:
         return
     print("CLOCK PORT:", port)
@@ -55,7 +55,9 @@ def _start_server(port, replicas):
         receive.wait()
         if replica == 0:
             assert len(requests) == replicas, (len(requests), replicas)
-            assert all(x == every for x in requests)
+            assert all(
+                x == every for x in requests
+            ), "Expected every element to satisfy that x to equal every."
             clockid = len(clocks)
             clocks.append([float(every), time.time()])
             result[0] = clockid
@@ -79,7 +81,9 @@ def _start_server(port, replicas):
         if replica == 0:
             assert len(requests) == replicas, (len(requests), replicas)
             clockids, skips = zip(*requests)
-            assert all(x == clockid for x in clockids)
+            assert all(
+                x == clockid for x in clockids
+            ), "Expected every element to satisfy that x to equal clockid."
             every, prev = clocks[clockid]
             now = time.time()
             if every == 0:

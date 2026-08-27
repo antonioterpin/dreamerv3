@@ -41,7 +41,7 @@ class SamplesPerInsert:
             tolerance: Tolerance value.
             minsize: Minsize value.
         """
-        assert 1 <= minsize
+        assert 1 <= minsize, "Expected 1 to be at most minsize."
         self.samples_per_insert = samples_per_insert
         self.minsize = minsize
         self.avail = -minsize

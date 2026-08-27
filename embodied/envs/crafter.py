@@ -21,7 +21,10 @@ class Crafter(embodied.Env):
             logdir: Logging directory value.
             seed: Random seed.
         """
-        assert task in ("reward", "noreward")
+        assert task in (
+            "reward",
+            "noreward",
+        ), 'Expected task to be present in ("reward", "noreward").'
         self._env = crafter.Env(size=size, reward=(task == "reward"), seed=seed)
         self._logs = logs
         self._logdir = logdir and elements.Path(logdir)

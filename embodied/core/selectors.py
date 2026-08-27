@@ -273,7 +273,9 @@ class Mixture:
             fractions: Fractions value.
             seed: Random seed.
         """
-        assert set(selectors.keys()) == set(fractions.keys())
+        assert set(selectors.keys()) == set(
+            fractions.keys()
+        ), "Expected keys in selectors keys() to equal set(fractions.keys())."
         assert sum(fractions.values()) == 1, fractions
         for key, frac in list(fractions.items()):
             if not frac:
@@ -322,7 +324,7 @@ class SampleTree:
             branching: Branching value.
             seed: Random seed.
         """
-        assert 2 <= branching
+        assert 2 <= branching, "Expected 2 to be at most branching."
         self.branching = branching
         self.root = SampleTreeNode()
         self.last = None

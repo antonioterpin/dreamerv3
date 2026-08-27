@@ -26,7 +26,9 @@ class TestDistr:
         Returns:
             Result of the operation.
         """
-        assert int(os.popen("ulimit -n").read()) > 1024
+        assert (
+            int(os.popen("ulimit -n").read()) > 1024
+        ), 'Expected int(os popen("ulimit -n") read()) to be greater than 1024.'
 
         addr = f"tcp://localhost:{zerofun.get_free_port()}"
         stats = defaultdict(int)
@@ -119,7 +121,9 @@ class TestDistr:
         Returns:
             Result of the operation.
         """
-        assert int(os.popen("ulimit -n").read()) > 1024
+        assert (
+            int(os.popen("ulimit -n").read()) > 1024
+        ), 'Expected int(os popen("ulimit -n") read()) to be greater than 1024.'
 
         def client(context, outer_addr, barrier):
             """Handle client.

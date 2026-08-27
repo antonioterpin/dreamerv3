@@ -114,7 +114,7 @@ def load_runs(args):
             runs = list(tqdm.tqdm(pool.map(load, filenames), total=len(filenames)))
     else:
         runs = list(tqdm.tqdm((load(x) for x in filenames), total=len(filenames)))
-    assert len(runs) > 0
+    assert len(runs) > 0, "Expected number of runs to be greater than 0."
     records, runs = zip(*[(x, y) for x, y in zip(records, runs) if y])
     for record, (xs, ys) in zip(records, runs):
         record.update(xs=xs, ys=ys)
@@ -162,7 +162,9 @@ def bin_runs(df, args):
 
     df["xs"], df["ys"] = zip(*df.apply(binning, axis=1))
     df = df.drop(columns=["xlim", "binsize"])
-    assert len(df["xs"].apply(len).unique()) == 1
+    assert (
+        len(df["xs"].apply(len).unique()) == 1
+    ), "Expected number of df xs apply(len) unique() to equal 1."
     return df
 
 
@@ -180,7 +182,9 @@ def comp_stat(name, df, fn, baseline=None):
     """
     df = df.copy()
     if not df["xs"].apply(lambda xs: np.array_equal(xs, df["xs"][0])).all():
-        assert len(df["xs"].apply(len).unique()) == 1
+        assert (
+            len(df["xs"].apply(len).unique()) == 1
+        ), "Expected number of df xs apply(len) unique() to equal 1."
         domain = np.linspace(0, 1, len(df["xs"][0]))
         df["xs"] = df["xs"].apply(lambda _: domain)
 
@@ -214,7 +218,9 @@ def comp_count(name, df):
     """
     df = df.copy()
     if not df["xs"].apply(lambda xs: np.array_equal(xs, df["xs"][0])).all():
-        assert len(df["xs"].apply(len).unique()) == 1
+        assert (
+            len(df["xs"].apply(len).unique()) == 1
+        ), "Expected number of df xs apply(len) unique() to equal 1."
         domain = np.linspace(0, 1, len(df["xs"][0]))
         df["xs"] = df["xs"].apply(lambda _: domain)
     df = df.groupby(["method"])[["xs", "ys"]].agg(np.stack).reset_index()
@@ -600,7 +606,9 @@ def main(args):
     df = bin_runs(df, args)
     print_summary(df)
     if args.todf:
-        assert args.todf.endswith(".json.gz")
+        assert args.todf.endswith(
+            ".json.gz"
+        ), "The output table path must end with '.json.gz'."
         import ipdb
 
         ipdb.set_trace()

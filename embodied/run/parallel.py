@@ -213,7 +213,9 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
             Result of the operation.
         """
         envid = obs.pop("envid")
-        assert envid.shape == (args.actor_batch,)
+        assert envid.shape == (
+            args.actor_batch,
+        ), "Expected envid shape to equal (args.actor_batch,)."
         is_eval = obs.pop("is_eval")
         fps.step(obs["is_first"].size)
         with elements.timer.section("get_states"):
@@ -395,8 +397,10 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
             try:
                 batch = next(stream_train)
             except StopIteration:
-                assert lifecycle is not None
-                assert lifecycle["actor_flushed"].is_set()
+                assert lifecycle is not None, "Expected lifecycle not to be None."
+                assert lifecycle[
+                    "actor_flushed"
+                ].is_set(), "Expected lifecycle actor flushed is set() to be initialized or truthy."
                 break
         with elements.timer.section("train_step"):
             carry, outs, mets = agent.train(carry, batch)

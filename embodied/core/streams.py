@@ -73,13 +73,13 @@ class Prefetch(base.Stream):
         self.started = False
 
     def __iter__(self):
-        assert not self.started
+        assert not self.started, "Expected self started to be false or empty."
         self.worker.start()
         self.started = True
         return self
 
     def __next__(self):
-        assert self.started
+        assert self.started, "The stream must be started before requesting an item."
         result = self.queue.get()
         self.requests.release()
         if result is self._DONE:
@@ -238,7 +238,7 @@ class Zip(base.Stream):
         self.started = False
 
     def __iter__(self):
-        assert not self.started
+        assert not self.started, "Expected self started to be false or empty."
         self.started = True
         self.iterators = [iter(x) for x in self.sources]
         return self
@@ -262,7 +262,9 @@ class Zip(base.Stream):
         Args:
             data: Data to process.
         """
-        assert len(data) == len(self.iterators)
+        assert len(data) == len(
+            self.iterators
+        ), "Expected number of data to equal len(self.iterators)."
         [it.load(d) for it, d in zip(self.iterators, data)]
 
 
@@ -284,13 +286,13 @@ class Map(base.Stream):
         self.started = False
 
     def __iter__(self):
-        assert not self.started
+        assert not self.started, "Expected self started to be false or empty."
         self.started = True
         self.iterator = iter(self.source)
         return self
 
     def __next__(self):
-        assert self.started
+        assert self.started, "The stream must be started before requesting an item."
         return self.fn(next(self.iterator))
 
     def save(self):
@@ -331,11 +333,11 @@ class Mixer(base.Stream):
         self.step = 0
 
     def __iter__(self):
-        assert not self.started
+        assert not self.started, "Expected self started to be false or empty."
         return self
 
     def __next__(self):
-        assert self.started
+        assert self.started, "The stream must be started before requesting an item."
         rng = np.random.default_rng(seed=[self.seed, self.step])
         self.step += 1
         index = rng.choice(len(self.keys), p=self.probs)

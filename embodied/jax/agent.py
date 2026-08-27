@@ -83,8 +83,10 @@ class Agent(embodied.Agent):
         Raises:
             NotImplementedError: If the operation cannot be completed.
         """
-        assert not any(k.startswith("log/") for k in obs_space)
-        assert "reset" not in act_space
+        assert not any(
+            k.startswith("log/") for k in obs_space
+        ), "Observation-space keys must not use the reserved 'log/' prefix."
+        assert "reset" not in act_space, 'Expected "reset" to be absent from act_space.'
 
         self.model = model
         self.obs_space = obs_space
@@ -117,7 +119,9 @@ class Agent(embodied.Agent):
                 print("ALERT: Wrong number of devices")
                 while True:
                     time.sleep(1)
-        assert len(available) == jax.process_count() * jax.local_device_count()
+        assert (
+            len(available) == jax.process_count() * jax.local_device_count()
+        ), "Expected number of available to equal jax.process_count() * jax.local_device_count()."
         flatten = lambda x: x.reshape(-1).tolist()
         devices = np.array(available).reshape(
             jax.process_count(), jax.local_device_count()
@@ -145,8 +149,12 @@ class Agent(embodied.Agent):
         ):
             raise NotImplementedError("Inter-node TP is not supported!")
         if self.jaxcfg.use_shardmap:
-            assert self.train_mesh.shape["d"] == self.train_mesh.size
-            assert self.policy_mesh.shape["d"] == self.policy_mesh.size
+            assert (
+                self.train_mesh.shape["d"] == self.train_mesh.size
+            ), "Expected self train mesh shape d to equal self.train_mesh.size."
+            assert (
+                self.policy_mesh.shape["d"] == self.policy_mesh.size
+            ), "Expected self policy mesh shape d to equal self.policy_mesh.size."
 
         # self.train_node_mesh = internal.node_mesh(self.train_mesh, mp_dims=('t',))
         # print('Train Node mesh:',self.train_node_mesh)
@@ -551,7 +559,7 @@ class Agent(embodied.Agent):
             for keys, gather_fn, _ in self._ckpt_groups:
                 group = {k: self.params[k] for k in keys}
                 params.update(jax.device_get(gather_fn(group)))
-        assert params
+        assert params, "Expected checkpoint parameters to be non-empty."
         counters = {
             "updates": int(self.n_updates),
             "batches": int(self.n_batches),
@@ -569,7 +577,7 @@ class Agent(embodied.Agent):
             regex: Regex value.
         """
         params = data["params"]
-        assert params
+        assert params, "Expected checkpoint parameters to be non-empty."
 
         with contextlib.ExitStack() as stack:
             stack.enter_context(self.train_lock)

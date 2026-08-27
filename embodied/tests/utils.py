@@ -95,17 +95,21 @@ class TestAgent:
         Returns:
             Result of the operation.
         """
-        assert set(obs.keys()) == set(self.obs_space.keys())
+        assert set(obs.keys()) == set(
+            self.obs_space.keys()
+        ), "Expected keys in obs keys() to equal set(self.obs_space.keys())."
         B = len(obs["is_first"])
         self._stats["env_steps"] += B
         (carry,) = carry
         carry = np.asarray(carry)
 
-        assert carry.shape == (B,)
-        assert not any(k.startswith("log/") for k in obs.keys())
+        assert carry.shape == (B,), "Expected carry shape to equal (B,)."
+        assert not any(
+            k.startswith("log/") for k in obs.keys()
+        ), "Expected no elements to violate the invariant."
 
         target = (carry + 1) * (1 - obs["is_first"])
-        assert (obs["count"] == target).all()
+        assert (obs["count"] == target).all(), "Expected obs count to equal target."
         carry = target
 
         if self.client and self.should_stats():
@@ -132,14 +136,16 @@ class TestAgent:
         assert sorted(data.keys()) == expected, (sorted(data.keys()), expected)
         B, T = data["count"].shape
         (carry,) = carry
-        assert carry.shape == (B,)
-        assert not any(k.startswith("log/") for k in data.keys())
+        assert carry.shape == (B,), "Expected carry shape to equal (B,)."
+        assert not any(
+            k.startswith("log/") for k in data.keys()
+        ), "Expected no elements to violate the invariant."
         self._stats["replay_steps"] += B * T
         for t in range(T):
             current = data["count"][:, t]
             reset = data["is_first"][:, t]
             target = (1 - reset) * (carry + 1) + reset * current
-            assert (current == target).all()
+            assert (current == target).all(), "Expected current to equal target."
             carry = current
 
         outs = {}

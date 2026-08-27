@@ -30,12 +30,18 @@ class TestTrain:
         stats = agent.stats()
         print("Stats:", stats)
         replay_steps = args.steps * args.train_ratio
-        assert stats["lifetime"] >= 1  # Otherwise decrease log and ckpt interval.
-        assert np.allclose(stats["env_steps"], args.steps, 100, 0.1)
-        assert np.allclose(stats["replay_steps"], replay_steps, 100, 0.1)
-        assert stats["reports"] >= 1
-        assert stats["saves"] >= 2
-        assert stats["loads"] == 0
+        assert (
+            stats["lifetime"] >= 1
+        ), "Expected stats lifetime to be at least 1."  # Otherwise decrease log and ckpt interval.
+        assert np.allclose(
+            stats["env_steps"], args.steps, 100, 0.1
+        ), "Expected np allclose(stats env steps, args steps, 100, 0 1) to be initialized or truthy."
+        assert np.allclose(
+            stats["replay_steps"], replay_steps, 100, 0.1
+        ), "Expected np allclose(stats replay steps, replay steps, 100, 0 1) to be initialized or truthy."
+        assert stats["reports"] >= 1, "Expected stats reports to be at least 1."
+        assert stats["saves"] >= 2, "Expected stats saves to be at least 2."
+        assert stats["loads"] == 0, "Expected stats loads to equal 0."
         args = args.update(steps=2 * args.steps)
         embodied.run.train(
             lambda: agent,
@@ -45,8 +51,10 @@ class TestTrain:
             args,
         )
         stats = agent.stats()
-        assert stats["loads"] == 1
-        assert np.allclose(stats["env_steps"], args.steps, 100, 0.1)
+        assert stats["loads"] == 1, "Expected stats loads to equal 1."
+        assert np.allclose(
+            stats["env_steps"], args.steps, 100, 0.1
+        ), "Expected np allclose(stats env steps, args steps, 100, 0 1) to be initialized or truthy."
 
     def _make_agent(self):
         env = self._make_env(0)

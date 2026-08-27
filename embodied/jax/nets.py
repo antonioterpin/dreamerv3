@@ -740,7 +740,7 @@ class Attention(nj.Module):
         kw = dict(bias=self.bias, winit=self.winit, binit=self.binit)
         B, T, D = x.shape
         kv_heads = self.kv_heads or self.heads
-        assert self.heads % kv_heads == 0
+        assert self.heads % kv_heads == 0, "Expected self heads % kv heads to equal 0."
         head_ratio = self.heads // kv_heads
         if head_ratio == 1:
             qkv = self.sub("qkv", Linear, 3 * D, **kw)(x)

@@ -135,7 +135,7 @@ class FromGym(embodied.Env):
             Result of the operation.
         """
         image = self._env.render("rgb_array")
-        assert image is not None
+        assert image is not None, "Expected image not to be None."
         return image
 
     def close(self):

@@ -17,7 +17,7 @@ class TestDriver:
         seq = []
         driver.on_step(lambda tran, _: seq.append(tran))
         driver(agent.policy, episodes=1)
-        assert len(seq) == 11
+        assert len(seq) == 11, "Expected number of seq to equal 11."
 
     def test_first_step(self):
         """Verify first step."""
@@ -28,10 +28,16 @@ class TestDriver:
         driver.on_step(lambda tran, _: seq.append(tran))
         driver(agent.policy, episodes=2)
         for index in [0, 11]:
-            assert seq[index]["is_first"].item() is True
-            assert seq[index]["is_last"].item() is False
+            assert (
+                seq[index]["is_first"].item() is True
+            ), "Expected seq[index] is first item() to be True."
+            assert (
+                seq[index]["is_last"].item() is False
+            ), "Expected seq[index] is last item() to be False."
         for index in [1, 10, 12]:
-            assert seq[index]["is_first"].item() is False
+            assert (
+                seq[index]["is_first"].item() is False
+            ), "Expected seq[index] is first item() to be False."
 
     def test_last_step(self):
         """Verify last step."""
@@ -42,10 +48,16 @@ class TestDriver:
         driver.on_step(lambda tran, _: seq.append(tran))
         driver(agent.policy, episodes=2)
         for index in [10, 21]:
-            assert seq[index]["is_last"].item() is True
-            assert seq[index]["is_first"].item() is False
+            assert (
+                seq[index]["is_last"].item() is True
+            ), "Expected seq[index] is last item() to be True."
+            assert (
+                seq[index]["is_first"].item() is False
+            ), "Expected seq[index] is first item() to be False."
         for index in [0, 1, 9, 11, 20]:
-            assert seq[index]["is_last"].item() is False
+            assert (
+                seq[index]["is_last"].item() is False
+            ), "Expected seq[index] is last item() to be False."
 
     def test_env_reset(self):
         """Verify environment reset."""
@@ -57,12 +69,20 @@ class TestDriver:
         action = {"act_disc": np.ones(1, int), "act_cont": np.zeros((1, 6), float)}
         policy = lambda carry, obs: (carry, action, {})
         driver(policy, episodes=2)
-        assert len(seq) == 12
+        assert len(seq) == 12, "Expected number of seq to equal 12."
         seq = {k: np.array([seq[i][k] for i in range(len(seq))]) for k in seq[0]}
-        assert (seq["is_first"] == [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]).all()
-        assert (seq["is_last"] == [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]).all()
-        assert (seq["reset"] == [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]).all()
-        assert (seq["act_disc"] == [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0]).all()
+        assert (
+            seq["is_first"] == [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+        ).all(), "Expected seq is first to equal [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]."
+        assert (
+            seq["is_last"] == [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]
+        ).all(), "Expected seq is last to equal [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]."
+        assert (
+            seq["reset"] == [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]
+        ).all(), "Expected seq reset to equal [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]."
+        assert (
+            seq["act_disc"] == [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0]
+        ).all(), "Expected seq act disc to equal [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0]."
 
     def test_agent_inputs(self):
         """Verify agent inputs.
@@ -95,16 +115,26 @@ class TestDriver:
         seq = []
         driver.on_step(lambda tran, _: seq.append(tran))
         driver(policy, episodes=2)
-        assert len(seq) == 22
-        assert states == ([()] + ["carry"] * 21)
+        assert len(seq) == 22, "Expected number of seq to equal 22."
+        assert states == (
+            [()] + ["carry"] * 21
+        ), 'Expected states to equal [()] + ["carry"] * 21.'
         for index in [0, 11]:
-            assert inputs[index]["is_first"].item() is True
+            assert (
+                inputs[index]["is_first"].item() is True
+            ), "Expected inputs[index] is first item() to be True."
         for index in [1, 10, 12, 21]:
-            assert inputs[index]["is_first"].item() is False
+            assert (
+                inputs[index]["is_first"].item() is False
+            ), "Expected inputs[index] is first item() to be False."
         for index in [10, 21]:
-            assert inputs[index]["is_last"].item() is True
+            assert (
+                inputs[index]["is_last"].item() is True
+            ), "Expected inputs[index] is last item() to be True."
         for index in [0, 1, 9, 11, 20]:
-            assert inputs[index]["is_last"].item() is False
+            assert (
+                inputs[index]["is_last"].item() is False
+            ), "Expected inputs[index] is last item() to be False."
 
     def test_unexpected_reset(self):
         """Verify unexpected reset.
@@ -150,11 +180,17 @@ class TestDriver:
         steps = []
         driver.on_step(lambda tran, _: steps.append(tran))
         driver(agent.policy, episodes=1)
-        assert len(steps) == 8
+        assert len(steps) == 8, "Expected number of steps to equal 8."
         steps = {k: np.array([x[k] for x in steps]) for k in steps[0]}
-        assert (steps["reset"] == [0, 0, 0, 0, 0, 0, 0, 1]).all()
-        assert (steps["is_first"] == [1, 0, 0, 1, 0, 0, 0, 0]).all()
-        assert (steps["is_last"] == [0, 0, 0, 0, 0, 0, 0, 1]).all()
+        assert (
+            steps["reset"] == [0, 0, 0, 0, 0, 0, 0, 1]
+        ).all(), "Expected steps reset to equal [0, 0, 0, 0, 0, 0, 0, 1]."
+        assert (
+            steps["is_first"] == [1, 0, 0, 1, 0, 0, 0, 0]
+        ).all(), "Expected steps is first to equal [1, 0, 0, 1, 0, 0, 0, 0]."
+        assert (
+            steps["is_last"] == [0, 0, 0, 0, 0, 0, 0, 1]
+        ).all(), "Expected steps is last to equal [0, 0, 0, 0, 0, 0, 0, 1]."
 
     def _make_env(self, length=10):
         from embodied.envs import dummy

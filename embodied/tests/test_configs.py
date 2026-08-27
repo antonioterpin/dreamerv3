@@ -13,7 +13,7 @@ def test_run_args_declare_the_resume_regex():
     configs = yaml.YAML(typ="safe").load(CONFIGS.read_text())
     config = elements.Config(configs["defaults"])
     args = elements.Config(**config.run, logdir=config.logdir)
-    assert args.from_checkpoint == ""
+    assert args.from_checkpoint == "", 'Expected args from checkpoint to equal "".'
     assert (
         args.from_checkpoint_regex == ""
     ), "parallel/train pass it to agent.load; empty loads every parameter"

@@ -50,10 +50,25 @@ class TestReplay:
         for step in range(30):
             replay.add({"image": np.zeros((64, 64, 3)), "action": np.zeros(12)})
         seq = next(unbatched(replay.dataset(1)))
-        assert set(seq.keys()) == {"stepid", "image", "action"}
-        assert seq["stepid"].shape == (5, 20)
-        assert seq["image"].shape == (5, 64, 64, 3)
-        assert seq["action"].shape == (5, 12)
+        assert set(seq.keys()) == {
+            "stepid",
+            "image",
+            "action",
+        }, 'Expected keys in seq keys() to equal {"stepid", "image", "action"}.'
+        assert seq["stepid"].shape == (
+            5,
+            20,
+        ), "Expected seq stepid shape to equal (5, 20)."
+        assert seq["image"].shape == (
+            5,
+            64,
+            64,
+            3,
+        ), "Expected seq image shape to equal (5, 64, 64, 3)."
+        assert seq["action"].shape == (
+            5,
+            12,
+        ), "Expected seq action shape to equal (5, 12)."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize(
@@ -74,7 +89,7 @@ class TestReplay:
             for worker in range(workers):
                 replay.add({"step": step}, worker)
             target = min(workers * max(0, (step + 1) - length + 1), capacity)
-            assert len(replay) == target
+            assert len(replay) == target, "Expected number of replay to equal target."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize(
@@ -106,8 +121,12 @@ class TestReplay:
         dataset = unbatched(replay.dataset(1))
         for _ in range(10):
             seq = next(dataset)
-            assert (seq["step"] - seq["step"][0] == np.arange(length)).all()
-            assert (seq["worker"] == seq["worker"][0]).all()
+            assert (
+                seq["step"] - seq["step"][0] == np.arange(length)
+            ).all(), "Expected seq step - seq step[0] to equal np.arange(length)."
+            assert (
+                seq["worker"] == seq["worker"][0]
+            ).all(), 'Expected seq worker to equal seq["worker"][0].'
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize(
@@ -127,7 +146,9 @@ class TestReplay:
         dataset = unbatched(replay.dataset(1))
         for _ in range(10):
             seq = next(dataset)
-            assert (seq["step"] == np.arange(length)).all()
+            assert (
+                seq["step"] == np.arange(length)
+            ).all(), "Expected seq step to equal np.arange(length)."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNIFORM)
     def test_sample_uniform(self, Replay):
@@ -139,7 +160,7 @@ class TestReplay:
         replay = Replay(capacity=20, length=5, seed=0)
         for step in range(7):
             replay.add({"step": step})
-        assert len(replay) == 3
+        assert len(replay) == 3, "Expected number of replay to equal 3."
         histogram = collections.defaultdict(int)
         dataset = unbatched(replay.dataset(1))
         for _ in range(100):
@@ -147,9 +168,9 @@ class TestReplay:
             histogram[seq["step"][0]] += 1
         assert len(histogram) == 3, histogram
         histogram = tuple(histogram.values())
-        assert histogram[0] > 20
-        assert histogram[1] > 20
-        assert histogram[2] > 20
+        assert histogram[0] > 20, "Expected histogram[0] to be greater than 20."
+        assert histogram[1] > 20, "Expected histogram[1] to be greater than 20."
+        assert histogram[2] > 20, "Expected histogram[2] to be greater than 20."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_workers_simple(self, Replay):
@@ -166,7 +187,10 @@ class TestReplay:
         dataset = unbatched(replay.dataset(1))
         for _ in range(10):
             seq = next(dataset)
-            assert tuple(seq["step"]) in ((0, 2), (1, 3))
+            assert tuple(seq["step"]) in (
+                (0, 2),
+                (1, 3),
+            ), "Expected tuple(seq step) to be present in ((0, 2), (1, 3))."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_workers_random(self, Replay, length=4, capacity=30):
@@ -191,10 +215,16 @@ class TestReplay:
         dataset = unbatched(replay.dataset(1))
         for _ in range(10):
             seq = next(dataset)
-            assert (seq["step"] - seq["step"][0] == np.arange(length)).all()
-            assert (seq["stream"] == seq["stream"][0]).all()
+            assert (
+                seq["step"] - seq["step"][0] == np.arange(length)
+            ).all(), "Expected seq step - seq step[0] to equal np.arange(length)."
+            assert (
+                seq["stream"] == seq["stream"][0]
+            ).all(), 'Expected seq stream to equal seq["stream"][0].'
             histogram[int(seq["stream"][0])] += 1
-        assert all(count > 0 for count in histogram.values())
+        assert all(
+            count > 0 for count in histogram.values()
+        ), "Expected every element to satisfy that count to be greater than 0."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize(
@@ -242,14 +272,16 @@ class TestReplay:
         for step in range(30):
             replay.add({"step": step})
         num_items = np.clip(30 - length + 1, 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         data = replay.save()
         replay = Replay(length, capacity, directory=tmpdir)
         replay.load(data)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         dataset = unbatched(replay.dataset(1))
         for _ in range(len(replay)):
-            assert len(next(dataset)["step"]) == length
+            assert (
+                len(next(dataset)["step"]) == length
+            ), "Expected number of next(dataset) step to equal length."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize(
@@ -273,7 +305,7 @@ class TestReplay:
         for _ in range(30):
             replay.add({"foo": 13})
         num_items = np.clip(30 - length + 1, 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         data = replay.save()
         for _ in range(30):
             replay.add({"foo": 42})
@@ -281,7 +313,9 @@ class TestReplay:
         dataset = unbatched(replay.dataset(1))
         if capacity < num_items:
             for _ in range(len(replay)):
-                assert next(dataset)["foo"] == 13
+                assert (
+                    next(dataset)["foo"] == 13
+                ), "Expected next(dataset) foo to equal 13."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize("workers", [1, 2, 5])
@@ -302,14 +336,16 @@ class TestReplay:
             for worker in range(workers):
                 replay.add({"step": step}, worker)
         num_items = np.clip((50 - length + 1) * workers, 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         data = replay.save()
         replay = Replay(length, capacity, directory=tmpdir)
         replay.load(data)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         dataset = unbatched(replay.dataset(1))
         for _ in range(len(replay)):
-            assert len(next(dataset)["step"]) == length
+            assert (
+                len(next(dataset)["step"]) == length
+            ), "Expected number of next(dataset) step to equal length."
 
     @pytest.mark.parametrize("Replay", REPLAYS_SAVECHUNKS)
     @pytest.mark.parametrize(
@@ -326,32 +362,44 @@ class TestReplay:
             chunksize: Chunksize value.
         """
         elements.UUID.reset(debug=True)
-        assert len(list(elements.Path(tmpdir).glob("*.npz"))) == 0
+        assert (
+            len(list(elements.Path(tmpdir).glob("*.npz"))) == 0
+        ), 'Expected number of list(elements Path(tmpdir) glob("* npz")) to equal 0.'
         replay = Replay(
             length, capacity, directory=tmpdir, chunksize=chunksize, save_wait=True
         )
         for step in range(30):
             replay.add({"step": step})
         num_items = np.clip(30 - length + 1, 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         data = replay.save()
         filenames = list(elements.Path(tmpdir).glob("*.npz"))
         lengths = [int(x.stem.split("-")[3]) for x in filenames]
         stored_steps = min(capacity + length - 1, 30)
         total_chunks = int(np.ceil(30 / chunksize))
         pruned_chunks = int(np.floor((30 - stored_steps) / chunksize))
-        assert len(filenames) == total_chunks - pruned_chunks
+        assert (
+            len(filenames) == total_chunks - pruned_chunks
+        ), "Expected number of filenames to equal total_chunks - pruned_chunks."
         last_chunk_empty = total_chunks * chunksize - 30
         saved_steps = (total_chunks - pruned_chunks) * chunksize - last_chunk_empty
-        assert sum(lengths) == saved_steps
-        assert all(1 <= x <= chunksize for x in lengths)
+        assert (
+            sum(lengths) == saved_steps
+        ), "Expected sum(lengths) to equal saved_steps."
+        assert all(
+            1 <= x <= chunksize for x in lengths
+        ), "Expected every element to satisfy that 1 <= x <= chunksize to hold."
         replay = Replay(length, capacity, directory=tmpdir, chunksize=chunksize)
         replay.load(data)
-        assert sorted(elements.Path(tmpdir).glob("*.npz")) == sorted(filenames)
-        assert len(replay) == num_items
+        assert sorted(elements.Path(tmpdir).glob("*.npz")) == sorted(
+            filenames
+        ), 'Expected sorted(elements Path(tmpdir) glob("* npz")) to equal sorted(filenames).'
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         dataset = unbatched(replay.dataset(1))
         for _ in range(len(replay)):
-            assert len(next(dataset)["step"]) == length
+            assert (
+                len(next(dataset)["step"]) == length
+            ), "Expected number of next(dataset) step to equal length."
 
     @pytest.mark.parametrize("Replay", REPLAYS_SAVECHUNKS)
     @pytest.mark.parametrize("workers", [1, 2, 5])
@@ -379,23 +427,29 @@ class TestReplay:
             for worker in range(workers):
                 replay.add({"step": step}, worker)
         num_items = np.clip((50 - length + 1) * workers, 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         data = replay.save()
         filenames = list(elements.Path(tmpdir).glob("*.npz"))
         lengths = [int(x.stem.split("-")[3]) for x in filenames]
         stored_steps = min(capacity // workers + length - 1, 50)
         total_chunks = int(np.ceil(50 / chunksize))
         pruned_chunks = int(np.floor((50 - stored_steps) / chunksize))
-        assert len(filenames) == (total_chunks - pruned_chunks) * workers
+        assert (
+            len(filenames) == (total_chunks - pruned_chunks) * workers
+        ), "Expected number of filenames to equal (total_chunks - pruned_chunks) * workers."
         last_chunk_empty = total_chunks * chunksize - 50
         saved_steps = (total_chunks - pruned_chunks) * chunksize - last_chunk_empty
-        assert sum(lengths) == saved_steps * workers
+        assert (
+            sum(lengths) == saved_steps * workers
+        ), "Expected sum(lengths) to equal saved_steps * workers."
         replay = Replay(length, capacity, directory=tmpdir, chunksize=chunksize)
         replay.load(data)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         dataset = unbatched(replay.dataset(1))
         for _ in range(len(replay)):
-            assert len(next(dataset)["step"]) == length
+            assert (
+                len(next(dataset)["step"]) == length
+            ), "Expected number of next(dataset) step to equal length."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize(
@@ -420,18 +474,20 @@ class TestReplay:
         for step in range(inserts):
             replay.add({"step": step})
         num_items = np.clip(inserts - length + 1, 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         data = replay.save()
         replay = Replay(length, capacity, directory=tmpdir)
         replay.load(data)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
         dataset = unbatched(replay.dataset(1))
         for _ in range(len(replay)):
-            assert len(next(dataset)["step"]) == length
+            assert (
+                len(next(dataset)["step"]) == length
+            ), "Expected number of next(dataset) step to equal length."
         for step in range(inserts):
             replay.add({"step": step})
         num_items = np.clip(2 * (inserts - length + 1), 0, capacity)
-        assert len(replay) == num_items
+        assert len(replay) == num_items, "Expected number of replay to equal num_items."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_threading(
@@ -468,7 +524,9 @@ class TestReplay:
             dataset = unbatched(replay.dataset(1))
             while running[0]:
                 seq = next(dataset)
-                assert (seq["step"] - seq["step"][0] == np.arange(length)).all()
+                assert (
+                    seq["step"] - seq["step"][0] == np.arange(length)
+                ).all(), "Expected seq step - seq step[0] to equal np.arange(length)."
                 time.sleep(0.001)
 
         workers = []
@@ -483,8 +541,12 @@ class TestReplay:
 
                 time.sleep(0.1)
                 stats = replay.stats()
-                assert stats["inserts"] > 0
-                assert stats["samples"] > 0
+                assert (
+                    stats["inserts"] > 0
+                ), "Expected stats inserts to be greater than 0."
+                assert (
+                    stats["samples"] > 0
+                ), "Expected stats samples to be greater than 0."
 
                 print("SAVING")
                 data = replay.save()
@@ -497,4 +559,4 @@ class TestReplay:
             running[0] = False
             [worker.join() for worker in workers]
 
-        assert len(replay) == capacity
+        assert len(replay) == capacity, "Expected number of replay to equal capacity."

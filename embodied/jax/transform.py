@@ -149,7 +149,7 @@ def apply(
         Result of the operation.
     """
     if single_output:
-        assert len(out_shardings) == 1
+        assert len(out_shardings) == 1, "Expected number of out shardings to equal 1."
 
     def fn(*args, inner=fn):
         """Handle function.
@@ -170,7 +170,7 @@ def apply(
             seed = jax.random.fold_in(seed, jax.lax.axis_index("d"))
         params, outs = inner(params, *args, seed=seed)
         outs = (outs,) if single_output else outs
-        assert isinstance(outs, tuple)
+        assert isinstance(outs, tuple), "Expected outs to have type tuple."
         return (params, *outs) if return_params else outs
 
     if use_shardmap and len(mesh.devices) > 1:
@@ -200,7 +200,7 @@ def apply(
 
         def fn(*args, inner=fn):
             outs = inner(*args)
-            assert len(outs) == 1
+            assert len(outs) == 1, "Expected number of outs to equal 1."
             return outs[0]
 
     if single_output:
@@ -303,7 +303,9 @@ def resolve_rules(params, partition_rules, mesh):
                 break
         else:
             raise Exception(f"No matching rule found for param key: {k}")
-    assert set(params.keys()) == set(params_spec.keys())
+    assert set(params.keys()) == set(
+        params_spec.keys()
+    ), "Expected keys in params keys() to equal set(params_spec.keys())."
     sharding = jax.tree.map(
         lambda spec: jax.sharding.NamedSharding(mesh, spec), params_spec
     )

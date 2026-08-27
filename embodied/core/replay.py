@@ -139,7 +139,9 @@ class Replay:
                 self.current[worker] = (chunkid, index)
             else:
                 self._complete(chunk, worker)
-            assert len(self.streams) == len(self.current)
+            assert len(self.streams) == len(
+                self.current
+            ), "Expected number of self streams to equal len(self.current)."
 
             if len(stream) >= self.length:
                 # Increment is not thread safe thus inaccurate but faster than locking.

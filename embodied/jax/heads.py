@@ -173,7 +173,7 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert self.space.discrete
+        assert self.space.discrete, "Expected a discrete output space."
         classes = np.asarray(self.space.classes).flatten()
         assert (classes == classes[0]).all(), classes
         shape = (*self.space.shape, classes[0].item())
@@ -192,7 +192,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         logits = self.sub("logits", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.OneHot(logits, self.unimix)
 
@@ -205,7 +207,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.MSE(pred)
 
@@ -218,7 +222,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.Huber(pred)
 
@@ -231,7 +237,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.MSE(pred, nets.symlog)
 
@@ -244,7 +252,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         shape = (*self.space.shape, self.bins)
         logits = self.sub("logits", nets.Linear, shape, **self.kw)(x)
         if self.bins % 2 == 1:
@@ -266,7 +276,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         mean = self.sub("mean", nets.Linear, self.space.shape, **self.kw)(x)
         stddev = self.sub("stddev", nets.Linear, self.space.shape, **self.kw)(x)
         lo, hi = self.minstd, self.maxstd
@@ -285,7 +297,9 @@ class Head(nj.Module):
         Returns:
             Result of the operation.
         """
-        assert not self.space.discrete
+        assert (
+            not self.space.discrete
+        ), "Expected self space discrete to be false or empty."
         mean = self.sub("mean", nets.Linear, self.space.shape, **self.kw)(x)
         stddev = self.sub("stddev", nets.Linear, self.space.shape, **self.kw)(x)
         output = outs.Normal(mean, jnp.exp(stddev))

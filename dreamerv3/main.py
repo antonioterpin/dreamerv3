@@ -242,7 +242,9 @@ def make_replay(config, folder, mode="train"):
     consec = config.consec_train if mode == "train" else config.consec_report
     capacity = config.replay.size if mode == "train" else config.replay.size / 10
     length = consec * batlen + config.replay_context
-    assert config.batch_size * length <= capacity
+    assert (
+        config.batch_size * length <= capacity
+    ), "Expected config batch size * length to be at most capacity."
 
     directory = elements.Path(config.logdir) / folder
     if config.replicas > 1:
