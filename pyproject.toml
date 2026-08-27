@@ -1,0 +1,8 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.basedpyright]
+include = ["dreamerv3", "embodied", "plot.py", "scores/view.py", "setup.py"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
