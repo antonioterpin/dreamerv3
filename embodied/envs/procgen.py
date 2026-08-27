@@ -7,7 +7,9 @@ from typing import Any
 import elements
 import embodied
 import numpy as np
-import procgen  # noqa
+
+# Importing Procgen registers its environments with Gym.
+import procgen  # noqa: F401
 
 from PIL import Image
 

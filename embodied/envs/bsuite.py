@@ -23,7 +23,8 @@ class BSuite(embodied.Env):
             "Warning: BSuite result logging is stateful and therefore training "
             + "runs cannot be interrupted or restarted."
         )
-        np.int = int  # Patch deprecated Numpy alias used inside BSuite.  # pyright: ignore[reportAttributeAccessIssue]
+        # Patch the deprecated NumPy alias used inside BSuite.
+        np.int = int  # pyright: ignore[reportAttributeAccessIssue]
         from . import from_dm
 
         if "/" not in task:

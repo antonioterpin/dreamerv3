@@ -36,7 +36,8 @@ class TestTrain:
         replay_steps = args.steps * args.train_ratio
         assert (
             stats["lifetime"] >= 1
-        ), "Expected stats lifetime to be at least 1."  # Otherwise decrease log and ckpt interval.
+        ), "Expected stats lifetime to be at least 1."  # Otherwise decrease the log
+        # and checkpoint interval.
         assert np.allclose(
             stats["env_steps"], args.steps, 100, 0.1
         ), "Expected np allclose(stats env steps, args steps, 100, 0 1) to be initialized or truthy."

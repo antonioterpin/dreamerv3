@@ -300,7 +300,9 @@ def make_env(config: Any, index: Any, **overrides: Any) -> Any:
     suite, task = config.task.split("_", 1)
     if suite == "memmaze":
         from embodied.envs import from_gym
-        import memory_maze  # noqa  # pyright: ignore[reportMissingImports]
+
+        # Importing Memory Maze registers its environments with Gym.
+        import memory_maze  # noqa: F401  # pyright: ignore[reportMissingImports]
     ctor = {
         "dummy": "embodied.envs.dummy:Dummy",
         "gym": "embodied.envs.from_gym:FromGym",
