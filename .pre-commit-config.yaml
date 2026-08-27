@@ -16,7 +16,6 @@ repos:
     rev: v0.16.4
     hooks:
       - id: ruff-check
-        args: [--isolated, "--select=E4,E7,E9,F"]
 
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 26.5.1
@@ -24,9 +23,12 @@ repos:
       - id: black
         language_version: python3.11
 
-  - repo: https://github.com/DetachHead/basedpyright-prek-mirror
-    rev: 1.39.10
+  - repo: local
     hooks:
       - id: basedpyright
+        name: basedpyright
+        entry: .venv/bin/basedpyright
+        language: system
+        types: [python]
         stages: [pre-push]
         pass_filenames: false
