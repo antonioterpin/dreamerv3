@@ -1,6 +1,8 @@
 """Provide heads functionality."""
 
-from typing import Callable
+from __future__ import annotations
+
+from typing import Any, Callable
 
 import elements
 import jax
@@ -26,7 +28,7 @@ class MLPHead(nj.Module):
     winit: str | Callable = nets.Initializer("trunc_normal")
     binit: str | Callable = nets.Initializer("zeros")
 
-    def __init__(self, space, output, **hkw):
+    def __init__(self, space: Any, output: Any, **hkw: Any) -> None:
         """Initialize the mlphead.
 
         Args:
@@ -43,7 +45,7 @@ class MLPHead(nj.Module):
         else:
             self.head = Head(space, output, **hkw, name="head")
 
-    def __call__(self, x, bdims):
+    def __call__(self, x: Any, bdims: Any) -> Any:
         """Apply the mlphead.
 
         Args:
@@ -63,7 +65,7 @@ class MLPHead(nj.Module):
 class DictHead(nj.Module):
     """Represent dict head."""
 
-    def __init__(self, spaces, outputs, **kw):
+    def __init__(self, spaces: Any, outputs: Any, **kw: Any) -> None:
         """Initialize the dict head.
 
         Args:
@@ -81,7 +83,7 @@ class DictHead(nj.Module):
         self.outputs = outputs
         self.kw = kw
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the dict head.
 
         Args:
@@ -106,7 +108,7 @@ class Head(nj.Module):
     bins: int = 255
     outscale: float = 1.0
 
-    def __init__(self, space, output, **kw):
+    def __init__(self, space: Any, output: Any, **kw: Any) -> None:
         """Initialize the head.
 
         Args:
@@ -125,7 +127,7 @@ class Head(nj.Module):
         self.impl = output
         self.kw = {**kw, "outscale": self.outscale}
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the head.
 
         Args:
@@ -151,7 +153,7 @@ class Head(nj.Module):
         )
         return output
 
-    def binary(self, x):
+    def binary(self, x: Any) -> Any:
         """Handle binary.
 
         Args:
@@ -164,7 +166,7 @@ class Head(nj.Module):
         logit = self.sub("logit", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.Binary(logit)
 
-    def categorical(self, x):
+    def categorical(self, x: Any) -> Any:
         """Handle categorical.
 
         Args:
@@ -183,7 +185,7 @@ class Head(nj.Module):
         output.maxent = np.log(logits.shape[-1])
         return output
 
-    def onehot(self, x):
+    def onehot(self, x: Any) -> Any:
         """Handle onehot.
 
         Args:
@@ -198,7 +200,7 @@ class Head(nj.Module):
         logits = self.sub("logits", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.OneHot(logits, self.unimix)
 
-    def mse(self, x):
+    def mse(self, x: Any) -> Any:
         """Handle mse.
 
         Args:
@@ -213,7 +215,7 @@ class Head(nj.Module):
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.MSE(pred)
 
-    def huber(self, x):
+    def huber(self, x: Any) -> Any:
         """Handle huber.
 
         Args:
@@ -228,7 +230,7 @@ class Head(nj.Module):
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.Huber(pred)
 
-    def symlog_mse(self, x):
+    def symlog_mse(self, x: Any) -> Any:
         """Handle symlog mse.
 
         Args:
@@ -243,7 +245,7 @@ class Head(nj.Module):
         pred = self.sub("pred", nets.Linear, self.space.shape, **self.kw)(x)
         return outs.MSE(pred, nets.symlog)
 
-    def symexp_twohot(self, x):
+    def symexp_twohot(self, x: Any) -> Any:
         """Handle symexp twohot.
 
         Args:
@@ -267,7 +269,7 @@ class Head(nj.Module):
             bins = jnp.concatenate([half, -half[::-1]], 0)
         return outs.TwoHot(logits, bins)
 
-    def bounded_normal(self, x):
+    def bounded_normal(self, x: Any) -> Any:
         """Handle bounded normal.
 
         Args:
@@ -288,7 +290,7 @@ class Head(nj.Module):
         output.maxent = outs.Normal(jnp.zeros_like(mean), self.maxstd).entropy()
         return output
 
-    def normal_logstd(self, x):
+    def normal_logstd(self, x: Any) -> Any:
         """Handle normal logstd.
 
         Args:

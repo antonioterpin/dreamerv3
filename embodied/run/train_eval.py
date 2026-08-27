@@ -1,5 +1,9 @@
 """Provide train eval functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import collections
 from functools import partial as bind
 
@@ -9,15 +13,15 @@ import numpy as np
 
 
 def train_eval(
-    make_agent,
-    make_replay_train,
-    make_replay_eval,
-    make_env_train,
-    make_env_eval,
-    make_stream,
-    make_logger,
-    args,
-):
+    make_agent: Any,
+    make_replay_train: Any,
+    make_replay_eval: Any,
+    make_env_train: Any,
+    make_env_eval: Any,
+    make_stream: Any,
+    make_logger: Any,
+    args: Any,
+) -> None:
     """Train eval.
 
     Args:
@@ -58,7 +62,7 @@ def train_eval(
     should_save = elements.when.Clock(args.save_every)
 
     @elements.timer.section("logfn")
-    def logfn(tran, worker, mode):
+    def logfn(tran: Any, worker: Any, mode: Any) -> None:
         """Handle logfn.
 
         Args:
@@ -117,7 +121,7 @@ def train_eval(
     carry_report = agent.init_report(args.batch_size)
     carry_eval = agent.init_report(args.batch_size)
 
-    def trainfn(tran, worker):
+    def trainfn(tran: Any, worker: Any) -> None:
         """Handle trainfn.
 
         Args:
@@ -137,7 +141,7 @@ def train_eval(
 
     driver_train.on_step(trainfn)
 
-    def reportfn(carry, stream):
+    def reportfn(carry: Any, stream: Any) -> tuple[Any, ...]:
         """Handle reportfn.
 
         Args:

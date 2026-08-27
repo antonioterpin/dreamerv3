@@ -1,5 +1,9 @@
 """Provide train functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import collections
 from functools import partial as bind
 
@@ -8,7 +12,14 @@ import embodied
 import numpy as np
 
 
-def train(make_agent, make_replay, make_env, make_stream, make_logger, args):
+def train(
+    make_agent: Any,
+    make_replay: Any,
+    make_env: Any,
+    make_stream: Any,
+    make_logger: Any,
+    args: Any,
+) -> None:
     """Train state.
 
     Args:
@@ -39,7 +50,7 @@ def train(make_agent, make_replay, make_env, make_stream, make_logger, args):
     should_save = embodied.LocalClock(args.save_every)
 
     @elements.timer.section("logfn")
-    def logfn(tran, worker):
+    def logfn(tran: Any, worker: Any) -> None:
         """Handle logfn.
 
         Args:
@@ -87,7 +98,7 @@ def train(make_agent, make_replay, make_env, make_stream, make_logger, args):
     carry_train = [agent.init_train(args.batch_size)]
     carry_report = agent.init_report(args.batch_size)
 
-    def trainfn(tran, worker):
+    def trainfn(tran: Any, worker: Any) -> None:
         """Handle trainfn.
 
         Args:

@@ -1,5 +1,9 @@
 """Provide minecraft functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import importlib
 
 import embodied
@@ -8,7 +12,7 @@ import embodied
 class Minecraft(embodied.Wrapper):
     """Represent minecraft."""
 
-    def __init__(self, task, *args, **kwargs):
+    def __init__(self, task: Any, *args: Any, **kwargs: Any) -> None:
         """Initialize the minecraft.
 
         Args:

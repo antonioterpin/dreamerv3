@@ -1,5 +1,9 @@
 """Provide test layer scan functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import jax
 import jax.numpy as jnp
 import ninjax as nj
@@ -16,7 +20,7 @@ class Layer(nj.Module):
 
     units: int = 8
 
-    def __call__(self, x, c, k):
+    def __call__(self, x: Any, c: Any, k: Any) -> Any:
         """Apply the layer.
 
         Args:
@@ -50,7 +54,7 @@ class Net(nj.Module):
     layers: int = 4
     units: int = 8
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the net.
 
         Args:
@@ -72,7 +76,7 @@ class Net(nj.Module):
 
         return x
 
-    def loss(self, x):
+    def loss(self, x: Any) -> Any:
         """Handle loss.
 
         Args:
@@ -87,7 +91,7 @@ class Net(nj.Module):
 class TestLayerScan:
     """Represent test layer scan."""
 
-    def test_init(self, L=4, B=2, D=8):
+    def test_init(self, L: int = 4, B: int = 2, D: int = 8) -> None:
         """Verify init.
 
         Args:
@@ -124,7 +128,7 @@ class TestLayerScan:
                 params["net/linear/kernel"][0], params["net/linear/kernel"][i]
             ), "Expected jnp allclose(params net/linear/kernel[0], params net/linear/kernel[i]) to be false or empty."
 
-    def test_apply(self, L=4, B=2, D=8):
+    def test_apply(self, L: int = 4, B: int = 2, D: int = 8) -> None:
         """Verify apply.
 
         Args:
@@ -147,7 +151,7 @@ class TestLayerScan:
             params["net/linear/inner"] == 1
         ).all(), "Expected params net/linear/inner to equal 1."
 
-    def test_grad(self, L=4, B=2, D=8):
+    def test_grad(self, L: int = 4, B: int = 2, D: int = 8) -> None:
         """Verify grad.
 
         Args:
@@ -161,7 +165,7 @@ class TestLayerScan:
         x = np.random.normal(0, 1, (B, D))
         net = Net(layers=L, units=D, name="net")
 
-        def fn(x):
+        def fn(x: Any) -> Any:
             """Handle function.
 
             Args:

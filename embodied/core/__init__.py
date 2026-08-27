@@ -1,5 +1,8 @@
 """Provide init functionality."""
 
+from __future__ import annotations
+
+
 from .base import Agent, Env
 
 from .clock import GlobalClock

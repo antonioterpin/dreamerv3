@@ -1,12 +1,16 @@
 """Provide random functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import numpy as np
 
 
 class RandomAgent:
     """Represent random agent."""
 
-    def __init__(self, obs_space, act_space):
+    def __init__(self, obs_space: Any, act_space: Any) -> None:
         """Initialize the random agent.
 
         Args:
@@ -16,7 +20,7 @@ class RandomAgent:
         self.obs_space = obs_space
         self.act_space = act_space
 
-    def init_policy(self, batch_size):
+    def init_policy(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init policy.
 
         Args:
@@ -27,7 +31,7 @@ class RandomAgent:
         """
         return ()
 
-    def init_train(self, batch_size):
+    def init_train(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init train.
 
         Args:
@@ -38,7 +42,7 @@ class RandomAgent:
         """
         return ()
 
-    def init_report(self, batch_size):
+    def init_report(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init report.
 
         Args:
@@ -49,7 +53,7 @@ class RandomAgent:
         """
         return ()
 
-    def policy(self, carry, obs, mode="train"):
+    def policy(self, carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
         """Handle policy.
 
         Args:
@@ -68,7 +72,7 @@ class RandomAgent:
         }
         return carry, act, {}
 
-    def train(self, carry, data):
+    def train(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Train state.
 
         Args:
@@ -80,7 +84,7 @@ class RandomAgent:
         """
         return carry, {}, {}
 
-    def report(self, carry, data):
+    def report(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Handle report.
 
         Args:
@@ -92,7 +96,7 @@ class RandomAgent:
         """
         return carry, {}
 
-    def stream(self, st):
+    def stream(self, st: Any) -> Any:
         """Handle stream.
 
         Args:
@@ -103,7 +107,7 @@ class RandomAgent:
         """
         return st
 
-    def save(self):
+    def save(self) -> None:
         """Save state.
 
         Returns:
@@ -111,7 +115,7 @@ class RandomAgent:
         """
         return None
 
-    def load(self, data=None):
+    def load(self, data: Any | None = None) -> Any:
         """Load state.
 
         Args:

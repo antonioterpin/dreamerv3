@@ -1,5 +1,9 @@
 """Provide agent functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import contextlib
 import dataclasses
 import io
@@ -48,7 +52,7 @@ class Options:
 class Agent(embodied.Agent):
     """Represent agent."""
 
-    def __new__(subcls, obs_space, act_space, config):
+    def __new__(subcls: Any, obs_space: Any, act_space: Any, config: Any) -> Any:
         """Construct the agent.
 
         Args:
@@ -70,7 +74,9 @@ class Agent(embodied.Agent):
         outer.__init__(model, obs_space, act_space, config, jaxcfg)
         return outer
 
-    def __init__(self, model, obs_space, act_space, config, jaxcfg):
+    def __init__(
+        self, model: Any, obs_space: Any, act_space: Any, config: Any, jaxcfg: Any
+    ) -> None:
         """Initialize the agent.
 
         Args:
@@ -288,7 +294,7 @@ class Agent(embodied.Agent):
                 print(self._format_jit_stats(self._report))
             elements.print("Done compiling!", color="yellow")
 
-    def init_policy(self, batch_size):
+    def init_policy(self, batch_size: Any) -> Any:
         """Handle init policy.
 
         Args:
@@ -313,7 +319,7 @@ class Agent(embodied.Agent):
             )
         )
 
-    def precompile_policy(self, batch_size):
+    def precompile_policy(self, batch_size: Any) -> None:
         """Compile the train-mode policy for an actor batch before serving.
 
         Runs one dummy batch through the public policy path and blocks until it
@@ -341,7 +347,7 @@ class Agent(embodied.Agent):
                 self.pending_sync is None
             ), "Policy warmup must not consume or change pending policy state."
 
-    def init_train(self, batch_size):
+    def init_train(self, batch_size: Any) -> Any:
         """Handle init train.
 
         Args:
@@ -357,7 +363,7 @@ class Agent(embodied.Agent):
             self.params, self._seeds(0, self.train_mirrored), batch_size
         )
 
-    def init_report(self, batch_size):
+    def init_report(self, batch_size: Any) -> Any:
         """Handle init report.
 
         Args:
@@ -374,7 +380,7 @@ class Agent(embodied.Agent):
         )
 
     @elements.timer.section("jaxagent_policy")
-    def policy(self, carry, obs, mode="train"):
+    def policy(self, carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
         """Handle policy.
 
         Args:
@@ -435,7 +441,7 @@ class Agent(embodied.Agent):
         return carry, acts, outs
 
     @elements.timer.section("jaxagent_train")
-    def train(self, carry, data):
+    def train(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Train state.
 
         Args:
@@ -495,7 +501,7 @@ class Agent(embodied.Agent):
         return carry, return_outs, return_mets
 
     @elements.timer.section("jaxagent_report")
-    def report(self, carry, data):
+    def report(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Handle report.
 
         Args:
@@ -516,7 +522,7 @@ class Agent(embodied.Agent):
         mets["params/summary"] = self._summary()
         return carry, mets
 
-    def stream(self, st):
+    def stream(self, st: Any) -> Any:
         """Handle stream.
 
         Args:
@@ -526,7 +532,7 @@ class Agent(embodied.Agent):
             Result of the operation.
         """
 
-        def fn(data):
+        def fn(data: Any) -> dict[Any, Any]:
             """Handle function.
 
             Args:
@@ -548,7 +554,7 @@ class Agent(embodied.Agent):
         return embodied.streams.Prefetch(st, fn)
 
     @elements.timer.section("jaxagent_save")
-    def save(self):
+    def save(self) -> Any:
         """Save state.
 
         Returns:
@@ -569,7 +575,7 @@ class Agent(embodied.Agent):
         return data
 
     @elements.timer.section("jaxagent_load")
-    def load(self, data, regex=None):
+    def load(self, data: Any, regex: Any | None = None) -> None:
         """Load state.
 
         Args:
@@ -619,7 +625,7 @@ class Agent(embodied.Agent):
                     policy_params, self.policy_params_sharding
                 )
 
-    def _stdout_unless_verbose(self):
+    def _stdout_unless_verbose(self) -> Any:
         # Parameter creation and compilation print module trees, parameter
         # summaries, and partition groupings. Those are useful when developing a
         # model but drown the console of a harness that embeds the agent.
@@ -627,7 +633,7 @@ class Agent(embodied.Agent):
             return contextlib.nullcontext()
         return contextlib.redirect_stdout(io.StringIO())
 
-    def _policy_sync_due(self, obs, counter):
+    def _policy_sync_due(self, obs: Any, counter: Any) -> Any:
         """Whether staged parameters may be installed after this policy call.
 
         Args:
@@ -646,7 +652,7 @@ class Agent(embodied.Agent):
             return (counter + 1) % self.jaxcfg.policy_sync_steps == 0
         raise NotImplementedError(mode)
 
-    def _stage_policy_sync(self, params):
+    def _stage_policy_sync(self, params: Any) -> None:
         """Stage the policy parameters a train step started from for the actor.
 
         Args:
@@ -668,19 +674,19 @@ class Agent(embodied.Agent):
         if stale:
             jax.tree.map(lambda x: x.delete(), stale)
 
-    def _take_outs(self, outs):
+    def _take_outs(self, outs: Any) -> Any:
         outs = jax.tree.map(lambda x: x.__array__(), outs)
         outs = jax.tree.map(
             lambda x: np.float32(x) if x.dtype == jnp.bfloat16 else x, outs
         )
         return outs
 
-    def _seeds(self, counter, sharding):
+    def _seeds(self, counter: Any, sharding: Any) -> Any:
         rng = np.random.default_rng(seed=[self.config.seed, int(counter)])
         seeds = rng.integers(0, np.iinfo(np.uint32).max, (2,), np.uint32)
         return internal.device_put(seeds, sharding)
 
-    def _init_params(self):
+    def _init_params(self) -> tuple[Any, ...]:
         B = min(self.config.batch_size, len(self.jaxcfg.train_devices))
         GB = B * jax.process_count()
         T = self.config.batch_length
@@ -723,7 +729,7 @@ class Agent(embodied.Agent):
         )
         return params, params_sharding
 
-    def _compile_train(self):
+    def _compile_train(self) -> None:
         B = self.config.batch_size
         T = self.config.batch_length
         C = self.config.replay_context
@@ -735,7 +741,7 @@ class Agent(embodied.Agent):
         dona = {k: v for k, v in self.params.items() if k not in self.policy_keys}
         self._train = self._train.lower(dona, allo, seed, carry, data).compile()
 
-    def _compile_report(self):
+    def _compile_report(self) -> None:
         B = self.config.batch_size
         T = self.config.report_length
         C = self.config.replay_context
@@ -745,19 +751,19 @@ class Agent(embodied.Agent):
         carry = self.init_report(B)
         self._report = self._report.lower(self.params, seed, carry, data).compile()
 
-    def _summary(self):
+    def _summary(self) -> Any:
         lines = []
         for k, v in self.params.items():
             lines.append(f"{k:<40} {v.dtype} {v.size} {v.shape}")
         return "\n".join(lines)
 
-    def _zeros(self, spaces, batch_shape):
+    def _zeros(self, spaces: Any, batch_shape: Any) -> Any:
         data = {k: np.zeros(v.shape, v.dtype) for k, v in spaces.items()}
         for dim in reversed(batch_shape):
             data = {k: np.repeat(v[None], dim, axis=0) for k, v in data.items()}
         return data
 
-    def _format_jit_stats(self, compiled):
+    def _format_jit_stats(self, compiled: Any) -> Any:
         try:
             cost = compiled.cost_analysis()
             mem = compiled.memory_analysis()
@@ -772,7 +778,7 @@ class Agent(embodied.Agent):
             return "No available"
 
 
-def init(fun, **jit_kwargs):
+def init(fun: Any, **jit_kwargs: Any) -> Any:
     """Handle init.
 
     Args:
@@ -785,7 +791,7 @@ def init(fun, **jit_kwargs):
     if not getattr(fun, "_is_pure", False):
         fun = nj.pure(fun)
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> tuple[Any, ...]:
         """Handle wrapper.
 
         Args:

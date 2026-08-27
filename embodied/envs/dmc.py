@@ -1,5 +1,9 @@
 """Provide dmc functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 import os
 
@@ -22,8 +26,14 @@ class DMC(embodied.Env):
     )
 
     def __init__(
-        self, env, repeat=1, size=(64, 64), proprio=True, image=True, camera=-1
-    ):
+        self,
+        env: Any,
+        repeat: int = 1,
+        size: tuple[Any, ...] = (64, 64),
+        proprio: bool = True,
+        image: bool = True,
+        camera: Any = -1,
+    ) -> None:
         """Initialize the dmc.
 
         Args:
@@ -61,7 +71,7 @@ class DMC(embodied.Env):
         self._camera = camera
 
     @functools.cached_property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -76,7 +86,7 @@ class DMC(embodied.Env):
         return spaces
 
     @functools.cached_property
-    def act_space(self):
+    def act_space(self) -> Any:
         """Handle act space.
 
         Returns:
@@ -84,7 +94,7 @@ class DMC(embodied.Env):
         """
         return self._env.act_space
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:

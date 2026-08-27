@@ -1,5 +1,9 @@
 """When the actor installs the parameters staged by the learner."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import threading
 
 import elements
@@ -15,7 +19,7 @@ from embodied.jax.agent import Options
 P = jax.sharding.PartitionSpec
 
 
-def _agent(mode, steps=1):
+def _agent(mode: Any, steps: int = 1) -> Any:
     """Create a JAX agent skeleton with a real policy path on one CPU device.
 
     Returns:
@@ -55,7 +59,9 @@ def _agent(mode, steps=1):
         out_shardings=internal.local_sharding(agent.policy_sharded),
     )
 
-    def _policy(params, seed, carry, obs, mode):
+    def _policy(
+        params: Any, seed: Any, carry: Any, obs: Any, mode: Any
+    ) -> tuple[Any, ...]:
         # The action reveals which parameters produced it.
         return carry, {"action": obs["sensor"] * params["w"]}, {}
 
@@ -63,7 +69,7 @@ def _agent(mode, steps=1):
     return agent
 
 
-def _obs(last=False, batch=1):
+def _obs(last: bool = False, batch: int = 1) -> dict[Any, Any]:
     return {
         "sensor": np.ones((batch, 1), np.float32),
         "reward": np.zeros((batch,), np.float32),
@@ -73,17 +79,17 @@ def _obs(last=False, batch=1):
     }
 
 
-def _act(agent, last=False):
+def _act(agent: Any, last: bool = False) -> Any:
     carry = {"state": [np.zeros((1,), np.float32)]}
     _, acts, _ = agent.policy(carry, _obs(last))
     return float(acts["action"][0, 0])
 
 
-def _stage(agent, value):
+def _stage(agent: Any, value: Any) -> None:
     agent._stage_policy_sync({"w": jnp.float32(value)})
 
 
-def test_options_default_to_upstream_behavior():
+def test_options_default_to_upstream_behavior() -> None:
     """Verify options default to upstream behavior."""
     assert (
         Options().policy_sync_mode == "immediate"
@@ -96,7 +102,7 @@ def test_options_default_to_upstream_behavior():
 @pytest.mark.parametrize(
     "mode, steps", [("immediate", 1), ("episode", 1), ("steps", 3)]
 )
-def test_sync_due_per_mode(mode, steps):
+def test_sync_due_per_mode(mode: Any, steps: Any) -> None:
     """Verify sync due per mode.
 
     Args:
@@ -131,7 +137,7 @@ def test_sync_due_per_mode(mode, steps):
         ], "Expected [due(False, i) for i in range(7)] to equal [False, False, True, False, False, True, False]."
 
 
-def test_immediate_mode_installs_on_the_next_call():
+def test_immediate_mode_installs_on_the_next_call() -> None:
     """Verify immediate mode installs on the next call."""
     agent = _agent("immediate")
     assert _act(agent) == 1.0, "Expected act(agent) to equal 1.0."
@@ -141,7 +147,7 @@ def test_immediate_mode_installs_on_the_next_call():
     assert _act(agent) == 2.0, "Expected act(agent) to equal 2.0."
 
 
-def test_episode_mode_installs_after_an_episode_end():
+def test_episode_mode_installs_after_an_episode_end() -> None:
     """Verify episode mode installs after an episode end."""
     agent = _agent("episode")
     _stage(agent, 2.0)
@@ -154,7 +160,7 @@ def test_episode_mode_installs_after_an_episode_end():
     assert _act(agent) == 2.0, "the next episode starts with the new params"
 
 
-def test_steps_mode_installs_every_nth_call():
+def test_steps_mode_installs_every_nth_call() -> None:
     """Verify steps mode installs every nth call."""
     agent = _agent("steps", steps=3)
     _stage(agent, 2.0)
@@ -173,7 +179,7 @@ def test_steps_mode_installs_every_nth_call():
     assert _act(agent) == 3.0, "Expected act(agent) to equal 3.0."
 
 
-def test_immediate_mode_keeps_the_first_staged_params():
+def test_immediate_mode_keeps_the_first_staged_params() -> None:
     """Verify immediate mode keeps the first staged parameters."""
     agent = _agent("immediate")
     _stage(agent, 2.0)
@@ -189,7 +195,7 @@ def test_immediate_mode_keeps_the_first_staged_params():
     ), "Expected all parts of the _act(agent) == 1.0 and _act(agent) == 2.0 invariant to hold."
 
 
-def test_scheduled_modes_keep_the_newest_staged_params():
+def test_scheduled_modes_keep_the_newest_staged_params() -> None:
     """Verify scheduled modes keep the newest staged parameters."""
     agent = _agent("episode")
     _stage(agent, 2.0)
@@ -203,7 +209,7 @@ def test_scheduled_modes_keep_the_newest_staged_params():
     assert _act(agent) == 3.0, "the episode starts with the newest params"
 
 
-def test_precompile_does_not_disturb_scheduled_sync():
+def test_precompile_does_not_disturb_scheduled_sync() -> None:
     """Verify precompile does not disturb scheduled sync."""
     agent = _agent("steps", steps=3)
     agent.init_policy = lambda batch: {"state": [np.zeros((1,), np.float32)] * batch}

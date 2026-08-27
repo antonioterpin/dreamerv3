@@ -1,5 +1,9 @@
 """Provide procgen functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import elements
 import embodied
 import numpy as np
@@ -11,7 +15,13 @@ from PIL import Image
 class ProcGen(embodied.Env):
     """Represent proc gen."""
 
-    def __init__(self, task, size=(64, 64), resize="pillow", **kwargs):
+    def __init__(
+        self,
+        task: Any,
+        size: tuple[Any, ...] = (64, 64),
+        resize: str = "pillow",
+        **kwargs: Any,
+    ) -> None:
         """Initialize the proc gen.
 
         Args:
@@ -41,7 +51,7 @@ class ProcGen(embodied.Env):
                 self.inner = self.inner.env
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -52,7 +62,7 @@ class ProcGen(embodied.Env):
         return spaces
 
     @property
-    def act_space(self):
+    def act_space(self) -> Any:
         """Handle act space.
 
         Returns:
@@ -60,7 +70,7 @@ class ProcGen(embodied.Env):
         """
         return self.env.act_space
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -87,7 +97,7 @@ class ProcGen(embodied.Env):
             raise NotImplementedError(self.source)
         return obs
 
-    def _resize(self, image, size, method):
+    def _resize(self, image: Any, size: Any, method: Any) -> Any:
         if method == "opencv":
             import cv2  # pyright: ignore[reportMissingImports]
 

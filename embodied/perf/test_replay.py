@@ -1,5 +1,9 @@
 """Provide test replay functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import pathlib
 import sys
 import threading
@@ -30,7 +34,14 @@ class TestReplay:
     """Represent test replay."""
 
     @pytest.mark.parametrize("name,Replay", REPLAYS)
-    def test_speed(self, name, Replay, inserts=2e5, workers=8, samples=1e5):
+    def test_speed(
+        self,
+        name: Any,
+        Replay: Any,
+        inserts: float = 2e5,
+        workers: int = 8,
+        samples: float = 1e5,
+    ) -> None:
         """Verify speed.
 
         Args:
@@ -58,7 +69,13 @@ class TestReplay:
         print(name, "total duration:", time.time() - initial)
 
     @pytest.mark.parametrize("chunksize", [64, 128, 256, 512, 1024, 2048, 4096])
-    def test_chunk_size(self, chunksize, inserts=2e5, workers=8, samples=2e5):
+    def test_chunk_size(
+        self,
+        chunksize: Any,
+        inserts: float = 2e5,
+        workers: int = 8,
+        samples: float = 2e5,
+    ) -> None:
         """Verify chunk size.
 
         Args:
@@ -85,7 +102,9 @@ class TestReplay:
         print("chunksize", chunksize, "total duration:", time.time() - initial)
 
     @pytest.mark.parametrize("name,Replay", REPLAYS)
-    def test_removal(self, name, Replay, inserts=1e6, workers=1):
+    def test_removal(
+        self, name: Any, Replay: Any, inserts: float = 1e6, workers: int = 1
+    ) -> None:
         """Verify removal.
 
         Args:
@@ -103,7 +122,9 @@ class TestReplay:
         print(name, "inserts/sec:", int(inserts / duration))
 
     @pytest.mark.parametrize("name,Replay", REPLAYS)
-    def test_parallel(self, tmpdir, name, Replay, duration=5):
+    def test_parallel(
+        self, tmpdir: Any, name: Any, Replay: Any, duration: int = 5
+    ) -> None:
         """Verify parallel.
 
         Args:
@@ -124,7 +145,7 @@ class TestReplay:
         saves = defaultdict(int)
         errors = []
 
-        def adder():
+        def adder() -> None:
             """Handle adder."""
             try:
                 ident = threading.get_ident()
@@ -136,7 +157,7 @@ class TestReplay:
                 errors.append(e)
                 raise
 
-        def sampler():
+        def sampler() -> None:
             """Handle sampler."""
             try:
                 ident = threading.get_ident()
@@ -148,7 +169,7 @@ class TestReplay:
                 errors.append(e)
                 raise
 
-        def saver():
+        def saver() -> None:
             """Handle saver."""
             try:
                 ident = threading.get_ident()

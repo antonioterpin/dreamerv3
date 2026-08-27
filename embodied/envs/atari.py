@@ -1,5 +1,9 @@
 """Provide atari functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import os
 import threading
 import collections
@@ -41,22 +45,22 @@ class Atari(embodied.Env):
 
     def __init__(
         self,
-        name,
-        repeat=4,
-        size=(84, 84),
-        gray=True,
-        noops=0,
-        lives="unused",
-        sticky=True,
-        actions="all",
-        length=108000,
-        pooling=2,
-        aggregate="max",
-        resize="pillow",
-        autostart=False,
-        clip_reward=False,
-        seed=None,
-    ):
+        name: Any,
+        repeat: int = 4,
+        size: tuple[Any, ...] = (84, 84),
+        gray: bool = True,
+        noops: int = 0,
+        lives: str = "unused",
+        sticky: bool = True,
+        actions: str = "all",
+        length: int = 108000,
+        pooling: int = 2,
+        aggregate: str = "max",
+        resize: str = "pillow",
+        autostart: bool = False,
+        clip_reward: bool = False,
+        seed: Any | None = None,
+    ) -> None:
         """Initialize the atari.
 
         Args:
@@ -125,7 +129,7 @@ class Atari(embodied.Env):
         self.done = True
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -140,7 +144,7 @@ class Atari(embodied.Env):
         }
 
     @property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -151,7 +155,7 @@ class Atari(embodied.Env):
             "reset": elements.Space(bool),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -194,7 +198,7 @@ class Atari(embodied.Env):
         obs = self._obs(reward, is_last=last, is_terminal=terminal)
         return obs
 
-    def _reset(self):
+    def _reset(self) -> None:
         with self.LOCK:
             self.ale.reset_game()
         for _ in range(self.rng.integers(self.noops + 1)):
@@ -216,11 +220,17 @@ class Atari(embodied.Env):
             if i > 0:
                 np.copyto(dst, self.buffers[0])
 
-    def _render(self, reset=False):
+    def _render(self, reset: bool = False) -> None:
         self.buffers.appendleft(self.buffers.pop())
         self.ale.getScreenRGB(self.buffers[0])
 
-    def _obs(self, reward, is_first=False, is_last=False, is_terminal=False):
+    def _obs(
+        self,
+        reward: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
         if self.clip_reward:
             reward = np.sign(reward)
         if self.aggregate == "max":

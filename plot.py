@@ -1,5 +1,9 @@
 """Provide plot functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import concurrent.futures
 import functools
 import json
@@ -36,7 +40,9 @@ COLORS = [
 ]
 
 
-def load_run(filename, xkeys, ykeys, ythres=None):
+def load_run(
+    filename: Any, xkeys: Any, ykeys: Any, ythres: Any | None = None
+) -> tuple[Any, ...] | None:
     """Load run.
 
     Args:
@@ -77,7 +83,7 @@ def load_run(filename, xkeys, ykeys, ythres=None):
         return None
 
 
-def load_runs(args):
+def load_runs(args: Any) -> Any:
     """Load runs.
 
     Args:
@@ -121,7 +127,7 @@ def load_runs(args):
     return pd.DataFrame(records)
 
 
-def bin_runs(df, args):
+def bin_runs(df: Any, args: Any) -> Any:
     """Handle bin runs.
 
     Args:
@@ -144,7 +150,7 @@ def bin_runs(df, args):
         assert args.bins <= 1000, args.bins
         df["binsize"] = df["xlim"].apply(lambda x: x / args.bins)
 
-    def binning(row):
+    def binning(row: Any) -> tuple[Any, ...]:
         """Handle binning.
 
         Args:
@@ -168,7 +174,7 @@ def bin_runs(df, args):
     return df
 
 
-def comp_stat(name, df, fn, baseline=None):
+def comp_stat(name: Any, df: Any, fn: Any, baseline: Any | None = None) -> Any:
     """Handle comp stat.
 
     Args:
@@ -193,7 +199,7 @@ def comp_stat(name, df, fn, baseline=None):
     df["ys"] = df["ys"].apply(lambda ys: nanmean(ys, axis=0))
     if baseline is not None:
 
-        def normalize(row):
+        def normalize(row: Any) -> Any:
             lo, hi = baseline[row["task"]]
             return (row["ys"] - lo) / (hi - lo)
 
@@ -206,7 +212,7 @@ def comp_stat(name, df, fn, baseline=None):
     return df
 
 
-def comp_count(name, df):
+def comp_count(name: Any, df: Any) -> Any:
     """Handle comp count.
 
     Args:
@@ -230,7 +236,7 @@ def comp_count(name, df):
     return df
 
 
-def comp_stats(df, args):
+def comp_stats(df: Any, args: Any) -> Any:
     """Handle comp statistics.
 
     Args:
@@ -299,7 +305,7 @@ def comp_stats(df, args):
     return pd.concat(stats)
 
 
-def plot_runs(df, stats, args):
+def plot_runs(df: Any, stats: Any, args: Any) -> None:
     """Handle plot runs.
 
     Args:
@@ -357,7 +363,9 @@ def plot_runs(df, stats, args):
     print("Saved", filename)
 
 
-def plots(amount, cols=4, size=(3, 3), **kwargs):
+def plots(
+    amount: Any, cols: int = 4, size: tuple[Any, ...] = (3, 3), **kwargs: Any
+) -> tuple[Any, ...]:
     """Handle plots.
 
     Args:
@@ -379,7 +387,14 @@ def plots(amount, cols=4, size=(3, 3), **kwargs):
     return fig, ax
 
 
-def style(ax, xticks=4, yticks=4, grid=(1, 1), logx=False, darker=False):
+def style(
+    ax: Any,
+    xticks: int = 4,
+    yticks: int = 4,
+    grid: tuple[Any, ...] = (1, 1),
+    logx: bool = False,
+    darker: bool = False,
+) -> None:
     """Handle style.
 
     Args:
@@ -412,17 +427,17 @@ def style(ax, xticks=4, yticks=4, grid=(1, 1), logx=False, darker=False):
 
 
 def curve(
-    ax,
-    xs,
-    ys,
-    lo=None,
-    hi=None,
-    label=None,
-    order=None,
-    color=None,
-    scatter=True,
-    **kwargs,
-):
+    ax: Any,
+    xs: Any,
+    ys: Any,
+    lo: Any | None = None,
+    hi: Any | None = None,
+    label: Any | None = None,
+    order: Any | None = None,
+    color: Any | None = None,
+    scatter: bool = True,
+    **kwargs: Any,
+) -> None:
     """Handle curve.
 
     Args:
@@ -455,7 +470,13 @@ def curve(
         )
 
 
-def legend(fig, names=None, reverse=False, adjust=False, **kwargs):
+def legend(
+    fig: Any,
+    names: Any | None = None,
+    reverse: bool = False,
+    adjust: bool = False,
+    **kwargs: Any,
+) -> Any:
     """Handle legend.
 
     Args:
@@ -503,7 +524,7 @@ def legend(fig, names=None, reverse=False, adjust=False, **kwargs):
     return leg
 
 
-def silent(fn):
+def silent(fn: Any) -> Any:
     """Handle silent.
 
     Args:
@@ -513,7 +534,7 @@ def silent(fn):
         Result of the operation.
     """
 
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
         """Handle wrapped.
 
         Args:
@@ -537,7 +558,7 @@ nanmax = silent(np.nanmax)
 nanmin = silent(np.nanmin)
 
 
-def natsort(sequence):
+def natsort(sequence: Any) -> Any:
     """Handle natsort.
 
     Args:
@@ -553,7 +574,7 @@ def natsort(sequence):
     )
 
 
-def natfmt(x):
+def natfmt(x: Any) -> Any:
     """Handle natfmt.
 
     Args:
@@ -578,7 +599,7 @@ def natfmt(x):
         return f"{x:.0f}{suffix}"
 
 
-def print_summary(df):
+def print_summary(df: Any) -> None:
     """Handle print summary.
 
     Args:
@@ -596,7 +617,7 @@ def print_summary(df):
     print("-" * 79)
 
 
-def main(args):
+def main(args: Any) -> None:
     """Handle main.
 
     Args:

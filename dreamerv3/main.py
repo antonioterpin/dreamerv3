@@ -1,5 +1,9 @@
 """Provide main functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import importlib
 import os
 import pathlib
@@ -18,7 +22,7 @@ import portal
 import ruamel.yaml as yaml
 
 
-def main(argv=None):
+def main(argv: Any | None = None) -> None:
     """Handle main.
 
     Args:
@@ -53,7 +57,7 @@ def main(argv=None):
         logdir.mkdir()
         config.save(logdir / "config.yaml")
 
-    def init():
+    def init() -> None:
         """Handle init."""
         elements.timer.global_timer.enabled = config.logger.timer
 
@@ -144,7 +148,7 @@ def main(argv=None):
         raise NotImplementedError(config.script)
 
 
-def make_agent(config):
+def make_agent(config: Any) -> Any:
     """Create agent.
 
     Args:
@@ -182,7 +186,7 @@ def make_agent(config):
     )
 
 
-def make_logger(config):
+def make_logger(config: Any) -> Any:
     """Create logger.
 
     Args:
@@ -227,7 +231,7 @@ def make_logger(config):
     return logger
 
 
-def make_replay(config, folder, mode="train"):
+def make_replay(config: Any, folder: Any, mode: str = "train") -> Any:
     """Create replay.
 
     Args:
@@ -276,7 +280,7 @@ def make_replay(config, folder, mode="train"):
     return embodied.replay.Replay(**kwargs)
 
 
-def make_env(config, index, **overrides):
+def make_env(config: Any, index: Any, **overrides: Any) -> Any:
     """Create environment.
 
     Args:
@@ -322,7 +326,7 @@ def make_env(config, index, **overrides):
     return wrap_env(env, config)
 
 
-def wrap_env(env, config):
+def wrap_env(env: Any, config: Any) -> Any:
     """Handle wrap environment.
 
     Args:
@@ -343,7 +347,7 @@ def wrap_env(env, config):
     return env
 
 
-def make_stream(config, replay, mode):
+def make_stream(config: Any, replay: Any, mode: Any) -> Any:
     """Create stream.
 
     Args:

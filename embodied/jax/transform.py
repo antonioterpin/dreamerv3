@@ -1,5 +1,9 @@
 """Provide transform functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import threading
 import re
 from collections import Counter
@@ -20,15 +24,15 @@ TRACER_SHARDINGS = {}
 
 
 def init(
-    fn,
-    mesh,
-    arg_shardings,
-    param_partition_rules=(),
-    act_partition_rules=(),
-    static_argnums=(),
-    dummy_inputs=(),
-    print_partition=False,
-):
+    fn: Any,
+    mesh: Any,
+    arg_shardings: Any,
+    param_partition_rules: tuple[Any, ...] = (),
+    act_partition_rules: tuple[Any, ...] = (),
+    static_argnums: tuple[Any, ...] = (),
+    dummy_inputs: tuple[Any, ...] = (),
+    print_partition: bool = False,
+) -> tuple[Any, ...]:
     """Handle init.
 
     Args:
@@ -45,7 +49,7 @@ def init(
         Result of the operation.
     """
 
-    def init(fun, **jit_kwargs):
+    def init(fun: Any, **jit_kwargs: Any) -> Any:
         """Handle init.
 
         Args:
@@ -58,7 +62,7 @@ def init(
         if not getattr(fun, "_is_pure", False):
             fun = nj.pure(fun)
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> tuple[Any, ...]:
             """Handle wrapper.
 
             Args:
@@ -76,7 +80,7 @@ def init(
 
     fn = init(fn)
 
-    def fn(*args, inner=fn):
+    def fn(*args: Any, inner: Any = fn) -> Any:
         """Handle function.
 
         Args:
@@ -115,20 +119,20 @@ def init(
 
 
 def apply(
-    fn,
-    mesh,
-    in_shardings,
-    out_shardings,
-    partition_rules=(),
-    static_argnums=(),
-    single_output=False,
-    return_params=False,
-    donate_params=False,
+    fn: Any,
+    mesh: Any,
+    in_shardings: Any,
+    out_shardings: Any,
+    partition_rules: tuple[Any, ...] = (),
+    static_argnums: tuple[Any, ...] = (),
+    single_output: bool = False,
+    return_params: bool = False,
+    donate_params: bool = False,
     # shard_map specific
-    split_rng=True,
-    use_shardmap=False,
-    first_outnums=(),
-):
+    split_rng: bool = True,
+    use_shardmap: bool = False,
+    first_outnums: tuple[Any, ...] = (),
+) -> Any:
     """Apply state.
 
     Args:
@@ -151,7 +155,7 @@ def apply(
     if single_output:
         assert len(out_shardings) == 1, "Expected number of out shardings to equal 1."
 
-    def fn(*args, inner=fn):
+    def fn(*args: Any, inner: Any = fn) -> Any:
         """Handle function.
 
         Args:
@@ -175,7 +179,7 @@ def apply(
 
     if use_shardmap and len(mesh.devices) > 1:
 
-        def fn(*args, inner=fn):
+        def fn(*args: Any, inner: Any = fn) -> Any:
             outs = list(inner(*args))
             for i in first_outnums:
                 outs[i] = jax.tree.map(lambda x: x[None], outs[i])
@@ -190,7 +194,7 @@ def apply(
         ospecs = jax.tree.map(lambda s: s.spec, out_shardings)
         fn = shard_map(fn, mesh, ispecs, ospecs, check_rep=False)
 
-        def fn(*args, inner=fn):
+        def fn(*args: Any, inner: Any = fn) -> Any:
             outs = list(inner(*args))
             for i in first_outnums:
                 outs[i] = jax.tree.map(lambda x: x[0], outs[i])
@@ -198,7 +202,7 @@ def apply(
 
     if single_output:
 
-        def fn(*args, inner=fn):
+        def fn(*args: Any, inner: Any = fn) -> Any:
             outs = inner(*args)
             assert len(outs) == 1, "Expected number of outs to equal 1."
             return outs[0]
@@ -209,7 +213,7 @@ def apply(
 
     if not use_shardmap:
 
-        def fn(*args, inner=fn):
+        def fn(*args: Any, inner: Any = fn) -> Any:
             with LOCK:
                 old = nn.LAYER_CALLBACK
                 nn.LAYER_CALLBACK = create_layer_callback(mesh, partition_rules)
@@ -228,7 +232,7 @@ def apply(
     return fn
 
 
-def create_layer_callback(mesh, partition_rules):
+def create_layer_callback(mesh: Any, partition_rules: Any) -> Any:
     """Create layer callback.
 
     Args:
@@ -242,7 +246,7 @@ def create_layer_callback(mesh, partition_rules):
         Exception: If the operation cannot be completed.
     """
 
-    def layer_callback(y, name):
+    def layer_callback(y: Any, name: Any) -> Any:
         """Handle layer callback.
 
         Args:
@@ -260,7 +264,7 @@ def create_layer_callback(mesh, partition_rules):
             if re.search(rule, name):
                 sharding = jax.sharding.NamedSharding(mesh, spec)
 
-                def apply(y):
+                def apply(y: Any) -> Any:
                     y = jax.lax.with_sharding_constraint(y, sharding)
                     if not hasattr(type(y), "tracer_shardings"):
                         type(y).tracer_sharding = property(
@@ -276,7 +280,7 @@ def create_layer_callback(mesh, partition_rules):
     return layer_callback
 
 
-def resolve_rules(params, partition_rules, mesh):
+def resolve_rules(params: Any, partition_rules: Any, mesh: Any) -> tuple[Any, ...]:
     """Handle resolve rules.
 
     Args:
@@ -312,7 +316,7 @@ def resolve_rules(params, partition_rules, mesh):
     return sharding, grouping
 
 
-def print_grouping(grouping):
+def print_grouping(grouping: Any) -> None:
     """Handle print grouping.
 
     Args:

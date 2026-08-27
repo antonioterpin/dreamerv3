@@ -1,5 +1,9 @@
 """Provide replay functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import threading
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
@@ -18,16 +22,16 @@ class Replay:
 
     def __init__(
         self,
-        length,
-        capacity=None,
-        directory=None,
-        chunksize=1024,
-        online=False,
-        selector=None,
-        save_wait=False,
-        name="unnamed",
-        seed=0,
-    ):
+        length: Any,
+        capacity: Any | None = None,
+        directory: Any | None = None,
+        chunksize: int = 1024,
+        online: bool = False,
+        selector: Any | None = None,
+        save_wait: bool = False,
+        name: str = "unnamed",
+        seed: int = 0,
+    ) -> None:
         """Initialize the replay.
 
         Args:
@@ -76,10 +80,10 @@ class Replay:
 
         self.metrics = {"samples": 0, "inserts": 0, "updates": 0}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def stats(self):
+    def stats(self) -> Any:
         """Handle statistics.
 
         Returns:
@@ -103,7 +107,7 @@ class Replay:
         return stats
 
     @elements.timer.section("replay_add")
-    def add(self, step, worker=0):
+    def add(self, step: Any, worker: int = 0) -> None:
         """Add state.
 
         Args:
@@ -156,7 +160,7 @@ class Replay:
                 self.lengths[worker] += 1
 
     @elements.timer.section("replay_sample")
-    def sample(self, batch, mode="train"):
+    def sample(self, batch: Any, mode: str = "train") -> Any:
         """Sample state.
 
         Args:
@@ -174,7 +178,7 @@ class Replay:
         return data
 
     @elements.timer.section("replay_update")
-    def update(self, data):
+    def update(self, data: Any) -> None:
         """Update state.
 
         Args:
@@ -200,7 +204,7 @@ class Replay:
                 except KeyError:
                     pass
 
-    def _sample(self, mode):
+    def _sample(self, mode: Any) -> tuple[Any, ...]:
         assert mode in ("train", "report", "eval"), mode
         if mode == "train":
             # Increment is not thread safe thus inaccurate but faster than locking.
@@ -220,7 +224,7 @@ class Replay:
             except KeyError:
                 continue
 
-    def _insert(self, chunkid, index):
+    def _insert(self, chunkid: Any, index: Any) -> None:
         while self.capacity and len(self.items) >= self.capacity:
             self._remove()
         itemid = self.itemid
@@ -230,7 +234,7 @@ class Replay:
         self.sampler[itemid] = stepids
         self.fifo.append(itemid)
 
-    def _remove(self):
+    def _remove(self) -> None:
         itemid = self.fifo.popleft()
         del self.sampler[itemid]
         chunkid, index = self.items.pop(itemid)
@@ -242,7 +246,9 @@ class Replay:
                 if chunk.succ in self.refs:
                     self.refs[chunk.succ] -= 1
 
-    def _getseq(self, chunkid, index, keys=None, concat=True):
+    def _getseq(
+        self, chunkid: Any, index: Any, keys: Any | None = None, concat: bool = True
+    ) -> Any:
         chunk = self.chunks[chunkid]
         available = chunk.length - index
         if available >= self.length:
@@ -265,7 +271,7 @@ class Replay:
                     seq = {k: np.concatenate(v, 0) for k, v in seq.items()}
                 return seq
 
-    def _setseq(self, chunkid, index, values):
+    def _setseq(self, chunkid: Any, index: Any, values: Any) -> Any:
         length = len(next(iter(values.values())))
         chunk = self.chunks[chunkid]
         available = chunk.length - index
@@ -305,7 +311,7 @@ class Replay:
     #       yield data
 
     @elements.timer.section("assemble_batch")
-    def _assemble_batch(self, seqs, start, stop):
+    def _assemble_batch(self, seqs: Any, start: Any, stop: Any) -> Any:
         shape = (len(seqs), stop - start)
         data = {
             key: np.empty((*shape, *parts[0].shape[1:]), parts[0].dtype)
@@ -328,7 +334,7 @@ class Replay:
         return data
 
     @elements.timer.section("annotate_batch")
-    def _annotate_batch(self, data, is_online, is_first):
+    def _annotate_batch(self, data: Any, is_online: Any, is_first: Any) -> Any:
         data = data.copy()
         # if self.online:
         #   broadcasted = [[x] for x in is_online]
@@ -345,7 +351,7 @@ class Replay:
         return data
 
     @elements.timer.section("replay_save")
-    def save(self):
+    def save(self) -> None:
         """Save state.
 
         Returns:
@@ -367,7 +373,12 @@ class Replay:
         return None
 
     @elements.timer.section("replay_load")
-    def load(self, data=None, directory=None, amount=None):
+    def load(
+        self,
+        data: Any | None = None,
+        directory: Any | None = None,
+        amount: Any | None = None,
+    ) -> None:
         """Load state.
 
         Args:
@@ -423,7 +434,7 @@ class Replay:
                         self._insert(chunk.uuid, index)
 
     @elements.timer.section("complete_chunk")
-    def _complete(self, chunk, worker):
+    def _complete(self, chunk: Any, worker: Any) -> Any:
         succ = chunklib.Chunk(self.chunksize)
         with self.refs_lock:
             self.refs[chunk.uuid] -= 1
@@ -433,7 +444,7 @@ class Replay:
         chunk.succ = succ.uuid
         return succ
 
-    def _numitems(self, chunks):
+    def _numitems(self, chunks: Any) -> Any:
         chunks = [x.filename if hasattr(x, "filename") else x for x in chunks]
         if not chunks:
             return 0
@@ -451,7 +462,7 @@ class Replay:
         numitems = {k: np.clip(v, 0, lengths[k]) for k, v in numitems.items()}
         return numitems
 
-    def _notempty(self, reason=False):
+    def _notempty(self, reason: bool = False) -> Any:
         if reason:
             return (True, "ok") if len(self.sampler) else (False, "empty buffer")
         else:

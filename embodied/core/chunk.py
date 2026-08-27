@@ -1,5 +1,9 @@
 """Provide chunk functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import io
 import sys
 import traceback
@@ -13,7 +17,7 @@ class Chunk:
 
     __slots__ = ("time", "uuid", "succ", "length", "size", "data", "saved")
 
-    def __init__(self, size=1024):
+    def __init__(self, size: int = 1024) -> None:
         """Initialize the chunk.
 
         Args:
@@ -29,14 +33,14 @@ class Chunk:
         self.data = None
         self.saved = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Chunk({self.filename})"
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any) -> bool:
         return self.time < other.time
 
     @property
-    def filename(self):
+    def filename(self) -> Any:
         """Handle filename.
 
         Returns:
@@ -46,7 +50,7 @@ class Chunk:
         return f"{self.time}-{str(self.uuid)}-{str(succ)}-{self.length}.npz"
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> Any:
         """Handle nbytes.
 
         Returns:
@@ -56,7 +60,7 @@ class Chunk:
             return 0
         return sum(x.nbytes for x in self.data.values())
 
-    def append(self, step):
+    def append(self, step: Any) -> None:
         """Handle append.
 
         Args:
@@ -76,7 +80,7 @@ class Chunk:
         # if self.length == self.size:
         #   [x.setflags(write=False) for x in self.data.values()]
 
-    def update(self, index, length, mapping):
+    def update(self, index: Any, length: Any, mapping: Any) -> None:
         """Update state.
 
         Args:
@@ -90,7 +94,7 @@ class Chunk:
         for key, value in mapping.items():
             self.data[key][index : index + length] = value
 
-    def slice(self, index, length):
+    def slice(self, index: Any, length: Any) -> Any:
         """Handle slice.
 
         Args:
@@ -107,7 +111,7 @@ class Chunk:
         return {k: v[index : index + length] for k, v in self.data.items()}
 
     @elements.timer.section("chunk_save")
-    def save(self, directory, log=False):
+    def save(self, directory: Any, log: bool = False) -> None:
         """Save state.
 
         Args:
@@ -126,7 +130,7 @@ class Chunk:
         log and print(f"Saved chunk: {filename.name}")
 
     @classmethod
-    def load(cls, filename, error="raise"):
+    def load(cls, filename: Any, error: str = "raise") -> Any:
         """Load state.
 
         Args:

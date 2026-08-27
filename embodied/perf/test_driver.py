@@ -1,5 +1,8 @@
 """Provide test driver functionality."""
 
+from __future__ import annotations
+
+
 import pathlib
 import sys
 from functools import partial as bind
@@ -13,7 +16,7 @@ import embodied
 class TestDriver:
     """Represent test driver."""
 
-    def test_throughput_dummy(self, parallel=True):
+    def test_throughput_dummy(self, parallel: bool = True) -> None:
         """Verify throughput dummy.
 
         Args:
@@ -33,7 +36,7 @@ class TestDriver:
             fps.step(100 * len(make_env_fns))
             print(f"FPS: {fps.result():.0f}")
 
-    def test_throughput_crafter(self, parallel=True):
+    def test_throughput_crafter(self, parallel: bool = True) -> None:
         """Verify throughput crafter.
 
         Args:

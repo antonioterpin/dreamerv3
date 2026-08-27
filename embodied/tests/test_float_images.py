@@ -1,5 +1,9 @@
 """Provide test float images functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import elements
 import jax
 import jax.numpy as jnp
@@ -10,12 +14,12 @@ import pytest
 from dreamerv3 import rssm
 
 
-def _encode(space, image):
+def _encode(space: Any, image: Any) -> Any:
     enc = rssm.Encoder(
         {"image": space}, depth=2, mults=(1, 1), units=4, layers=1, name="enc"
     )
 
-    def fn(obs):
+    def fn(obs: Any) -> Any:
         """Handle function.
 
         Args:
@@ -32,7 +36,7 @@ def _encode(space, image):
     return np.asarray(tokens, np.float32)
 
 
-def test_float_images_in_unit_range_match_uint8_images():
+def test_float_images_in_unit_range_match_uint8_images() -> None:
     """Verify float images in unit range match uint8 images."""
     rng = np.random.default_rng(0)
     pixels = rng.integers(0, 256, (1, 2, 16, 16, 3), np.uint8)
@@ -48,7 +52,7 @@ def test_float_images_in_unit_range_match_uint8_images():
     ), "A float image in [0, 1] must encode like the same uint8 image"
 
 
-def test_integer_images_other_than_uint8_are_rejected():
+def test_integer_images_other_than_uint8_are_rejected() -> None:
     """Verify integer images other than uint8 are rejected."""
     pixels = np.zeros((1, 2, 16, 16, 3), np.int32)
     with pytest.raises(AssertionError):

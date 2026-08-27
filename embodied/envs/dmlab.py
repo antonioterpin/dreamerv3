@@ -1,5 +1,9 @@
 """Provide dmlab functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 import re
 import zlib
@@ -17,15 +21,15 @@ class DMLab(embodied.Env):
 
     def __init__(
         self,
-        level,
-        repeat=4,
-        size=(64, 64),
-        mode="train",
-        actions="popart",
-        episodic=True,
-        text=None,
-        seed=None,
-    ):
+        level: Any,
+        repeat: int = 4,
+        size: tuple[Any, ...] = (64, 64),
+        mode: str = "train",
+        actions: str = "popart",
+        episodic: bool = True,
+        text: Any | None = None,
+        seed: Any | None = None,
+    ) -> None:
         """Initialize the dmlab.
 
         Args:
@@ -81,7 +85,7 @@ class DMLab(embodied.Env):
         self._done = True
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -101,7 +105,7 @@ class DMLab(embodied.Env):
         return spaces
 
     @property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -112,7 +116,7 @@ class DMLab(embodied.Env):
             "reset": elements.Space(bool),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -130,7 +134,7 @@ class DMLab(embodied.Env):
         self._done = not self._env.is_running()
         return self._obs(reward, is_last=self._done)
 
-    def _obs(self, reward, is_first=False, is_last=False):
+    def _obs(self, reward: Any, is_first: bool = False, is_last: bool = False) -> Any:
         if not self._done:
             self._current_image = self._env.observations()["RGB_INTERLEAVED"]
             if self._text:
@@ -146,7 +150,7 @@ class DMLab(embodied.Env):
             obs["instr"] = self._current_instr
         return obs
 
-    def _embed(self, text):
+    def _embed(self, text: Any) -> Any:
         tokens = self.TOKENIZER.findall(text.lower())
         indices = [self._hash(token) for token in tokens]
         # print('EMBED', text, '->', tokens, '->', indices)
@@ -155,10 +159,10 @@ class DMLab(embodied.Env):
         return np.concatenate(embeddings)
 
     @functools.cache
-    def _hash(self, token):
+    def _hash(self, token: Any) -> Any:
         return zlib.crc32(token.encode("utf-8")) % self._vocab_buckets
 
-    def close(self):
+    def close(self) -> None:
         """Close state."""
         self._env.close()
 

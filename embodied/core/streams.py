@@ -1,5 +1,10 @@
 """Provide streams functionality."""
 
+from __future__ import annotations
+from collections.abc import Iterator
+from typing import Any
+
+
 import functools
 import queue
 import threading
@@ -14,7 +19,7 @@ from . import base
 class Stateless(base.Stream):
     """Represent stateless."""
 
-    def __init__(self, nextfn, *args, **kwargs):
+    def __init__(self, nextfn: Any, *args: Any, **kwargs: Any) -> None:
         """Initialize the stateless.
 
         Args:
@@ -26,13 +31,13 @@ class Stateless(base.Stream):
             nextfn = nextfn.__next__
         self.nextfn = functools.partial(nextfn, *args, **kwargs)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         return self.nextfn()
 
-    def save(self):
+    def save(self) -> None:
         """Save state.
 
         Returns:
@@ -40,7 +45,7 @@ class Stateless(base.Stream):
         """
         return None
 
-    def load(self, data):
+    def load(self, data: Any) -> Any:
         """Load state.
 
         Args:
@@ -55,7 +60,9 @@ class Prefetch(base.Stream):
     # A unique sentinel distinguishes source exhaustion from data and exceptions.
     _DONE = object()
 
-    def __init__(self, source, transform=None, amount=1):
+    def __init__(
+        self, source: Any, transform: Any | None = None, amount: int = 1
+    ) -> None:
         """Initialize the prefetch.
 
         Args:
@@ -72,13 +79,13 @@ class Prefetch(base.Stream):
         self.worker = portal.Thread(self._worker)
         self.started = False
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         assert not self.started, "Expected self started to be false or empty."
         self.worker.start()
         self.started = True
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         assert self.started, "The stream must be started before requesting an item."
         result = self.queue.get()
         self.requests.release()
@@ -89,7 +96,7 @@ class Prefetch(base.Stream):
         data, self.state = result
         return data
 
-    def save(self):
+    def save(self) -> Any:
         """Save state.
 
         Returns:
@@ -97,7 +104,7 @@ class Prefetch(base.Stream):
         """
         return self.state
 
-    def load(self, state):
+    def load(self, state: Any) -> None:
         """Load state.
 
         Args:
@@ -110,7 +117,7 @@ class Prefetch(base.Stream):
         if self.started:
             self.requests.release(self.amount)
 
-    def _worker(self):
+    def _worker(self) -> None:
         try:
             while True:
                 self.requests.acquire()
@@ -126,7 +133,7 @@ class Prefetch(base.Stream):
             self.queue.put(str(e))
             raise
 
-    def _getstate(self):
+    def _getstate(self) -> Any:
         if hasattr(self.source, "save"):
             return self.source.save()
         else:
@@ -147,7 +154,15 @@ class Consec(base.Stream):
     chunk 3:              p-p-#-#-#
     """
 
-    def __init__(self, source, length, consec, prefix=0, strict=True, contiguous=False):
+    def __init__(
+        self,
+        source: Any,
+        length: Any,
+        consec: Any,
+        prefix: int = 0,
+        strict: bool = True,
+        contiguous: bool = False,
+    ) -> None:
         """Initialize the consec.
 
         Args:
@@ -168,11 +183,11 @@ class Consec(base.Stream):
         self.current = None
         self.it = None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         self.it = iter(self.source)
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         if self.index >= self.consec:
             self.index = 0
         if self.index == 0:
@@ -206,7 +221,7 @@ class Consec(base.Stream):
         self.index += 1
         return chunk
 
-    def save(self):
+    def save(self) -> dict[Any, Any]:
         """Save state.
 
         Returns:
@@ -217,7 +232,7 @@ class Consec(base.Stream):
             "index": self.index,
         }
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:
@@ -230,7 +245,7 @@ class Consec(base.Stream):
 class Zip(base.Stream):
     """Represent zip."""
 
-    def __init__(self, sources):
+    def __init__(self, sources: Any) -> None:
         """Initialize the zip.
 
         Args:
@@ -241,19 +256,19 @@ class Zip(base.Stream):
         self.iterators = None
         self.started = False
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         assert not self.started, "Expected self started to be false or empty."
         self.started = True
         self.iterators = [iter(x) for x in self.sources]
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         assert self.iterators is not None, "Zip stream must be iterated before use."
         parts = [next(x) for x in self.iterators]
         result = elements.tree.map(lambda *el: np.concatenate(el), *parts)
         return result
 
-    def save(self):
+    def save(self) -> Any:
         """Save state.
 
         Returns:
@@ -262,7 +277,7 @@ class Zip(base.Stream):
         assert self.iterators is not None, "Zip stream must be iterated before saving."
         return [x.save() for x in self.iterators]
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:
@@ -278,7 +293,7 @@ class Zip(base.Stream):
 class Map(base.Stream):
     """Represent map."""
 
-    def __init__(self, source, fn, *args, **kwargs):
+    def __init__(self, source: Any, fn: Any, *args: Any, **kwargs: Any) -> None:
         """Initialize the map.
 
         Args:
@@ -292,18 +307,18 @@ class Map(base.Stream):
         self.iterator = None
         self.started = False
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         assert not self.started, "Expected self started to be false or empty."
         self.started = True
         self.iterator = iter(self.source)
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         assert self.started, "The stream must be started before requesting an item."
         assert self.iterator is not None, "Map stream must have an active iterator."
         return self.fn(next(self.iterator))
 
-    def save(self):
+    def save(self) -> Any:
         """Save state.
 
         Returns:
@@ -312,7 +327,7 @@ class Map(base.Stream):
         assert self.iterator is not None, "Map stream must be iterated before saving."
         return self.iterator.save()
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:
@@ -325,7 +340,7 @@ class Map(base.Stream):
 class Mixer(base.Stream):
     """Represent mixer."""
 
-    def __init__(self, sources, weights, seed=0):
+    def __init__(self, sources: Any, weights: Any, seed: int = 0) -> None:
         """Initialize the mixer.
 
         Args:
@@ -342,18 +357,18 @@ class Mixer(base.Stream):
         self.started = False
         self.step = 0
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         assert not self.started, "Expected self started to be false or empty."
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         assert self.started, "The stream must be started before requesting an item."
         rng = np.random.default_rng(seed=[self.seed, self.step])
         self.step += 1
         index = rng.choice(len(self.keys), p=self.probs)
         return next(self.iterators[index])
 
-    def save(self):
+    def save(self) -> dict[Any, Any]:
         """Save state.
 
         Returns:
@@ -365,7 +380,7 @@ class Mixer(base.Stream):
             "sources": {k: it.save() for k, it in zip(self.keys, self.iterators)},
         }
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:

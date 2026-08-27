@@ -1,5 +1,9 @@
 """Provide from dm functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 
 import elements
@@ -10,7 +14,9 @@ import numpy as np
 class FromDM(embodied.Env):
     """Represent from dm."""
 
-    def __init__(self, env, obs_key="observation", act_key="action"):
+    def __init__(
+        self, env: Any, obs_key: str = "observation", act_key: str = "action"
+    ) -> None:
         """Initialize the from dm.
 
         Args:
@@ -29,7 +35,7 @@ class FromDM(embodied.Env):
         self._done = True
 
     @functools.cached_property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -55,7 +61,7 @@ class FromDM(embodied.Env):
         return spaces
 
     @functools.cached_property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -68,7 +74,7 @@ class FromDM(embodied.Env):
             **{k or self._act_key: self._convert(v) for k, v in spec.items()},
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -87,7 +93,7 @@ class FromDM(embodied.Env):
         self._done = time_step.last()
         return self._obs(time_step)
 
-    def _obs(self, time_step):
+    def _obs(self, time_step: Any) -> Any:
         if not time_step.first():
             assert time_step.discount in (0, 1), time_step.discount
         obs = time_step.observation
@@ -105,7 +111,7 @@ class FromDM(embodied.Env):
             **obs,
         )
 
-    def _convert(self, space):
+    def _convert(self, space: Any) -> Any:
         if hasattr(space, "num_values"):
             return elements.Space(space.dtype, (), 0, space.num_values)
         elif hasattr(space, "minimum"):

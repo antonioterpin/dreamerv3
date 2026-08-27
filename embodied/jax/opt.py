@@ -1,5 +1,9 @@
 """Provide optimizer functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import math
 
 import jax
@@ -20,7 +24,7 @@ class Optimizer(nj.Module):
 
     summary_depth: int = 2
 
-    def __init__(self, modules, opt):
+    def __init__(self, modules: Any, opt: Any) -> None:
         """Initialize the optimizer.
 
         Args:
@@ -37,7 +41,9 @@ class Optimizer(nj.Module):
             self.grad_scale = nj.Variable(jnp.array, 1e4, f32, name="grad_scale")
             self.good_steps = nj.Variable(jnp.array, 0, i32, name="good_steps")
 
-    def __call__(self, lossfn, *args, has_aux=False, **kwargs):
+    def __call__(
+        self, lossfn: Any, *args: Any, has_aux: bool = False, **kwargs: Any
+    ) -> Any:
         """Apply the optimizer.
 
         Args:
@@ -51,7 +57,7 @@ class Optimizer(nj.Module):
         """
         metrics = {}
 
-        def lossfn2(*args, **kwargs):
+        def lossfn2(*args: Any, **kwargs: Any) -> tuple[Any, ...]:
             """Handle lossfn2.
 
             Args:
@@ -110,7 +116,7 @@ class Optimizer(nj.Module):
         metrics = {f"{self.name}/{k}": v for k, v in metrics.items()}
         return (metrics, aux) if has_aux else metrics
 
-    def _update_scale(self, grads, finite):
+    def _update_scale(self, grads: Any, finite: Any) -> Any:
         keep = finite & (self.good_steps.read() < 1000)
         incr = finite & (self.good_steps.read() >= 1000)
         decr = ~finite
@@ -126,7 +132,7 @@ class Optimizer(nj.Module):
         )
         return finite
 
-    def _summarize_params(self, counts, depth):
+    def _summarize_params(self, counts: Any, depth: Any) -> Any:
         lines = []
         pfxs = []
         for key in counts:
@@ -142,7 +148,7 @@ class Optimizer(nj.Module):
         return "\n".join(lines)
 
 
-def clip_by_agc(clip=0.3, pmin=1e-3):
+def clip_by_agc(clip: float = 0.3, pmin: float = 1e-3) -> Any:
     """Handle clip by agc.
 
     Args:
@@ -153,7 +159,7 @@ def clip_by_agc(clip=0.3, pmin=1e-3):
         Result of the operation.
     """
 
-    def init_fn(params):
+    def init_fn(params: Any) -> tuple[Any, ...]:
         """Handle init function.
 
         Args:
@@ -164,7 +170,9 @@ def clip_by_agc(clip=0.3, pmin=1e-3):
         """
         return ()
 
-    def update_fn(updates, state, params=None):
+    def update_fn(
+        updates: Any, state: Any, params: Any | None = None
+    ) -> tuple[Any, ...]:
         """Update function.
 
         Args:
@@ -176,7 +184,7 @@ def clip_by_agc(clip=0.3, pmin=1e-3):
             Result of the operation.
         """
 
-        def fn(param, update):
+        def fn(param: Any, update: Any) -> Any:
             """Handle function.
 
             Args:
@@ -197,7 +205,7 @@ def clip_by_agc(clip=0.3, pmin=1e-3):
     return optax.GradientTransformation(init_fn, update_fn)
 
 
-def scale_by_rms(beta=0.999, eps=1e-8):
+def scale_by_rms(beta: float = 0.999, eps: float = 1e-8) -> Any:
     """Handle scale by rms.
 
     Args:
@@ -208,7 +216,7 @@ def scale_by_rms(beta=0.999, eps=1e-8):
         Result of the operation.
     """
 
-    def init_fn(params):
+    def init_fn(params: Any) -> tuple[Any, ...]:
         """Handle init function.
 
         Args:
@@ -221,7 +229,9 @@ def scale_by_rms(beta=0.999, eps=1e-8):
         step = jnp.zeros((), i32)
         return (step, nu)
 
-    def update_fn(updates, state, params=None):
+    def update_fn(
+        updates: Any, state: Any, params: Any | None = None
+    ) -> tuple[Any, ...]:
         """Update function.
 
         Args:
@@ -242,7 +252,7 @@ def scale_by_rms(beta=0.999, eps=1e-8):
     return optax.GradientTransformation(init_fn, update_fn)
 
 
-def scale_by_momentum(beta=0.9, nesterov=False):
+def scale_by_momentum(beta: float = 0.9, nesterov: bool = False) -> Any:
     """Handle scale by momentum.
 
     Args:
@@ -253,7 +263,7 @@ def scale_by_momentum(beta=0.9, nesterov=False):
         Result of the operation.
     """
 
-    def init_fn(params):
+    def init_fn(params: Any) -> tuple[Any, ...]:
         """Handle init function.
 
         Args:
@@ -266,7 +276,9 @@ def scale_by_momentum(beta=0.9, nesterov=False):
         step = jnp.zeros((), i32)
         return (step, mu)
 
-    def update_fn(updates, state, params=None):
+    def update_fn(
+        updates: Any, state: Any, params: Any | None = None
+    ) -> tuple[Any, ...]:
         """Update function.
 
         Args:

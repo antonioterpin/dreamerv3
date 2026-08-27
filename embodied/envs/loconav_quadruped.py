@@ -1,5 +1,9 @@
 """Provide loconav quadruped functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import os
 
 from dm_control import composer  # pyright: ignore[reportMissingImports]
@@ -17,7 +21,7 @@ mjlib = mjbindings.mjlib
 class Quadruped(legacy_base.Walker):
     """Represent quadruped."""
 
-    def _build(self, name="walker", initializer=None):
+    def _build(self, name: str = "walker", initializer: Any | None = None) -> None:
         super()._build(initializer=initializer)
         self._mjcf_root = mjcf.from_path(
             os.path.join(os.path.dirname(__file__), "loconav_quadruped.xml")
@@ -26,7 +30,7 @@ class Quadruped(legacy_base.Walker):
             self._mjcf_root.model = name
         self._prev_action = np.zeros(self.action_spec.shape, self.action_spec.dtype)
 
-    def initialize_episode(self, physics, random_state):
+    def initialize_episode(self, physics: Any, random_state: Any) -> None:
         """Handle initialize episode.
 
         Args:
@@ -35,7 +39,7 @@ class Quadruped(legacy_base.Walker):
         """
         self._prev_action = np.zeros_like(self._prev_action)
 
-    def apply_action(self, physics, action, random_state):
+    def apply_action(self, physics: Any, action: Any, random_state: Any) -> None:
         """Apply action.
 
         Args:
@@ -46,11 +50,11 @@ class Quadruped(legacy_base.Walker):
         super().apply_action(physics, action, random_state)
         self._prev_action[:] = action
 
-    def _build_observables(self):
+    def _build_observables(self) -> Any:
         return QuadrupedObservables(self)
 
     @property
-    def mjcf_model(self):
+    def mjcf_model(self) -> Any:
         """Handle mjcf model.
 
         Returns:
@@ -59,7 +63,7 @@ class Quadruped(legacy_base.Walker):
         return self._mjcf_root
 
     @property
-    def upright_pose(self):
+    def upright_pose(self) -> Any:
         """Handle upright pose.
 
         Returns:
@@ -68,7 +72,7 @@ class Quadruped(legacy_base.Walker):
         return base.WalkerPose()
 
     @composer.cached_property
-    def actuators(self):
+    def actuators(self) -> Any:
         """Handle actuators.
 
         Returns:
@@ -77,7 +81,7 @@ class Quadruped(legacy_base.Walker):
         return self._mjcf_root.find_all("actuator")
 
     @composer.cached_property
-    def root_body(self):
+    def root_body(self) -> Any:
         """Handle root body.
 
         Returns:
@@ -86,7 +90,7 @@ class Quadruped(legacy_base.Walker):
         return self._mjcf_root.find("body", "torso")
 
     @composer.cached_property
-    def bodies(self):
+    def bodies(self) -> Any:
         """Handle bodies.
 
         Returns:
@@ -95,7 +99,7 @@ class Quadruped(legacy_base.Walker):
         return tuple(self.mjcf_model.find_all("body"))
 
     @composer.cached_property
-    def mocap_tracking_bodies(self):
+    def mocap_tracking_bodies(self) -> Any:
         """Handle mocap tracking bodies.
 
         Returns:
@@ -104,7 +108,7 @@ class Quadruped(legacy_base.Walker):
         return tuple(self.mjcf_model.find_all("body"))
 
     @property
-    def mocap_joints(self):
+    def mocap_joints(self) -> Any:
         """Handle mocap joints.
 
         Returns:
@@ -113,7 +117,7 @@ class Quadruped(legacy_base.Walker):
         return self.mjcf_model.find_all("joint")
 
     @property
-    def _foot_bodies(self):
+    def _foot_bodies(self) -> tuple[Any, ...]:
         return (
             self._mjcf_root.find("body", "toe_front_left"),
             self._mjcf_root.find("body", "toe_front_right"),
@@ -122,7 +126,7 @@ class Quadruped(legacy_base.Walker):
         )
 
     @composer.cached_property
-    def end_effectors(self):
+    def end_effectors(self) -> Any:
         """Handle end effectors.
 
         Returns:
@@ -131,7 +135,7 @@ class Quadruped(legacy_base.Walker):
         return self._foot_bodies
 
     @composer.cached_property
-    def observable_joints(self):
+    def observable_joints(self) -> Any:
         """Handle observable joints.
 
         Returns:
@@ -140,7 +144,7 @@ class Quadruped(legacy_base.Walker):
         return self._mjcf_root.find_all("joint")
 
     @composer.cached_property
-    def egocentric_camera(self):
+    def egocentric_camera(self) -> Any:
         """Handle egocentric camera.
 
         Returns:
@@ -148,7 +152,7 @@ class Quadruped(legacy_base.Walker):
         """
         return self._mjcf_root.find("camera", "egocentric")
 
-    def aliveness(self, physics):
+    def aliveness(self, physics: Any) -> Any:
         """Handle aliveness.
 
         Args:
@@ -160,7 +164,7 @@ class Quadruped(legacy_base.Walker):
         return (physics.bind(self.root_body).xmat[-1] - 1.0) / 2.0
 
     @composer.cached_property
-    def ground_contact_geoms(self):
+    def ground_contact_geoms(self) -> Any:
         """Handle ground contact geoms.
 
         Returns:
@@ -172,7 +176,7 @@ class Quadruped(legacy_base.Walker):
         return tuple(foot_geoms)
 
     @property
-    def prev_action(self):
+    def prev_action(self) -> Any:
         """Handle prev action.
 
         Returns:
@@ -185,14 +189,14 @@ class QuadrupedObservables(legacy_base.WalkerObservables):
     """Represent quadruped observables."""
 
     @composer.observable
-    def actuator_activations(self):
+    def actuator_activations(self) -> Any:
         """Handle actuator activations.
 
         Returns:
             Result of the operation.
         """
 
-        def actuator_activations_in_egocentric_frame(physics):
+        def actuator_activations_in_egocentric_frame(physics: Any) -> Any:
             """Handle actuator activations in egocentric frame.
 
             Args:
@@ -206,14 +210,14 @@ class QuadrupedObservables(legacy_base.WalkerObservables):
         return observable.Generic(actuator_activations_in_egocentric_frame)
 
     @composer.observable
-    def root_global_pos(self):
+    def root_global_pos(self) -> Any:
         """Handle root global pos.
 
         Returns:
             Result of the operation.
         """
 
-        def root_pos(physics):
+        def root_pos(physics: Any) -> Any:
             """Handle root pos.
 
             Args:
@@ -228,14 +232,14 @@ class QuadrupedObservables(legacy_base.WalkerObservables):
         return observable.Generic(root_pos)
 
     @composer.observable
-    def torso_global_pos(self):
+    def torso_global_pos(self) -> Any:
         """Handle torso global pos.
 
         Returns:
             Result of the operation.
         """
 
-        def torso_pos(physics):
+        def torso_pos(physics: Any) -> Any:
             """Handle torso pos.
 
             Args:
@@ -251,7 +255,7 @@ class QuadrupedObservables(legacy_base.WalkerObservables):
         return observable.Generic(torso_pos)
 
     @property
-    def proprioception(self):
+    def proprioception(self) -> Any:
         """Handle proprioception.
 
         Returns:

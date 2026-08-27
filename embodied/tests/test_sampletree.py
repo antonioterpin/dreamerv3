@@ -1,5 +1,9 @@
 """Provide test sampletree functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import collections
 
 import numpy as np
@@ -11,7 +15,7 @@ class TestSampleTree:
     """Represent test sample tree."""
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_root_sum(self, branching):
+    def test_root_sum(self, branching: Any) -> None:
         """Verify root sum.
 
         Args:
@@ -27,7 +31,7 @@ class TestSampleTree:
 
     @pytest.mark.parametrize("inserts", [1, 2, 10, 100])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_depth_inserts(self, inserts, branching):
+    def test_depth_inserts(self, inserts: Any, branching: Any) -> None:
         """Verify depth inserts.
 
         Args:
@@ -47,7 +51,9 @@ class TestSampleTree:
     @pytest.mark.parametrize("inserts", [2, 10, 100])
     @pytest.mark.parametrize("remove_every", [2, 3, 4])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_depth_removals(self, inserts, remove_every, branching):
+    def test_depth_removals(
+        self, inserts: Any, remove_every: Any, branching: Any
+    ) -> None:
         """Verify depth removals.
 
         Args:
@@ -72,7 +78,7 @@ class TestSampleTree:
 
     @pytest.mark.parametrize("inserts", [2, 10, 100])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_removal_num_nodes(self, inserts, branching):
+    def test_removal_num_nodes(self, inserts: Any, branching: Any) -> None:
         """Verify removal num nodes.
 
         Args:
@@ -99,7 +105,7 @@ class TestSampleTree:
         ), "Expected number of self get flat nodes(tree) to equal num_nodes."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_sample_single(self, branching):
+    def test_sample_single(self, branching: Any) -> None:
         """Verify sample single.
 
         Args:
@@ -117,7 +123,7 @@ class TestSampleTree:
     @pytest.mark.parametrize("inserts", [2, 10])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
     @pytest.mark.parametrize("uprob", [1e-5, 1.0, 1e5])
-    def test_sample_uniform(self, inserts, branching, uprob):
+    def test_sample_uniform(self, inserts: Any, branching: Any, uprob: Any) -> None:
         """Verify sample uniform.
 
         Args:
@@ -151,7 +157,7 @@ class TestSampleTree:
 
     @pytest.mark.parametrize("scale", [1e-5, 1, 1e5])
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_sample_frequencies(self, scale, branching):
+    def test_sample_frequencies(self, scale: Any, branching: Any) -> None:
         """Verify sample frequencies.
 
         Args:
@@ -181,7 +187,7 @@ class TestSampleTree:
             ), "Expected 0.7 * target < prob < 1.3 * target to hold."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_update_frequencies(self, branching):
+    def test_update_frequencies(self, branching: Any) -> None:
         """Verify update frequencies.
 
         Args:
@@ -212,7 +218,7 @@ class TestSampleTree:
             ), "Expected 0.7 * target < prob < 1.3 * target to hold."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_zero_probs_mixed(self, branching):
+    def test_zero_probs_mixed(self, branching: Any) -> None:
         """Verify zero probs mixed.
 
         Args:
@@ -232,7 +238,7 @@ class TestSampleTree:
             ), "Expected tree sample() to be absent from impossible."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_zero_probs_only(self, branching):
+    def test_zero_probs_only(self, branching: Any) -> None:
         """Verify zero probs only.
 
         Args:
@@ -247,7 +253,7 @@ class TestSampleTree:
             ), "Expected tree sample() to be present in range(100)."
 
     @pytest.mark.parametrize("branching", [2, 3, 5, 10])
-    def test_infinity_probs(self, branching):
+    def test_infinity_probs(self, branching: Any) -> None:
         """Verify infinity probs.
 
         Args:
@@ -266,7 +272,7 @@ class TestSampleTree:
                 tree.sample() in possible
             ), "Expected tree sample() to be present in possible."
 
-    def _find_leave_depths(self, tree):
+    def _find_leave_depths(self, tree: Any) -> Any:
         depths = []
         queue = [(tree.root, 0)]
         while queue:
@@ -279,7 +285,7 @@ class TestSampleTree:
         assert len(depths) > 0, "Expected number of depths to be greater than 0."
         return depths
 
-    def _get_flat_nodes(self, tree):
+    def _get_flat_nodes(self, tree: Any) -> Any:
         nodes = []
         queue = [tree.root]
         while queue:

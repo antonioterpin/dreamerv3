@@ -1,10 +1,14 @@
 """Provide setup functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import pathlib
 import setuptools
 
 
-def parse_reqs(filename):
+def parse_reqs(filename: Any) -> Any:
     """Parse reqs.
 
     Args:

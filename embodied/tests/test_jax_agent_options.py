@@ -1,5 +1,9 @@
 """Provide test jax agent options functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import io
 import contextlib
 
@@ -8,19 +12,19 @@ import pytest
 from embodied.jax.agent import Agent, Options
 
 
-def _agent(**options):
+def _agent(**options: Any) -> Any:
     agent = object.__new__(Agent)
     agent.jaxcfg = Options(**options)
     return agent
 
 
-def test_options_default_to_verbose():
+def test_options_default_to_verbose() -> None:
     """Verify options default to verbose."""
     assert Options().verbose is True, "Expected Options() verbose to be True."
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_stdout_is_suppressed_only_when_not_verbose(verbose):
+def test_stdout_is_suppressed_only_when_not_verbose(verbose: Any) -> None:
     """Verify stdout is suppressed only when not verbose.
 
     Args:

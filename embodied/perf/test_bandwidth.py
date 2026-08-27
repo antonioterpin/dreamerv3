@@ -1,5 +1,9 @@
 """Provide test bandwidth functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import pathlib
 import sys
 import time
@@ -14,7 +18,7 @@ import numpy as np
 class TestBandwidth:
     """Represent test bandwidth."""
 
-    def test_numpy_read(self):
+    def test_numpy_read(self) -> None:
         """Verify numpy read."""
         arr = np.ones((128, 1024, 1024), np.int64)  # 1 GiB
         size = arr.nbytes / (1024**3)
@@ -24,7 +28,7 @@ class TestBandwidth:
         dt = elements.timer.stats()["step/avg"]
         print(f"numpy_read: {dt:.3f} avg | {size / dt:.2f} gib/s")
 
-    def test_numpy_copy(self):
+    def test_numpy_copy(self) -> None:
         """Verify numpy copy."""
         arr = np.ones((1024, 1024, 1024), np.uint8)
         size = arr.nbytes / (1024**3)
@@ -34,11 +38,11 @@ class TestBandwidth:
         dt = elements.timer.stats()["step/avg"]
         print(f"numpy_copy: {dt:.3f} avg | {size / dt:.2f} gib/s")
 
-    def test_socket_send(self):
+    def test_socket_send(self) -> None:
         """Verify socket send."""
         shape, dtype, gib = (1024, 1024, 1024), np.uint8, 1.00
 
-        def server(context, addr):
+        def server(context: Any, addr: Any) -> None:
             """Handle server.
 
             Args:

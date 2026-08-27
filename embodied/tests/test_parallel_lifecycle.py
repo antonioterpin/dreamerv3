@@ -1,5 +1,10 @@
 """Graceful completion of finite runs in the parallel runner."""
 
+from __future__ import annotations
+from collections.abc import Iterator
+from typing import Any
+
+
 import functools
 import multiprocessing
 import time
@@ -20,7 +25,7 @@ class RunDone(Exception):
 class FiniteEnv:
     """One-step episodes; the reset after the second episode ends the run."""
 
-    def __init__(self, events, failure=None):
+    def __init__(self, events: Any, failure: Any | None = None) -> None:
         """Initialize the finite environment.
 
         Args:
@@ -43,7 +48,7 @@ class FiniteEnv:
             "reset": elements.Space(bool),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -65,7 +70,7 @@ class FiniteEnv:
         self.events.append(f"step:{self.steps}")
         return self._obs(last=True)
 
-    def _obs(self, first=False, last=False):
+    def _obs(self, first: bool = False, last: bool = False) -> dict[Any, Any]:
         return {
             "obs": np.float32(self.steps),
             "reward": np.float32(1),
@@ -74,7 +79,7 @@ class FiniteEnv:
             "is_terminal": last,
         }
 
-    def close(self):
+    def close(self) -> None:
         """Close state."""
         self.events.append("env_closed")
 
@@ -82,7 +87,7 @@ class FiniteEnv:
 class Agent:
     """Represent agent."""
 
-    def __init__(self, events, prefetch=False):
+    def __init__(self, events: Any, prefetch: bool = False) -> None:
         """Initialize the agent.
 
         Args:
@@ -92,7 +97,7 @@ class Agent:
         self.events = events
         self.prefetch = prefetch
 
-    def init_policy(self, batch):
+    def init_policy(self, batch: Any) -> dict[Any, Any]:
         """Handle init policy.
 
         Args:
@@ -103,7 +108,7 @@ class Agent:
         """
         return {"state": np.zeros((batch, 1), np.float32)}
 
-    def policy(self, carry, obs, mode="train"):
+    def policy(self, carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
         """Handle policy.
 
         Args:
@@ -118,7 +123,7 @@ class Agent:
         batch = obs["reward"].shape[0]
         return carry, {"action": np.zeros((batch, 1), np.float32)}, {}
 
-    def init_train(self, batch):
+    def init_train(self, batch: Any) -> None:
         """Handle init train.
 
         Args:
@@ -129,7 +134,7 @@ class Agent:
         """
         return None
 
-    def init_report(self, batch):
+    def init_report(self, batch: Any) -> None:
         """Handle init report.
 
         Args:
@@ -140,7 +145,7 @@ class Agent:
         """
         return None
 
-    def stream(self, stream):
+    def stream(self, stream: Any) -> Any:
         # The JAX agent wraps its streams in Prefetch threads; mimic that.
         """Handle stream.
 
@@ -152,7 +157,7 @@ class Agent:
         """
         return embodied.streams.Prefetch(stream) if self.prefetch else stream
 
-    def train(self, carry, batch):
+    def train(self, carry: Any, batch: Any) -> tuple[Any, ...]:
         """Train state.
 
         Args:
@@ -165,7 +170,7 @@ class Agent:
         self.events.append("train")
         return carry, {}, {}
 
-    def report(self, carry, batch):
+    def report(self, carry: Any, batch: Any) -> tuple[Any, ...]:
         """Handle report.
 
         Args:
@@ -177,7 +182,7 @@ class Agent:
         """
         return carry, {}
 
-    def save(self):
+    def save(self) -> dict[Any, Any]:
         """Save state.
 
         Returns:
@@ -186,7 +191,7 @@ class Agent:
         self.events.append("checkpoint")
         return {"value": np.asarray(1)}
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:
@@ -203,7 +208,7 @@ class Replay:
 
     length = 1
 
-    def __init__(self, events):
+    def __init__(self, events: Any) -> None:
         """Initialize the replay.
 
         Args:
@@ -212,7 +217,7 @@ class Replay:
         self.events = events
         self.items = []
 
-    def add(self, item, envid):
+    def add(self, item: Any, envid: Any) -> None:
         """Add state.
 
         Args:
@@ -222,7 +227,7 @@ class Replay:
         self.items.append(item)
         self.events.append(f'replay:{bool(item["is_last"])}')
 
-    def update(self, data):
+    def update(self, data: Any) -> None:
         """Update state.
 
         Args:
@@ -233,7 +238,7 @@ class Replay:
         """
         return None
 
-    def stats(self):
+    def stats(self) -> dict[Any, Any]:
         """Handle statistics.
 
         Returns:
@@ -241,7 +246,7 @@ class Replay:
         """
         return {}
 
-    def save(self):
+    def save(self) -> dict[Any, Any]:
         """Save state.
 
         Returns:
@@ -249,7 +254,7 @@ class Replay:
         """
         return {"items": len(self.items)}
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:
@@ -264,7 +269,7 @@ class Replay:
 class Logger:
     """Represent logger."""
 
-    def __init__(self, events):
+    def __init__(self, events: Any) -> None:
         """Initialize the logger.
 
         Args:
@@ -273,7 +278,7 @@ class Logger:
         self.events = events
         self.step = elements.Counter()
 
-    def add(self, metrics, prefix=None):
+    def add(self, metrics: Any, prefix: Any | None = None) -> None:
         """Add state.
 
         Args:
@@ -282,16 +287,16 @@ class Logger:
         """
         self.events.append("logger_submission")
 
-    def write(self):
+    def write(self) -> None:
         """Write state."""
         self.events.append("logger_write")
 
-    def close(self):
+    def close(self) -> None:
         """Close state."""
         self.events.append("logger_closed")
 
 
-def make_env(events, failure, envid):
+def make_env(events: Any, failure: Any, envid: Any) -> Any:
     """Create environment.
 
     Args:
@@ -305,7 +310,7 @@ def make_env(events, failure, envid):
     return FiniteEnv(events, failure)
 
 
-def make_stream(replay, source):
+def make_stream(replay: Any, source: Any) -> Iterator[Any]:
     """Create stream.
 
     Args:
@@ -318,7 +323,7 @@ def make_stream(replay, source):
         yield {k: np.asarray([[v]]) for k, v in replay.items[-1].items()}
 
 
-def make_args(tmp_path, **overrides):
+def make_args(tmp_path: Any, **overrides: Any) -> Any:
     """Create args.
 
     Args:
@@ -364,7 +369,13 @@ def make_args(tmp_path, **overrides):
     return elements.Config(**args)
 
 
-def run_combined(tmp_path, events, failure=None, prefetch=False, **overrides):
+def run_combined(
+    tmp_path: Any,
+    events: Any,
+    failure: Any | None = None,
+    prefetch: bool = False,
+    **overrides: Any,
+) -> None:
     """Run combined.
 
     Args:
@@ -392,7 +403,7 @@ def run_combined(tmp_path, events, failure=None, prefetch=False, **overrides):
     )
 
 
-def test_finite_run_flushes_and_exits_cleanly(tmp_path):
+def test_finite_run_flushes_and_exits_cleanly(tmp_path: Any) -> None:
     """Verify finite run flushes and exits cleanly.
 
     Args:
@@ -428,7 +439,7 @@ def test_finite_run_flushes_and_exits_cleanly(tmp_path):
     assert "env_closed" in recorded, 'Expected "env closed" to be present in recorded.'
 
 
-def test_unrelated_environment_error_still_crashes_the_worker(tmp_path):
+def test_unrelated_environment_error_still_crashes_the_worker(tmp_path: Any) -> None:
     """Verify unrelated environment error still crashes the worker.
 
     Args:
@@ -440,7 +451,7 @@ def test_unrelated_environment_error_still_crashes_the_worker(tmp_path):
             run_combined(tmp_path, events, failure=ValueError)
 
 
-def test_finite_run_waits_for_every_environment(tmp_path):
+def test_finite_run_waits_for_every_environment(tmp_path: Any) -> None:
     """Verify finite run waits for every environment.
 
     Args:
@@ -459,7 +470,7 @@ def test_finite_run_waits_for_every_environment(tmp_path):
     ), "The actor must not close its server before every environment is done"
 
 
-def test_agent_with_prefetching_streams_exits_cleanly(tmp_path):
+def test_agent_with_prefetching_streams_exits_cleanly(tmp_path: Any) -> None:
     """Verify agent with prefetching streams exits cleanly.
 
     Args:
@@ -477,7 +488,7 @@ def test_agent_with_prefetching_streams_exits_cleanly(tmp_path):
     ), 'Expected "replay:True" to be present in recorded.'
 
 
-def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path):
+def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path: Any) -> None:
     """Verify crash with in process agent raises instead of hanging.
 
     Args:
@@ -487,7 +498,7 @@ def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path):
 
     outcome = []
 
-    def run():
+    def run() -> None:
         # Portal warns about plain threads; this one only isolates a potential
         # hang from the test process.
         """Run state."""
@@ -515,7 +526,7 @@ def test_crash_with_in_process_agent_raises_instead_of_hanging(tmp_path):
     ), 'Expected "crashed" to be present in str(outcome[0]).'
 
 
-def test_prefetch_treats_source_exhaustion_as_normal_completion():
+def test_prefetch_treats_source_exhaustion_as_normal_completion() -> None:
     """Verify prefetch treats source exhaustion as normal completion."""
     stream = embodied.streams.Prefetch(iter(()))
     with pytest.raises(StopIteration):
@@ -526,7 +537,7 @@ def test_prefetch_treats_source_exhaustion_as_normal_completion():
     ), "Source exhaustion must let the prefetch worker exit successfully"
 
 
-def test_episode_checkpoints_are_opt_in(tmp_path):
+def test_episode_checkpoints_are_opt_in(tmp_path: Any) -> None:
     """Verify episode checkpoints are optimizer in.
 
     Args:
@@ -547,7 +558,9 @@ def test_episode_checkpoints_are_opt_in(tmp_path):
     ).exists(), "The first completed episode is the best one so far"
 
 
-def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch):
+def test_actor_requests_latest_every_episode_and_best_on_improvement(
+    monkeypatch: Any,
+) -> None:
     """Verify actor requests latest every episode and best on improvement.
 
     Args:
@@ -565,7 +578,7 @@ def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch
     class Agent:
         """Represent agent."""
 
-        def init_policy(self, batch_size):
+        def init_policy(self, batch_size: Any) -> dict[Any, Any]:
             """Handle init policy.
 
             Args:
@@ -576,7 +589,7 @@ def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch
             """
             return {"state": np.zeros((batch_size, 1), np.float32)}
 
-        def policy(self, carry, obs, mode="train"):
+        def policy(self, carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
             """Handle policy.
 
             Args:
@@ -589,7 +602,7 @@ def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch
             """
             return carry, {"action": np.zeros((len(obs["reward"]), 1))}, {}
 
-    def batch(reward, first=False, last=False):
+    def batch(reward: Any, first: bool = False, last: bool = False) -> dict[Any, Any]:
         """Handle batch.
 
         Args:
@@ -619,7 +632,7 @@ def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch
         batch(2.0, last=True),
     ]
 
-    def make_server(*args, **kwargs):
+    def make_server(*args: Any, **kwargs: Any) -> Any:
         """Create server.
 
         Args:
@@ -631,7 +644,7 @@ def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch
         """
         bound = {}
 
-        def bind(name, workfn, postfn, *args):
+        def bind(name: Any, workfn: Any, postfn: Any, *args: Any) -> None:
             """Handle bind.
 
             Args:
@@ -642,7 +655,7 @@ def test_actor_requests_latest_every_episode_and_best_on_improvement(monkeypatch
             """
             bound["workfn"] = workfn
 
-        def start(**kwargs):
+        def start(**kwargs: Any) -> None:
             """Start state.
 
             Args:

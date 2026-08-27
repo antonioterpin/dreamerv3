@@ -1,5 +1,10 @@
 """Provide test replay functionality."""
 
+from __future__ import annotations
+from collections.abc import Iterator
+from typing import Any
+
+
 import collections
 import threading
 import time
@@ -23,7 +28,7 @@ REPLAYS_UNIFORM = [
 ]
 
 
-def unbatched(dataset):
+def unbatched(dataset: Any) -> Iterator[Any]:
     """Handle unbatched.
 
     Args:
@@ -40,7 +45,7 @@ class TestReplay:
     """Represent test replay."""
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
-    def test_multiple_keys(self, Replay):
+    def test_multiple_keys(self, Replay: Any) -> None:
         """Verify multiple keys.
 
         Args:
@@ -75,7 +80,9 @@ class TestReplay:
         "length,workers,capacity",
         [(1, 1, 1), (2, 1, 2), (5, 1, 10), (1, 2, 2), (5, 3, 15), (2, 7, 20)],
     )
-    def test_capacity_exact(self, Replay, length, workers, capacity):
+    def test_capacity_exact(
+        self, Replay: Any, length: Any, workers: Any, capacity: Any
+    ) -> None:
         """Verify capacity exact.
 
         Args:
@@ -104,7 +111,9 @@ class TestReplay:
             (7, 2, 27, 4),
         ],
     )
-    def test_sample_sequences(self, Replay, length, workers, capacity, chunksize):
+    def test_sample_sequences(
+        self, Replay: Any, length: Any, workers: Any, capacity: Any, chunksize: Any
+    ) -> None:
         """Verify sample sequences.
 
         Args:
@@ -132,7 +141,7 @@ class TestReplay:
     @pytest.mark.parametrize(
         "length,capacity", [(1, 1), (2, 2), (5, 10), (1, 2), (5, 15), (2, 20)]
     )
-    def test_sample_single(self, Replay, length, capacity):
+    def test_sample_single(self, Replay: Any, length: Any, capacity: Any) -> None:
         """Verify sample single.
 
         Args:
@@ -151,7 +160,7 @@ class TestReplay:
             ).all(), "Expected seq step to equal np.arange(length)."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNIFORM)
-    def test_sample_uniform(self, Replay):
+    def test_sample_uniform(self, Replay: Any) -> None:
         """Verify sample uniform.
 
         Args:
@@ -173,7 +182,7 @@ class TestReplay:
         assert histogram[2] > 20, "Expected histogram[2] to be greater than 20."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
-    def test_workers_simple(self, Replay):
+    def test_workers_simple(self, Replay: Any) -> None:
         """Verify workers simple.
 
         Args:
@@ -193,7 +202,9 @@ class TestReplay:
             ), "Expected tuple(seq step) to be present in ((0, 2), (1, 3))."
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
-    def test_workers_random(self, Replay, length=4, capacity=30):
+    def test_workers_random(
+        self, Replay: Any, length: int = 4, capacity: int = 30
+    ) -> None:
         """Verify workers random.
 
         Args:
@@ -231,7 +242,9 @@ class TestReplay:
         "length,workers,capacity",
         [(1, 1, 1), (2, 1, 2), (5, 1, 10), (1, 2, 2), (5, 3, 15), (2, 7, 20)],
     )
-    def test_worker_delay(self, Replay, length, workers, capacity):
+    def test_worker_delay(
+        self, Replay: Any, length: Any, workers: Any, capacity: Any
+    ) -> None:
         """Verify worker delay.
 
         Args:
@@ -255,7 +268,9 @@ class TestReplay:
         "length,capacity,chunksize",
         [(1, 1, 128), (3, 10, 128), (5, 100, 128), (5, 25, 2)],
     )
-    def test_restore_exact(self, tmpdir, Replay, length, capacity, chunksize):
+    def test_restore_exact(
+        self, tmpdir: Any, Replay: Any, length: Any, capacity: Any, chunksize: Any
+    ) -> None:
         """Verify restore exact.
 
         Args:
@@ -288,7 +303,9 @@ class TestReplay:
         "length,capacity,chunksize",
         [(1, 1, 128), (3, 10, 128), (5, 100, 128), (5, 25, 2)],
     )
-    def test_restore_noclear(self, tmpdir, Replay, length, capacity, chunksize):
+    def test_restore_noclear(
+        self, tmpdir: Any, Replay: Any, length: Any, capacity: Any, chunksize: Any
+    ) -> None:
         """Verify restore noclear.
 
         Args:
@@ -320,7 +337,9 @@ class TestReplay:
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     @pytest.mark.parametrize("workers", [1, 2, 5])
     @pytest.mark.parametrize("length,capacity", [(1, 1), (3, 10), (5, 100)])
-    def test_restore_workers(self, tmpdir, Replay, workers, length, capacity):
+    def test_restore_workers(
+        self, tmpdir: Any, Replay: Any, workers: Any, length: Any, capacity: Any
+    ) -> None:
         """Verify restore workers.
 
         Args:
@@ -351,7 +370,9 @@ class TestReplay:
     @pytest.mark.parametrize(
         "length,capacity,chunksize", [(1, 1, 1), (3, 10, 5), (5, 100, 12)]
     )
-    def test_restore_chunks_exact(self, tmpdir, Replay, length, capacity, chunksize):
+    def test_restore_chunks_exact(
+        self, tmpdir: Any, Replay: Any, length: Any, capacity: Any, chunksize: Any
+    ) -> None:
         """Verify restore chunks exact.
 
         Args:
@@ -407,8 +428,14 @@ class TestReplay:
         "length,capacity,chunksize", [(1, 1, 1), (3, 10, 5), (5, 100, 12)]
     )
     def test_restore_chunks_workers(
-        self, tmpdir, Replay, workers, length, capacity, chunksize
-    ):
+        self,
+        tmpdir: Any,
+        Replay: Any,
+        workers: Any,
+        length: Any,
+        capacity: Any,
+        chunksize: Any,
+    ) -> None:
         """Verify restore chunks workers.
 
         Args:
@@ -456,7 +483,9 @@ class TestReplay:
         "length,capacity,chunksize",
         [(1, 1, 128), (3, 10, 128), (5, 100, 128), (5, 25, 2)],
     )
-    def test_restore_insert(self, tmpdir, Replay, length, capacity, chunksize):
+    def test_restore_insert(
+        self, tmpdir: Any, Replay: Any, length: Any, capacity: Any, chunksize: Any
+    ) -> None:
         """Verify restore insert.
 
         Args:
@@ -491,8 +520,15 @@ class TestReplay:
 
     @pytest.mark.parametrize("Replay", REPLAYS_UNLIMITED)
     def test_threading(
-        self, tmpdir, Replay, length=5, capacity=128, chunksize=32, adders=8, samplers=4
-    ):
+        self,
+        tmpdir: Any,
+        Replay: Any,
+        length: int = 5,
+        capacity: int = 128,
+        chunksize: int = 32,
+        adders: int = 8,
+        samplers: int = 4,
+    ) -> None:
         """Verify threading.
 
         Args:
@@ -510,7 +546,7 @@ class TestReplay:
         )
         running = [True]
 
-        def adder():
+        def adder() -> None:
             """Handle adder."""
             ident = threading.get_ident()
             step = 0
@@ -519,7 +555,7 @@ class TestReplay:
                 step += 1
                 time.sleep(0.001)
 
-        def sampler():
+        def sampler() -> None:
             """Handle sampler."""
             dataset = unbatched(replay.dataset(1))
             while running[0]:

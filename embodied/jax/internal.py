@@ -1,5 +1,9 @@
 """Provide internal functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import concurrent.futures
 import math
 import os
@@ -15,24 +19,24 @@ from . import nets
 
 
 def setup(
-    platform=None,
-    compute_dtype=jnp.bfloat16,
-    debug=False,
-    jit=True,
-    prealloc=False,
-    mock_devices=0,
-    transfer_guard=True,
-    deterministic=True,
-    autotune=1,
-    gpuflags=True,
-    tpuflags=False,
-    xladump=None,
-    debug_nans=False,
-    process_id=-1,
-    num_processes=1,
-    coordinator_address=None,
-    compilation_cache=True,
-):
+    platform: Any | None = None,
+    compute_dtype: Any = jnp.bfloat16,
+    debug: bool = False,
+    jit: bool = True,
+    prealloc: bool = False,
+    mock_devices: int = 0,
+    transfer_guard: bool = True,
+    deterministic: bool = True,
+    autotune: int = 1,
+    gpuflags: bool = True,
+    tpuflags: bool = False,
+    xladump: Any | None = None,
+    debug_nans: bool = False,
+    process_id: Any = -1,
+    num_processes: int = 1,
+    coordinator_address: Any | None = None,
+    compilation_cache: bool = True,
+) -> None:
     """Handle setup.
 
     Args:
@@ -132,7 +136,7 @@ def setup(
     nets.COMPUTE_DTYPE = compute_dtype
 
 
-def get_named_axes():
+def get_named_axes() -> Any:
     """Return named axes.
 
     Returns:
@@ -148,7 +152,7 @@ def get_named_axes():
     return axes
 
 
-def get_data_axes():
+def get_data_axes() -> Any:
     """Return data axes.
 
     Returns:
@@ -163,7 +167,7 @@ def get_data_axes():
     return axes
 
 
-def fetch_async(value):
+def fetch_async(value: Any) -> Any:
     """Handle fetch async.
 
     Args:
@@ -179,7 +183,7 @@ def fetch_async(value):
     return value
 
 
-def is_multihost():
+def is_multihost() -> bool:
     """Return whether multihost.
 
     Returns:
@@ -188,7 +192,7 @@ def is_multihost():
     return jax.process_count() > 1
 
 
-def device_put(value, sharding):
+def device_put(value: Any, sharding: Any) -> Any:
     """Handle device put.
 
     Args:
@@ -208,7 +212,7 @@ def device_put(value, sharding):
     return value
 
 
-def local_sharding(sharding):
+def local_sharding(sharding: Any) -> Any:
     """Handle local sharding.
 
     Args:
@@ -222,7 +226,7 @@ def local_sharding(sharding):
     )
 
 
-def to_local(x):
+def to_local(x: Any) -> Any:
     """Handle to local.
 
     Args:
@@ -234,7 +238,7 @@ def to_local(x):
     return jax.tree.map(_to_local, x)
 
 
-def _to_local(x):
+def _to_local(x: Any) -> Any:
     shape, sharding = x.shape, x.sharding
     spec, mesh = sharding.spec, sharding.mesh
     fullspec = [*spec, *([None] * (len(shape) - len(spec)))]
@@ -258,7 +262,7 @@ def _to_local(x):
     return x
 
 
-def to_global(x, global_sharding):
+def to_global(x: Any, global_sharding: Any) -> Any:
     """Handle to global.
 
     Args:
@@ -274,7 +278,7 @@ def to_global(x, global_sharding):
         return jax.tree.map(lambda xi, gs: _to_global(xi, gs), x, global_sharding)
 
 
-def _to_global(x, global_sharding):
+def _to_global(x: Any, global_sharding: Any) -> Any:
     shape, sharding = x.shape, x.sharding
     spec = sharding.spec
     fullspec = [*spec, *([None] * (len(shape) - len(spec)))]
@@ -297,7 +301,7 @@ def _to_global(x, global_sharding):
     return x
 
 
-def move(xs, dst_sharding):
+def move(xs: Any, dst_sharding: Any) -> Any:
     """Handle move.
 
     Args:
@@ -316,7 +320,7 @@ def move(xs, dst_sharding):
     return xs
 
 
-def mesh(devices, shape, names):
+def mesh(devices: Any, shape: Any, names: Any) -> Any:
     """Handle mesh.
 
     Args:
@@ -341,7 +345,7 @@ def mesh(devices, shape, names):
     return jax.sharding.Mesh(devices, names)
 
 
-def grouped_ckpt_fns(params, chunksize):
+def grouped_ckpt_fns(params: Any, chunksize: Any) -> Any:
     """Handle grouped ckpt fns.
 
     Args:
@@ -387,7 +391,7 @@ def grouped_ckpt_fns(params, chunksize):
     return list(zip(groups, gather_fns, shard_fns))
 
 
-def ckpt_fn(params, compile=True):
+def ckpt_fn(params: Any, compile: bool = True) -> tuple[Any, ...]:
     """Handle ckpt function.
 
     Args:

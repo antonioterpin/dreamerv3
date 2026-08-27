@@ -1,5 +1,9 @@
 """Provide agent functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import re
 
 import chex
@@ -33,7 +37,7 @@ class Agent(embodied.jax.Agent):
         r"--- |___/|_| \___\__,_|_|_|_\___|_|  \_/ |___/ ---",
     ]
 
-    def __init__(self, obs_space, act_space, config):
+    def __init__(self, obs_space: Any, act_space: Any, config: Any) -> None:
         """Initialize the agent.
 
         Args:
@@ -111,7 +115,7 @@ class Agent(embodied.jax.Agent):
         self.scales = scales
 
     @property
-    def policy_keys(self):
+    def policy_keys(self) -> str:
         """Handle policy keys.
 
         Returns:
@@ -120,7 +124,7 @@ class Agent(embodied.jax.Agent):
         return "^(enc|dyn|dec|pol)/"
 
     @property
-    def ext_space(self):
+    def ext_space(self) -> Any:
         """Handle ext space.
 
         Returns:
@@ -141,7 +145,7 @@ class Agent(embodied.jax.Agent):
             )
         return spaces
 
-    def init_policy(self, batch_size):
+    def init_policy(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init policy.
 
         Args:
@@ -158,7 +162,7 @@ class Agent(embodied.jax.Agent):
             jax.tree.map(zeros, self.act_space),
         )
 
-    def init_train(self, batch_size):
+    def init_train(self, batch_size: Any) -> Any:
         """Handle init train.
 
         Args:
@@ -169,7 +173,7 @@ class Agent(embodied.jax.Agent):
         """
         return self.init_policy(batch_size)
 
-    def init_report(self, batch_size):
+    def init_report(self, batch_size: Any) -> Any:
         """Handle init report.
 
         Args:
@@ -180,7 +184,7 @@ class Agent(embodied.jax.Agent):
         """
         return self.init_policy(batch_size)
 
-    def policy(self, carry, obs, mode="train"):
+    def policy(self, carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
         """Handle policy.
 
         Args:
@@ -219,7 +223,7 @@ class Agent(embodied.jax.Agent):
             )
         return carry, act, out
 
-    def train(self, carry, data):
+    def train(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Train state.
 
         Args:
@@ -251,7 +255,9 @@ class Agent(embodied.jax.Agent):
         carry = (*carry, {k: data[k][:, -1] for k in self.act_space})
         return carry, outs, metrics
 
-    def loss(self, carry, obs, prevact, training):
+    def loss(
+        self, carry: Any, obs: Any, prevact: Any, training: Any
+    ) -> tuple[Any, ...]:
         """Handle loss.
 
         Args:
@@ -367,7 +373,7 @@ class Agent(embodied.jax.Agent):
         outs = {"tokens": tokens, "repfeat": repfeat, "losses": losses}
         return loss, (carry, entries, outs, metrics)
 
-    def report(self, carry, data):
+    def report(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Handle report.
 
         Args:
@@ -455,7 +461,7 @@ class Agent(embodied.jax.Agent):
         carry = (*new_carry, {k: data[k][:, -1] for k in self.act_space})
         return carry, metrics
 
-    def _apply_replay_context(self, carry, data):
+    def _apply_replay_context(self, carry: Any, data: Any) -> tuple[Any, ...]:
         enc_carry, dyn_carry, dec_carry, prevact = carry
         carry = (enc_carry, dyn_carry, dec_carry)
         stepid = data["stepid"]
@@ -501,7 +507,7 @@ class Agent(embodied.jax.Agent):
         schedule: str = "const",
         warmup: int = 1000,
         anneal: int = 0,
-    ):
+    ) -> Any:
         chain = []
         chain.append(embodied.jax.opt.clip_by_agc(agc))
         chain.append(embodied.jax.opt.scale_by_rms(beta2, eps))
@@ -530,23 +536,23 @@ class Agent(embodied.jax.Agent):
 
 
 def imag_loss(
-    act,
-    rew,
-    con,
-    policy,
-    value,
-    slowvalue,
-    retnorm,
-    valnorm,
-    advnorm,
-    update,
-    contdisc=True,
-    slowtar=True,
-    horizon=333,
-    lam=0.95,
-    actent=3e-4,
-    slowreg=1.0,
-):
+    act: Any,
+    rew: Any,
+    con: Any,
+    policy: Any,
+    value: Any,
+    slowvalue: Any,
+    retnorm: Any,
+    valnorm: Any,
+    advnorm: Any,
+    update: Any,
+    contdisc: bool = True,
+    slowtar: bool = True,
+    horizon: int = 333,
+    lam: float = 0.95,
+    actent: float = 3e-4,
+    slowreg: float = 1.0,
+) -> tuple[Any, ...]:
     """Handle imag loss.
 
     Args:
@@ -630,19 +636,19 @@ def imag_loss(
 
 
 def repl_loss(
-    last,
-    term,
-    rew,
-    boot,
-    value,
-    slowvalue,
-    valnorm,
-    update=True,
-    slowreg=1.0,
-    slowtar=True,
-    horizon=333,
-    lam=0.95,
-):
+    last: Any,
+    term: Any,
+    rew: Any,
+    boot: Any,
+    value: Any,
+    slowvalue: Any,
+    valnorm: Any,
+    update: bool = True,
+    slowreg: float = 1.0,
+    slowtar: bool = True,
+    horizon: int = 333,
+    lam: float = 0.95,
+) -> tuple[Any, ...]:
     """Handle replay buffer loss.
 
     Args:
@@ -689,7 +695,9 @@ def repl_loss(
     return losses, outs, metrics
 
 
-def lambda_return(last, term, rew, val, boot, disc, lam):
+def lambda_return(
+    last: Any, term: Any, rew: Any, val: Any, boot: Any, disc: Any, lam: Any
+) -> Any:
     """Handle lambda return.
 
     Args:

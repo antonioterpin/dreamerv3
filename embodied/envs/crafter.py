@@ -1,5 +1,9 @@
 """Provide crafter functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import json
 
 import crafter
@@ -11,7 +15,14 @@ import numpy as np
 class Crafter(embodied.Env):
     """Represent crafter."""
 
-    def __init__(self, task, size=(64, 64), logs=False, logdir=None, seed=None):
+    def __init__(
+        self,
+        task: Any,
+        size: tuple[Any, ...] = (64, 64),
+        logs: bool = False,
+        logdir: Any | None = None,
+        seed: Any | None = None,
+    ) -> None:
         """Initialize the crafter.
 
         Args:
@@ -36,7 +47,7 @@ class Crafter(embodied.Env):
         self._done = True
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -60,7 +71,7 @@ class Crafter(embodied.Env):
         return spaces
 
     @property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -71,7 +82,7 @@ class Crafter(embodied.Env):
             "reset": elements.Space(bool),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -97,8 +108,14 @@ class Crafter(embodied.Env):
         )
 
     def _obs(
-        self, image, reward, info, is_first=False, is_last=False, is_terminal=False
-    ):
+        self,
+        image: Any,
+        reward: Any,
+        info: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
         obs = dict(
             image=image,
             reward=np.float32(reward),
@@ -115,7 +132,7 @@ class Crafter(embodied.Env):
             obs.update({k: np.int32(v) for k, v in log_achievements.items()})
         return obs
 
-    def _write_stats(self, length, reward, info):
+    def _write_stats(self, length: Any, reward: Any, info: Any) -> None:
         stats = {
             "episode": self._episode,
             "length": length,

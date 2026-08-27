@@ -1,5 +1,9 @@
 """Provide pinpad functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import collections
 
 import elements
@@ -21,7 +25,7 @@ class PinPad(embodied.Env):
         "8": (0, 128, 128),
     }
 
-    def __init__(self, task, length=10000):
+    def __init__(self, task: Any, length: int = 10000) -> None:
         """Initialize the pin pad.
 
         Args:
@@ -55,7 +59,7 @@ class PinPad(embodied.Env):
         self.countdown = None
 
     @property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -67,7 +71,7 @@ class PinPad(embodied.Env):
         }
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -81,7 +85,7 @@ class PinPad(embodied.Env):
             "is_terminal": elements.Space(bool),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -119,7 +123,13 @@ class PinPad(embodied.Env):
         self.done = self.done or (self.steps >= self.length)
         return self._obs(reward=reward, is_last=self.done)
 
-    def _obs(self, reward, is_first=False, is_last=False, is_terminal=False):
+    def _obs(
+        self,
+        reward: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
         return dict(
             image=self._render(),
             reward=np.float32(reward),
@@ -128,7 +138,7 @@ class PinPad(embodied.Env):
             is_terminal=is_terminal,
         )
 
-    def _render(self):
+    def _render(self) -> Any:
         grid = np.zeros((16, 16, 3), np.uint8) + 255
         white = np.array([255, 255, 255])
         if self.countdown:

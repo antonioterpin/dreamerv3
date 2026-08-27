@@ -1,5 +1,9 @@
 """Provide bsuite functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import time
 
 import embodied
@@ -9,7 +13,7 @@ import numpy as np
 class BSuite(embodied.Env):
     """Represent bsuite."""
 
-    def __init__(self, task):
+    def __init__(self, task: Any) -> None:
         """Initialize the bsuite.
 
         Args:
@@ -36,7 +40,7 @@ class BSuite(embodied.Env):
         self.env = env
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -45,7 +49,7 @@ class BSuite(embodied.Env):
         return self.env.obs_space
 
     @property
-    def act_space(self):
+    def act_space(self) -> Any:
         """Handle act space.
 
         Returns:
@@ -53,7 +57,7 @@ class BSuite(embodied.Env):
         """
         return self.env.act_space
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:

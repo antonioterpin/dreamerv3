@@ -1,5 +1,9 @@
 """Provide clock functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import threading
 import time
 
@@ -9,7 +13,7 @@ CLIENT = None
 REPLICA = None
 
 
-def setup(is_server, replica, replicas, port, addr):
+def setup(is_server: Any, replica: Any, replicas: Any, port: Any, addr: Any) -> None:
     """Handle setup.
 
     Args:
@@ -33,7 +37,7 @@ def setup(is_server, replica, replicas, port, addr):
     REPLICA = replica
 
 
-def _start_server(port, replicas):
+def _start_server(port: Any, replicas: Any) -> None:
 
     clocks = []
     # Both barrier phases reuse these containers with different payload types.
@@ -42,7 +46,7 @@ def _start_server(port, replicas):
     receive = threading.Barrier(replicas)
     respond = threading.Barrier(replicas)
 
-    def create(replica, every):
+    def create(replica: Any, every: Any) -> Any:
         """Create state.
 
         Args:
@@ -66,7 +70,7 @@ def _start_server(port, replicas):
         respond.wait()
         return result[0]
 
-    def should(replica, clockid, skip):
+    def should(replica: Any, clockid: Any, skip: Any) -> Any:
         """Handle should.
 
         Args:
@@ -111,7 +115,7 @@ def _start_server(port, replicas):
 class GlobalClock:
     """Represent global clock."""
 
-    def __init__(self, every, first=False):
+    def __init__(self, every: Any, first: bool = False) -> None:
         """Initialize the global clock.
 
         Args:
@@ -127,7 +131,7 @@ class GlobalClock:
         else:
             self.clock = LocalClock(every, first)
 
-    def __call__(self, step=None, skip=None):
+    def __call__(self, step: Any | None = None, skip: Any | None = None) -> Any:
         """Apply the global clock.
 
         Args:
@@ -151,7 +155,7 @@ class GlobalClock:
 class LocalClock:
     """Represent local clock."""
 
-    def __init__(self, every, first=False):
+    def __init__(self, every: Any, first: bool = False) -> None:
         """Initialize the local clock.
 
         Args:
@@ -162,7 +166,7 @@ class LocalClock:
         self.prev = None
         self.first = first
 
-    def __call__(self, step=None, skip=None):
+    def __call__(self, step: Any | None = None, skip: Any | None = None) -> Any:
         """Apply the local clock.
 
         Args:

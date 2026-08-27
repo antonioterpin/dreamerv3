@@ -1,5 +1,9 @@
 """Provide selectors functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import collections
 import threading
 
@@ -9,11 +13,11 @@ import numpy as np
 class Fifo:
     """Represent fifo."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the fifo."""
         self.queue = collections.deque()
 
-    def __call__(self):
+    def __call__(self) -> Any:
         """Apply the fifo.
 
         Returns:
@@ -21,13 +25,13 @@ class Fifo:
         """
         return self.queue[0]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.queue)
 
-    def __setitem__(self, key, stepids):
+    def __setitem__(self, key: Any, stepids: Any) -> None:
         self.queue.append(key)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         if self.queue[0] == key:
             self.queue.popleft()
         else:
@@ -38,7 +42,7 @@ class Fifo:
 class Uniform:
     """Represent uniform."""
 
-    def __init__(self, seed=0):
+    def __init__(self, seed: int = 0) -> None:
         """Initialize the uniform.
 
         Args:
@@ -49,10 +53,10 @@ class Uniform:
         self.rng = np.random.default_rng(seed)
         self.lock = threading.Lock()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.keys)
 
-    def __call__(self):
+    def __call__(self) -> Any:
         """Apply the uniform.
 
         Returns:
@@ -62,12 +66,12 @@ class Uniform:
             index = self.rng.integers(0, len(self.keys)).item()
             return self.keys[index]
 
-    def __setitem__(self, key, stepids):
+    def __setitem__(self, key: Any, stepids: Any) -> None:
         with self.lock:
             self.indices[key] = len(self.keys)
             self.keys.append(key)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         with self.lock:
             assert 2 <= len(self), len(self)
             index = self.indices.pop(key)
@@ -80,7 +84,7 @@ class Uniform:
 class Recency:
     """Represent recency."""
 
-    def __init__(self, uprobs, seed=0):
+    def __init__(self, uprobs: Any, seed: int = 0) -> None:
         """Initialize the recency.
 
         Args:
@@ -95,10 +99,10 @@ class Recency:
         self.steps = {}
         self.items = {}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def __call__(self):
+    def __call__(self) -> Any:
         """Apply the recency.
 
         Returns:
@@ -122,16 +126,16 @@ class Recency:
                 else:
                     raise
 
-    def __setitem__(self, key, stepids):
+    def __setitem__(self, key: Any, stepids: Any) -> None:
         self.steps[key] = self.step
         self.items[self.step] = key
         self.step += 1
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         step = self.steps.pop(key)
         del self.items[step]
 
-    def _sample(self, tree, rng, bfactor=16):
+    def _sample(self, tree: Any, rng: Any, bfactor: int = 16) -> Any:
         path = []
         for level, prob in enumerate(tree):
             p = prob
@@ -145,7 +149,7 @@ class Recency:
         )
         return index
 
-    def _build(self, uprobs, bfactor=16):
+    def _build(self, uprobs: Any, bfactor: int = 16) -> Any:
         assert np.isfinite(uprobs).all(), uprobs
         assert (uprobs >= 0).all(), uprobs
         depth = int(np.ceil(np.log(len(uprobs)) / np.log(bfactor)))
@@ -167,13 +171,13 @@ class Prioritized:
 
     def __init__(
         self,
-        exponent=1.0,
-        initial=1.0,
-        zero_on_sample=False,
-        maxfrac=0.0,
-        branching=16,
-        seed=0,
-    ):
+        exponent: float = 1.0,
+        initial: float = 1.0,
+        zero_on_sample: bool = False,
+        maxfrac: float = 0.0,
+        branching: int = 16,
+        seed: int = 0,
+    ) -> None:
         """Initialize the prioritized.
 
         Args:
@@ -194,7 +198,7 @@ class Prioritized:
         self.stepitems = collections.defaultdict(list)
         self.items = {}
 
-    def prioritize(self, stepids, priorities):
+    def prioritize(self, stepids: Any, priorities: Any) -> None:
         """Handle prioritize.
 
         Args:
@@ -217,10 +221,10 @@ class Prioritized:
             except KeyError:
                 print("Ignoring tree update for removed time step.")
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def __call__(self):
+    def __call__(self) -> Any:
         """Apply the prioritized.
 
         Returns:
@@ -232,14 +236,14 @@ class Prioritized:
             self.prioritize(self.items[key], zeros)
         return key
 
-    def __setitem__(self, key, stepids):
+    def __setitem__(self, key: Any, stepids: Any) -> None:
         if not isinstance(stepids[0], bytes):
             stepids = [x.tobytes() for x in stepids]
         self.items[key] = stepids
         [self.stepitems[stepid].append(key) for stepid in stepids]
         self.tree.insert(key, self._aggregate(key))
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         self.tree.remove(key)
         stepids = self.items.pop(key)
         for stepid in stepids:
@@ -249,7 +253,7 @@ class Prioritized:
                 del self.stepitems[stepid]
                 del self.prios[stepid]
 
-    def _aggregate(self, key):
+    def _aggregate(self, key: Any) -> Any:
         # Both list comprehensions in this function are a performance bottleneck
         # because they are called very often.
         prios = [self.prios[stepid] for stepid in self.items[key]]
@@ -265,7 +269,7 @@ class Prioritized:
 class Mixture:
     """Represent mixture."""
 
-    def __init__(self, selectors, fractions, seed=0):
+    def __init__(self, selectors: Any, fractions: Any, seed: int = 0) -> None:
         """Initialize the mixture.
 
         Args:
@@ -286,7 +290,7 @@ class Mixture:
         self.fractions = np.array([fractions[key] for key in keys], np.float32)
         self.rng = np.random.default_rng(seed)
 
-    def __call__(self):
+    def __call__(self) -> Any:
         """Apply the mixture.
 
         Returns:
@@ -294,15 +298,15 @@ class Mixture:
         """
         return self.rng.choice(self.selectors, p=self.fractions)()
 
-    def __setitem__(self, key, stepids):
+    def __setitem__(self, key: Any, stepids: Any) -> None:
         for selector in self.selectors:
             selector[key] = stepids
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         for selector in self.selectors:
             del selector[key]
 
-    def prioritize(self, stepids, priorities):
+    def prioritize(self, stepids: Any, priorities: Any) -> None:
         """Handle prioritize.
 
         Args:
@@ -317,7 +321,7 @@ class Mixture:
 class SampleTree:
     """Represent sample tree."""
 
-    def __init__(self, branching=16, seed=0):
+    def __init__(self, branching: int = 16, seed: int = 0) -> None:
         """Initialize the sample tree.
 
         Args:
@@ -331,10 +335,10 @@ class SampleTree:
         self.entries = {}
         self.rng = np.random.default_rng(seed)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.entries)
 
-    def insert(self, key, uprob):
+    def insert(self, key: Any, uprob: Any) -> None:
         """Handle insert.
 
         Args:
@@ -362,7 +366,7 @@ class SampleTree:
         self.entries[key] = entry
         self.last = entry
 
-    def remove(self, key):
+    def remove(self, key: Any) -> None:
         """Handle remove.
 
         Args:
@@ -395,7 +399,7 @@ class SampleTree:
             node = node.children[-1]
         self.last = node
 
-    def update(self, key, uprob):
+    def update(self, key: Any, uprob: Any) -> None:
         """Update state.
 
         Args:
@@ -409,7 +413,7 @@ class SampleTree:
         ), "A stored sample-tree entry must have a parent."
         entry.parent.recompute()
 
-    def sample(self):
+    def sample(self) -> Any:
         """Sample state.
 
         Returns:
@@ -436,7 +440,7 @@ class SampleTreeNode:
 
     __slots__ = ("parent", "children", "uprob")
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Any | None = None) -> None:
         """Initialize the sample tree node.
 
         Args:
@@ -446,19 +450,19 @@ class SampleTreeNode:
         self.children = []
         self.uprob = 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"SampleTreeNode(uprob={self.uprob}, "
             f"children={[x.uprob for x in self.children]})"
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.children)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return True
 
-    def append(self, child):
+    def append(self, child: Any) -> None:
         """Handle append.
 
         Args:
@@ -470,7 +474,7 @@ class SampleTreeNode:
         self.children.append(child)
         self.recompute()
 
-    def remove(self, child):
+    def remove(self, child: Any) -> None:
         """Handle remove.
 
         Args:
@@ -480,7 +484,7 @@ class SampleTreeNode:
         self.children.remove(child)
         self.recompute()
 
-    def recompute(self):
+    def recompute(self) -> None:
         """Handle recompute."""
         self.uprob = sum(x.uprob for x in self.children)
         self.parent and self.parent.recompute()
@@ -491,7 +495,7 @@ class SampleTreeEntry:
 
     __slots__ = ("parent", "key", "uprob")
 
-    def __init__(self, key=None, uprob=None):
+    def __init__(self, key: Any | None = None, uprob: Any | None = None) -> None:
         """Initialize the sample tree entry.
 
         Args:

@@ -1,5 +1,9 @@
 """Provide test driver functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 from functools import partial as bind
 
 import embodied
@@ -9,7 +13,7 @@ import numpy as np
 class TestDriver:
     """Represent test driver."""
 
-    def test_episode_length(self):
+    def test_episode_length(self) -> None:
         """Verify episode length."""
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
@@ -19,7 +23,7 @@ class TestDriver:
         driver(agent.policy, episodes=1)
         assert len(seq) == 11, "Expected number of seq to equal 11."
 
-    def test_first_step(self):
+    def test_first_step(self) -> None:
         """Verify first step."""
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
@@ -39,7 +43,7 @@ class TestDriver:
                 seq[index]["is_first"].item() is False
             ), "Expected seq[index] is first item() to be False."
 
-    def test_last_step(self):
+    def test_last_step(self) -> None:
         """Verify last step."""
         agent = self._make_agent()
         driver = embodied.Driver([self._make_env])
@@ -59,7 +63,7 @@ class TestDriver:
                 seq[index]["is_last"].item() is False
             ), "Expected seq[index] is last item() to be False."
 
-    def test_env_reset(self):
+    def test_env_reset(self) -> None:
         """Verify environment reset."""
         agent = self._make_agent()
         driver = embodied.Driver([bind(self._make_env, length=5)])
@@ -84,7 +88,7 @@ class TestDriver:
             seq["act_disc"] == [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0]
         ).all(), "Expected seq act disc to equal [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0]."
 
-    def test_agent_inputs(self):
+    def test_agent_inputs(self) -> None:
         """Verify agent inputs.
 
         Returns:
@@ -96,7 +100,7 @@ class TestDriver:
         inputs = []
         states = []
 
-        def policy(carry, obs, mode="train"):
+        def policy(carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
             """Handle policy.
 
             Args:
@@ -136,7 +140,7 @@ class TestDriver:
                 inputs[index]["is_last"].item() is False
             ), "Expected inputs[index] is last item() to be False."
 
-    def test_unexpected_reset(self):
+    def test_unexpected_reset(self) -> None:
         """Verify unexpected reset.
 
         Returns:
@@ -146,7 +150,7 @@ class TestDriver:
         class UnexpectedReset(embodied.Wrapper):
             """Send is_first without preceeding is_last."""
 
-            def __init__(self, env, when):
+            def __init__(self, env: Any, when: Any) -> None:
                 """Initialize the unexpected reset.
 
                 Args:
@@ -157,7 +161,7 @@ class TestDriver:
                 self._when = when
                 self._step = 0
 
-            def step(self, action):
+            def step(self, action: Any) -> Any:
                 """Advance state.
 
                 Args:
@@ -192,12 +196,12 @@ class TestDriver:
             steps["is_last"] == [0, 0, 0, 0, 0, 0, 0, 1]
         ).all(), "Expected steps is last to equal [0, 0, 0, 0, 0, 0, 0, 1]."
 
-    def _make_env(self, length=10):
+    def _make_env(self, length: int = 10) -> Any:
         from embodied.envs import dummy
 
         return dummy.Dummy("disc", length=length)
 
-    def _make_agent(self):
+    def _make_agent(self) -> Any:
         env = self._make_env()
         agent = embodied.RandomAgent(env.obs_space, env.act_space)
         env.close()

@@ -1,5 +1,9 @@
 """Provide dummy functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import elements
 import embodied
 import numpy as np
@@ -8,7 +12,9 @@ import numpy as np
 class Dummy(embodied.Env):
     """Represent dummy."""
 
-    def __init__(self, task, size=(64, 64), length=100):
+    def __init__(
+        self, task: Any, size: tuple[Any, ...] = (64, 64), length: int = 100
+    ) -> None:
         """Initialize the dummy.
 
         Args:
@@ -23,7 +29,7 @@ class Dummy(embodied.Env):
         self.done = False
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -43,7 +49,7 @@ class Dummy(embodied.Env):
         }
 
     @property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -55,7 +61,7 @@ class Dummy(embodied.Env):
             "act_cont": elements.Space(np.float32, (6,)),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -72,7 +78,13 @@ class Dummy(embodied.Env):
         self.done = self.count >= self.length
         return self._obs(1, is_last=self.done, is_terminal=self.done)
 
-    def _obs(self, reward, is_first=False, is_last=False, is_terminal=False):
+    def _obs(
+        self,
+        reward: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
         return dict(
             image=np.full(self.size + (3,), 255, np.uint8),
             vector=np.zeros(7, np.float32),

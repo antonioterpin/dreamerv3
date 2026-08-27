@@ -1,5 +1,9 @@
 """Provide loconav functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 import os
 import warnings
@@ -19,14 +23,14 @@ class LocoNav(embodied.Env):
 
     def __init__(
         self,
-        name,
-        repeat=1,
-        size=(64, 64),
-        camera=-1,
-        again=False,
-        termination=False,
-        weaker=1.0,
-    ):
+        name: Any,
+        repeat: int = 1,
+        size: tuple[Any, ...] = (64, 64),
+        camera: Any = -1,
+        again: bool = False,
+        termination: bool = False,
+        weaker: float = 1.0,
+    ) -> None:
         """Initialize the loco nav.
 
         Args:
@@ -69,7 +73,7 @@ class LocoNav(embodied.Env):
         )
         if not again:
 
-            def after_step(self, physics, random_state):
+            def after_step(self, physics: Any, random_state: Any) -> None:
                 super(random_goal_maze.RepeatSingleGoalMaze, self).after_step(
                     physics, random_state
                 )
@@ -90,7 +94,7 @@ class LocoNav(embodied.Env):
         self._weaker = weaker
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -101,7 +105,7 @@ class LocoNav(embodied.Env):
         return spaces
 
     @property
-    def act_space(self):
+    def act_space(self) -> Any:
         """Handle act space.
 
         Returns:
@@ -109,7 +113,7 @@ class LocoNav(embodied.Env):
         """
         return self._env.act_space
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -130,7 +134,7 @@ class LocoNav(embodied.Env):
         obs["log/coverage"] = np.int32(len(self._visited))
         return obs
 
-    def _make_walker(self, name):
+    def _make_walker(self, name: Any) -> Any:
         if name == "ant":
             from dm_control.locomotion.walkers import ant  # pyright: ignore[reportMissingImports]  # fmt: skip
 
@@ -142,7 +146,7 @@ class LocoNav(embodied.Env):
         else:
             raise NotImplementedError(name)
 
-    def _make_arena(self, name):
+    def _make_arena(self, name: Any) -> Any:
         import labmaze  # pyright: ignore[reportMissingImports]
         from dm_control import mjcf  # pyright: ignore[reportMissingImports]
         from dm_control.locomotion.arenas import labmaze_textures  # pyright: ignore[reportMissingImports]  # fmt: skip
@@ -152,7 +156,11 @@ class LocoNav(embodied.Env):
         class WallTexture(labmaze_textures.WallTextures):
             """Represent wall texture."""
 
-            def _build(self, color=[0.8, 0.8, 0.8], model="labmaze_style_01"):
+            def _build(
+                self,
+                color: list[Any] = [0.8, 0.8, 0.8],
+                model: str = "labmaze_style_01",
+            ) -> None:
                 self._mjcf_root = mjcf.RootElement(model=model)
                 self._textures = [
                     self._mjcf_root.asset.add(

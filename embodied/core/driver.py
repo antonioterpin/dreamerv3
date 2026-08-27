@@ -1,5 +1,9 @@
 """Provide driver functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import time
 
 import cloudpickle
@@ -11,7 +15,7 @@ import portal
 class Driver:
     """Represent driver."""
 
-    def __init__(self, make_env_fns, parallel=True, **kwargs):
+    def __init__(self, make_env_fns: Any, parallel: bool = True, **kwargs: Any) -> None:
         """Initialize the driver.
 
         Args:
@@ -46,7 +50,7 @@ class Driver:
         self.carry = None
         self.reset()
 
-    def reset(self, init_policy=None):
+    def reset(self, init_policy: Any | None = None) -> None:
         """Reset state.
 
         Args:
@@ -59,14 +63,14 @@ class Driver:
         self.acts["reset"] = np.ones(self.length, bool)
         self.carry = init_policy and init_policy(self.length)
 
-    def close(self):
+    def close(self) -> None:
         """Close state."""
         if self.parallel:
             [proc.kill() for proc in self.procs]
         else:
             [env.close() for env in self.envs]
 
-    def on_step(self, callback):
+    def on_step(self, callback: Any) -> None:
         """Handle on step.
 
         Args:
@@ -74,7 +78,7 @@ class Driver:
         """
         self.callbacks.append(callback)
 
-    def __call__(self, policy, steps=0, episodes=0):
+    def __call__(self, policy: Any, steps: int = 0, episodes: int = 0) -> None:
         """Apply the driver.
 
         Args:
@@ -86,7 +90,7 @@ class Driver:
         while step < steps or episode < episodes:
             step, episode = self._step(policy, step, episode)
 
-    def _step(self, policy, step, episode):
+    def _step(self, policy: Any, step: Any, episode: Any) -> tuple[Any, ...]:
         acts = self.acts
         assert acts is not None, "Driver actions must be initialized before stepping."
         assert all(
@@ -119,12 +123,12 @@ class Driver:
         episode += obs["is_last"].sum()
         return step, episode
 
-    def _mask(self, value, mask):
+    def _mask(self, value: Any, mask: Any) -> Any:
         while mask.ndim < value.ndim:
             mask = mask[..., None]
         return value * mask.astype(value.dtype)
 
-    def _receive(self, pipe):
+    def _receive(self, pipe: Any) -> Any:
         try:
             msg, arg = pipe.recv()
             if msg == "error":
@@ -137,7 +141,7 @@ class Driver:
             raise
 
     @staticmethod
-    def _env_server(stop, envid, pipe, ctor):
+    def _env_server(stop: Any, envid: Any, pipe: Any, ctor: Any) -> None:
         try:
             ctor = cloudpickle.loads(ctor)
             env = ctor()

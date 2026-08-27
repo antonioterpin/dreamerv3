@@ -1,10 +1,14 @@
 """Provide base functionality."""
 
+from __future__ import annotations
+from collections.abc import Iterator
+from typing import Any
+
 
 class Agent:
     """Represent agent."""
 
-    def __init__(self, obs_space, act_space, config):
+    def __init__(self, obs_space: Any, act_space: Any, config: Any) -> None:
         """Initialize the agent.
 
         Args:
@@ -14,7 +18,7 @@ class Agent:
         """
         pass
 
-    def init_train(self, batch_size):
+    def init_train(self, batch_size: Any) -> Any:
         """Handle init train.
 
         Args:
@@ -25,7 +29,7 @@ class Agent:
         """
         raise NotImplementedError("init_train(batch_size) -> carry")
 
-    def init_report(self, batch_size):
+    def init_report(self, batch_size: Any) -> Any:
         """Handle init report.
 
         Args:
@@ -36,7 +40,7 @@ class Agent:
         """
         raise NotImplementedError("init_report(batch_size) -> carry")
 
-    def init_policy(self, batch_size):
+    def init_policy(self, batch_size: Any) -> Any:
         """Handle init policy.
 
         Args:
@@ -47,7 +51,7 @@ class Agent:
         """
         raise NotImplementedError("init_policy(batch_size) -> carry")
 
-    def train(self, carry, data):
+    def train(self, carry: Any, data: Any) -> Any:
         """Train state.
 
         Args:
@@ -59,7 +63,7 @@ class Agent:
         """
         raise NotImplementedError("train(carry, data) -> carry, out, metrics")
 
-    def report(self, carry, data):
+    def report(self, carry: Any, data: Any) -> Any:
         """Handle report.
 
         Args:
@@ -71,7 +75,7 @@ class Agent:
         """
         raise NotImplementedError("report(carry, data) -> carry, metrics")
 
-    def policy(self, carry, obs, mode):
+    def policy(self, carry: Any, obs: Any, mode: Any) -> Any:
         """Handle policy.
 
         Args:
@@ -84,7 +88,7 @@ class Agent:
         """
         raise NotImplementedError("policy(carry, obs, mode) -> carry, act, out")
 
-    def stream(self, st):
+    def stream(self, st: Any) -> Any:
         """Handle stream.
 
         Args:
@@ -95,7 +99,7 @@ class Agent:
         """
         raise NotImplementedError("stream(st) -> st")
 
-    def save(self):
+    def save(self) -> Any:
         """Save state.
 
         Raises:
@@ -103,7 +107,7 @@ class Agent:
         """
         raise NotImplementedError("save() -> data")
 
-    def load(self, data):
+    def load(self, data: Any) -> Any:
         """Load state.
 
         Args:
@@ -118,7 +122,7 @@ class Agent:
 class Env:
     """Represent environment."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
             f"obs_space={self.obs_space}, "
@@ -126,7 +130,7 @@ class Env:
         )
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         # The observation space must contain the keys is_first, is_last, and
         # is_terminal. Commonly, it also contains the keys reward and image. By
         # convention, keys starting with 'log/' are not consumed by the agent.
@@ -138,7 +142,7 @@ class Env:
         raise NotImplementedError("Returns: dict of spaces")
 
     @property
-    def act_space(self):
+    def act_space(self) -> Any:
         # The action space must contain the reset key as well as any actions.
         """Handle act space.
 
@@ -147,7 +151,7 @@ class Env:
         """
         raise NotImplementedError("Returns: dict of spaces")
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -158,7 +162,7 @@ class Env:
         """
         raise NotImplementedError("Returns: dict")
 
-    def close(self):
+    def close(self) -> Any:
         """Close state."""
         pass
 
@@ -166,13 +170,13 @@ class Env:
 class Stream:
     """Represent stream."""
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return self
 
-    def __next__(self):
+    def __next__(self) -> None:
         raise NotImplementedError
 
-    def save(self):
+    def save(self) -> None:
         """Save state.
 
         Raises:
@@ -180,7 +184,7 @@ class Stream:
         """
         raise NotImplementedError
 
-    def load(self, state):
+    def load(self, state: Any) -> None:
         """Load state.
 
         Args:

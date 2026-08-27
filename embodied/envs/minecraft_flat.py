@@ -1,5 +1,9 @@
 """Provide minecraft flat functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import logging
 import threading
 
@@ -21,7 +25,7 @@ from minerl.herobraine.hero.mc import INVERSE_KEYMAP  # pyright: ignore[reportMi
 class Wood(embodied.Wrapper):
     """Represent wood."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the wood.
 
         Args:
@@ -38,7 +42,7 @@ class Wood(embodied.Wrapper):
         env = embodied.wrappers.TimeLimit(env, length)
         super().__init__(env)
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -56,7 +60,7 @@ class Wood(embodied.Wrapper):
 class Climb(embodied.Wrapper):
     """Represent climb."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the climb.
 
         Args:
@@ -71,7 +75,7 @@ class Climb(embodied.Wrapper):
         self._previous = None
         self._health_reward = HealthReward()
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -94,7 +98,7 @@ class Climb(embodied.Wrapper):
 class Diamond(embodied.Wrapper):
     """Represent diamond."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the diamond.
 
         Args:
@@ -137,7 +141,7 @@ class Diamond(embodied.Wrapper):
         env = embodied.wrappers.TimeLimit(env, length)
         super().__init__(env)
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -171,7 +175,7 @@ BASIC_ACTIONS = {
 class CollectReward:
     """Represent collect reward."""
 
-    def __init__(self, item, once=0, repeated=0):
+    def __init__(self, item: Any, once: int = 0, repeated: int = 0) -> None:
         """Initialize the collect reward.
 
         Args:
@@ -185,7 +189,7 @@ class CollectReward:
         self.previous = 0
         self.maximum = 0
 
-    def __call__(self, obs, inventory):
+    def __call__(self, obs: Any, inventory: Any) -> Any:
         """Apply the collect reward.
 
         Args:
@@ -211,7 +215,7 @@ class CollectReward:
 class HealthReward:
     """Represent health reward."""
 
-    def __init__(self, scale=0.01):
+    def __init__(self, scale: float = 0.01) -> None:
         """Initialize the health reward.
 
         Args:
@@ -220,7 +224,7 @@ class HealthReward:
         self.scale = scale
         self.previous = None
 
-    def __call__(self, obs, inventory=None):
+    def __call__(self, obs: Any, inventory: Any | None = None) -> Any:
         """Apply the health reward.
 
         Args:
@@ -262,17 +266,17 @@ class MinecraftBase(embodied.Env):
 
     def __init__(
         self,
-        actions,
-        repeat=1,
-        size=(64, 64),
-        break_speed=100.0,
-        gamma=10.0,
-        sticky_attack=30,
-        sticky_jump=10,
-        pitch_limit=(-60, 60),
-        log_inv_keys=("log", "cobblestone", "iron_ingot", "diamond"),
-        logs=False,
-    ):
+        actions: Any,
+        repeat: int = 1,
+        size: tuple[Any, ...] = (64, 64),
+        break_speed: float = 100.0,
+        gamma: float = 10.0,
+        sticky_attack: int = 30,
+        sticky_jump: int = 10,
+        pitch_limit: tuple[Any, ...] = (-60, 60),
+        log_inv_keys: tuple[Any, ...] = ("log", "cobblestone", "iron_ingot", "diamond"),
+        logs: bool = False,
+    ) -> None:
         """Initialize the minecraft base.
 
         Args:
@@ -335,7 +339,7 @@ class MinecraftBase(embodied.Env):
         self._pitch = 0
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -358,7 +362,7 @@ class MinecraftBase(embodied.Env):
         }
 
     @property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -369,7 +373,7 @@ class MinecraftBase(embodied.Env):
             "reset": elements.Space(bool),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -399,7 +403,7 @@ class MinecraftBase(embodied.Env):
         return obs
 
     @property
-    def inventory(self):
+    def inventory(self) -> Any:
         """Handle inventory.
 
         Returns:
@@ -407,7 +411,7 @@ class MinecraftBase(embodied.Env):
         """
         return self._inventory
 
-    def _reset(self):
+    def _reset(self) -> Any:
         with self.LOCK:
             obs = self._env.step({"reset": True})
         self._step = 0
@@ -418,7 +422,7 @@ class MinecraftBase(embodied.Env):
         self._inventory = {}
         return obs
 
-    def _obs(self, obs):
+    def _obs(self, obs: Any) -> Any:
         obs["inventory/log"] += obs.pop("inventory/log2")
         self._inventory = {
             k.split("/", 1)[1]: obs[k] for k in self._inv_keys if k != "inventory/air"
@@ -456,7 +460,7 @@ class MinecraftBase(embodied.Env):
             assert value in space, (key, value, value.dtype, value.shape, space)
         return obs
 
-    def _action(self, action):
+    def _action(self, action: Any) -> Any:
         if self._sticky_attack_length:
             if action["attack"]:
                 self._sticky_attack_counter = self._sticky_attack_length
@@ -478,7 +482,7 @@ class MinecraftBase(embodied.Env):
             self._pitch += action["camera"][0]
         return action
 
-    def _insert_defaults(self, actions):
+    def _insert_defaults(self, actions: Any) -> Any:
         actions = {name: action.copy() for name, action in actions.items()}
         for key, default in self.NOOP.items():
             for action in actions.values():
@@ -490,7 +494,9 @@ class MinecraftBase(embodied.Env):
 class MineRLEnv(EnvSpec):
     """Represent mine rlenv."""
 
-    def __init__(self, resolution=(64, 64), break_speed=50):
+    def __init__(
+        self, resolution: tuple[Any, ...] = (64, 64), break_speed: int = 50
+    ) -> None:
         """Initialize the mine rlenv.
 
         Args:
@@ -501,7 +507,7 @@ class MineRLEnv(EnvSpec):
         self.break_speed = break_speed
         super().__init__(name="MineRLEnv-v1")
 
-    def create_agent_start(self):
+    def create_agent_start(self) -> list[Any]:
         """Create agent start.
 
         Returns:
@@ -509,7 +515,7 @@ class MineRLEnv(EnvSpec):
         """
         return [BreakSpeedMultiplier(self.break_speed)]
 
-    def create_agent_handlers(self):
+    def create_agent_handlers(self) -> list[Any]:
         """Create agent handlers.
 
         Returns:
@@ -517,7 +523,7 @@ class MineRLEnv(EnvSpec):
         """
         return []
 
-    def create_server_world_generators(self):
+    def create_server_world_generators(self) -> list[Any]:
         """Create server world generators.
 
         Returns:
@@ -525,7 +531,7 @@ class MineRLEnv(EnvSpec):
         """
         return [handlers.DefaultWorldGenerator(force_reset=True)]
 
-    def create_server_quit_producers(self):
+    def create_server_quit_producers(self) -> list[Any]:
         """Create server quit producers.
 
         Returns:
@@ -533,7 +539,7 @@ class MineRLEnv(EnvSpec):
         """
         return [handlers.ServerQuitWhenAnyAgentFinishes()]
 
-    def create_server_initial_conditions(self):
+    def create_server_initial_conditions(self) -> list[Any]:
         """Create server initial conditions.
 
         Returns:
@@ -544,7 +550,7 @@ class MineRLEnv(EnvSpec):
             handlers.SpawningInitialCondition(allow_spawning=True),
         ]
 
-    def create_observables(self):
+    def create_observables(self) -> list[Any]:
         """Create observables.
 
         Returns:
@@ -560,7 +566,7 @@ class MineRLEnv(EnvSpec):
             handlers.ObservationFromLifeStats(),
         ]
 
-    def create_actionables(self):
+    def create_actionables(self) -> list[Any]:
         """Create actionables.
 
         Returns:
@@ -583,7 +589,7 @@ class MineRLEnv(EnvSpec):
             handlers.SmeltItemNearby(["none"] + mc.ALL_ITEMS, **kw),
         ]
 
-    def is_from_folder(self, folder):
+    def is_from_folder(self, folder: Any) -> bool:
         """Return whether from folder.
 
         Args:
@@ -594,7 +600,7 @@ class MineRLEnv(EnvSpec):
         """
         return folder == "none"
 
-    def get_docstring(self):
+    def get_docstring(self) -> str:
         """Return docstring.
 
         Returns:
@@ -602,7 +608,7 @@ class MineRLEnv(EnvSpec):
         """
         return ""
 
-    def determine_success_from_rewards(self, rewards):
+    def determine_success_from_rewards(self, rewards: Any) -> bool:
         """Handle determine success from rewards.
 
         Args:
@@ -613,7 +619,7 @@ class MineRLEnv(EnvSpec):
         """
         return True
 
-    def create_rewardables(self):
+    def create_rewardables(self) -> list[Any]:
         """Create rewardables.
 
         Returns:
@@ -621,7 +627,7 @@ class MineRLEnv(EnvSpec):
         """
         return []
 
-    def create_server_decorators(self):
+    def create_server_decorators(self) -> list[Any]:
         """Create server decorators.
 
         Returns:
@@ -629,7 +635,7 @@ class MineRLEnv(EnvSpec):
         """
         return []
 
-    def create_mission_handlers(self):
+    def create_mission_handlers(self) -> list[Any]:
         """Create mission handlers.
 
         Returns:
@@ -637,7 +643,7 @@ class MineRLEnv(EnvSpec):
         """
         return []
 
-    def create_monitors(self):
+    def create_monitors(self) -> list[Any]:
         """Create monitors.
 
         Returns:
@@ -649,7 +655,7 @@ class MineRLEnv(EnvSpec):
 class BreakSpeedMultiplier(handler.Handler):
     """Represent break speed multiplier."""
 
-    def __init__(self, multiplier=1.0):
+    def __init__(self, multiplier: float = 1.0) -> None:
         """Initialize the break speed multiplier.
 
         Args:
@@ -657,7 +663,7 @@ class BreakSpeedMultiplier(handler.Handler):
         """
         self.multiplier = multiplier
 
-    def to_string(self):
+    def to_string(self) -> Any:
         """Handle to string.
 
         Returns:
@@ -665,7 +671,7 @@ class BreakSpeedMultiplier(handler.Handler):
         """
         return f"break_speed({self.multiplier})"
 
-    def xml_template(self):
+    def xml_template(self) -> str:
         """Handle xml template.
 
         Returns:

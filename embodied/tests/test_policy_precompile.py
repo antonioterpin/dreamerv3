@@ -1,5 +1,9 @@
 """Policy warmup between checkpoint restoration and actor readiness."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import threading
 import types
 
@@ -12,13 +16,13 @@ import embodied
 from embodied.jax.agent import Agent as JaxAgent
 
 
-def _client(*args, **kwargs):
+def _client(*args: Any, **kwargs: Any) -> Any:
     return types.SimpleNamespace(close=lambda: None, stats=lambda: {})
 
 
-def _server_factory(events):
+def _server_factory(events: Any) -> Any:
 
-    def make_server(*args, **kwargs):
+    def make_server(*args: Any, **kwargs: Any) -> Any:
         """Create server.
 
         Args:
@@ -39,7 +43,7 @@ def _server_factory(events):
     return make_server
 
 
-def _args(actor_batch):
+def _args(actor_batch: Any) -> Any:
     return types.SimpleNamespace(
         actor_batch=actor_batch,
         log_every=0,
@@ -50,12 +54,14 @@ def _args(actor_batch):
     )
 
 
-def _run_actor_startup(monkeypatch, events, warmup_error=None):
+def _run_actor_startup(
+    monkeypatch: Any, events: Any, warmup_error: Any | None = None
+) -> None:
 
     class Agent:
         """Represent agent."""
 
-        def init_policy(self, batch_size):
+        def init_policy(self, batch_size: Any) -> dict[Any, Any]:
             """Handle init policy.
 
             Args:
@@ -67,7 +73,7 @@ def _run_actor_startup(monkeypatch, events, warmup_error=None):
             events.append("init_policy")
             return {"state": np.zeros((batch_size, 1), np.float32)}
 
-        def precompile_policy(self, batch_size):
+        def precompile_policy(self, batch_size: Any) -> None:
             """Handle precompile policy.
 
             Args:
@@ -83,7 +89,7 @@ def _run_actor_startup(monkeypatch, events, warmup_error=None):
 
     waits = [0]
 
-    def wait():
+    def wait() -> None:
         """Wait for state."""
         waits[0] += 1
         events.append("checkpoint_restored" if waits[0] == 1 else "learner_continues")
@@ -101,7 +107,7 @@ def _run_actor_startup(monkeypatch, events, warmup_error=None):
     )
 
 
-def test_actor_warms_policy_after_restore_before_serving(monkeypatch):
+def test_actor_warms_policy_after_restore_before_serving(monkeypatch: Any) -> None:
     """Verify actor warms policy after restore before serving.
 
     Args:
@@ -120,7 +126,7 @@ def test_actor_warms_policy_after_restore_before_serving(monkeypatch):
     ], events
 
 
-def test_failed_warmup_aborts_barrier_and_never_serves(monkeypatch):
+def test_failed_warmup_aborts_barrier_and_never_serves(monkeypatch: Any) -> None:
     """Verify failed warmup aborts barrier and never serves.
 
     Args:
@@ -133,7 +139,7 @@ def test_failed_warmup_aborts_barrier_and_never_serves(monkeypatch):
     assert "barrier_aborted" in events, events
 
 
-def test_learner_waits_for_warmup(monkeypatch):
+def test_learner_waits_for_warmup(monkeypatch: Any) -> None:
     """Verify learner waits for warmup.
 
     Args:
@@ -151,7 +157,7 @@ def test_learner_waits_for_warmup(monkeypatch):
     class Agent:
         """Represent agent."""
 
-        def init_policy(self, batch_size):
+        def init_policy(self, batch_size: Any) -> dict[Any, Any]:
             """Handle init policy.
 
             Args:
@@ -162,7 +168,7 @@ def test_learner_waits_for_warmup(monkeypatch):
             """
             return {"state": np.zeros((batch_size, 1), np.float32)}
 
-        def precompile_policy(self, batch_size):
+        def precompile_policy(self, batch_size: Any) -> None:
             """Handle precompile policy.
 
             Args:
@@ -178,14 +184,14 @@ def test_learner_waits_for_warmup(monkeypatch):
         embodied.run.parallel.portal, "BatchServer", _server_factory(events)
     )
 
-    def actor():
+    def actor() -> None:
         """Handle actor."""
         try:
             embodied.run.parallel.parallel_actor(Agent(), barrier, _args(2))
         except BaseException as e:
             errors.append(e)
 
-    def learner():
+    def learner() -> None:
         """Handle learner."""
         events.append("checkpoint_restored")
         barrier.wait()
@@ -211,7 +217,7 @@ def test_learner_waits_for_warmup(monkeypatch):
     ), 'Expected events index("warmup end") to be less than events.index("server_start").'
 
 
-def test_jax_warmup_compiles_real_shape_without_state_leaks():
+def test_jax_warmup_compiles_real_shape_without_state_leaks() -> None:
     """Verify jax warmup compiles real shape without state leaks.
 
     Returns:
@@ -232,7 +238,7 @@ def test_jax_warmup_compiles_real_shape_without_state_leaks():
     traces, observations, modes = [], [], []
 
     @jax.jit
-    def compiled(state, sensor):
+    def compiled(state: Any, sensor: Any) -> tuple[Any, ...]:
         """Handle compiled.
 
         Args:
@@ -245,7 +251,7 @@ def test_jax_warmup_compiles_real_shape_without_state_leaks():
         traces.append("trace")
         return state + 1, sensor[:, :1]
 
-    def init_policy(batch_size):
+    def init_policy(batch_size: Any) -> dict[Any, Any]:
         """Handle init policy.
 
         Args:
@@ -256,7 +262,7 @@ def test_jax_warmup_compiles_real_shape_without_state_leaks():
         """
         return {"state": np.zeros((batch_size, 1), np.float32)}
 
-    def policy(carry, obs, mode="train"):
+    def policy(carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
         """Handle policy.
 
         Args:

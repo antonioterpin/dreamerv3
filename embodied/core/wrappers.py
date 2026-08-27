@@ -1,5 +1,9 @@
 """Provide wrappers functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 import time
 
@@ -10,7 +14,7 @@ import numpy as np
 class Wrapper:
     """Represent wrapper."""
 
-    def __init__(self, env):
+    def __init__(self, env: Any) -> None:
         """Initialize the wrapper.
 
         Args:
@@ -18,13 +22,13 @@ class Wrapper:
         """
         self.env = env
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.env)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.env)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: Any) -> Any:
         if name.startswith("__"):
             raise AttributeError(name)
         try:
@@ -36,7 +40,7 @@ class Wrapper:
 class TimeLimit(Wrapper):
     """Represent time limit."""
 
-    def __init__(self, env, duration, reset=True):
+    def __init__(self, env: Any, duration: Any, reset: bool = True) -> None:
         """Initialize the time limit.
 
         Args:
@@ -50,7 +54,7 @@ class TimeLimit(Wrapper):
         self._step = 0
         self._done = False
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -81,7 +85,7 @@ class TimeLimit(Wrapper):
 class ActionRepeat(Wrapper):
     """Represent action repeat."""
 
-    def __init__(self, env, repeat):
+    def __init__(self, env: Any, repeat: Any) -> None:
         """Initialize the action repeat.
 
         Args:
@@ -91,7 +95,7 @@ class ActionRepeat(Wrapper):
         super().__init__(env)
         self._repeat = repeat
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -115,7 +119,9 @@ class ActionRepeat(Wrapper):
 class ClipAction(Wrapper):
     """Represent clip action."""
 
-    def __init__(self, env, key="action", low=-1, high=1):
+    def __init__(
+        self, env: Any, key: str = "action", low: Any = -1, high: int = 1
+    ) -> None:
         """Initialize the clip action.
 
         Args:
@@ -129,7 +135,7 @@ class ClipAction(Wrapper):
         self._low = low
         self._high = high
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -145,7 +151,7 @@ class ClipAction(Wrapper):
 class NormalizeAction(Wrapper):
     """Represent normalize action."""
 
-    def __init__(self, env, key="action"):
+    def __init__(self, env: Any, key: str = "action") -> None:
         """Initialize the normalize action.
 
         Args:
@@ -160,7 +166,7 @@ class NormalizeAction(Wrapper):
         self._high = np.where(self._mask, self._space.high, 1)
 
     @functools.cached_property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -171,7 +177,7 @@ class NormalizeAction(Wrapper):
         space = elements.Space(np.float32, self._space.shape, low, high)
         return {**self.env.act_space, self._key: space}
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -280,7 +286,7 @@ class NormalizeAction(Wrapper):
 class UnifyDtypes(Wrapper):
     """Represent unify dtypes."""
 
-    def __init__(self, env):
+    def __init__(self, env: Any) -> None:
         """Initialize the unify dtypes.
 
         Args:
@@ -291,7 +297,7 @@ class UnifyDtypes(Wrapper):
         self._act_space, self._act_inner, _ = self._convert(env.act_space)
 
     @property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -300,7 +306,7 @@ class UnifyDtypes(Wrapper):
         return self._obs_space
 
     @property
-    def act_space(self):
+    def act_space(self) -> Any:
         """Handle act space.
 
         Returns:
@@ -308,7 +314,7 @@ class UnifyDtypes(Wrapper):
         """
         return self._act_space
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -325,7 +331,7 @@ class UnifyDtypes(Wrapper):
             obs[key] = np.asarray(obs[key], dtype)
         return obs
 
-    def _convert(self, spaces):
+    def _convert(self, spaces: Any) -> tuple[Any, ...]:
         results, befores, afters = {}, {}, {}
         for key, space in spaces.items():
             before = after = space.dtype
@@ -344,7 +350,7 @@ class UnifyDtypes(Wrapper):
 class CheckSpaces(Wrapper):
     """Represent check spaces."""
 
-    def __init__(self, env):
+    def __init__(self, env: Any) -> None:
         """Initialize the check spaces.
 
         Args:
@@ -356,7 +362,7 @@ class CheckSpaces(Wrapper):
         )
         super().__init__(env)
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -372,7 +378,7 @@ class CheckSpaces(Wrapper):
             self._check(value, self.env.obs_space[key], key)
         return obs
 
-    def _check(self, value, space, key):
+    def _check(self, value: Any, space: Any, key: Any) -> None:
         if not isinstance(
             value, (np.ndarray, np.generic, list, tuple, int, float, bool)
         ):
@@ -391,7 +397,7 @@ class CheckSpaces(Wrapper):
 class DiscretizeAction(Wrapper):
     """Represent discretize action."""
 
-    def __init__(self, env, key="action", bins=5):
+    def __init__(self, env: Any, key: str = "action", bins: int = 5) -> None:
         """Initialize the discretize action.
 
         Args:
@@ -405,7 +411,7 @@ class DiscretizeAction(Wrapper):
         self._key = key
 
     @functools.cached_property
-    def act_space(self):
+    def act_space(self) -> dict[Any, Any]:
         """Handle act space.
 
         Returns:
@@ -414,7 +420,7 @@ class DiscretizeAction(Wrapper):
         space = elements.Space(np.int32, self._dims, 0, len(self._values))
         return {**self.env.act_space, self._key: space}
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -430,7 +436,7 @@ class DiscretizeAction(Wrapper):
 class ResizeImage(Wrapper):
     """Represent resize image."""
 
-    def __init__(self, env, size=(64, 64)):
+    def __init__(self, env: Any, size: tuple[Any, ...] = (64, 64)) -> None:
         """Initialize the resize image.
 
         Args:
@@ -451,7 +457,7 @@ class ResizeImage(Wrapper):
             self._Image = Image
 
     @functools.cached_property
-    def obs_space(self):
+    def obs_space(self) -> Any:
         """Handle observation space.
 
         Returns:
@@ -463,7 +469,7 @@ class ResizeImage(Wrapper):
             spaces[key] = elements.Space(np.uint8, shape)
         return spaces
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -477,7 +483,7 @@ class ResizeImage(Wrapper):
             obs[key] = self._resize(obs[key])
         return obs
 
-    def _resize(self, image):
+    def _resize(self, image: Any) -> Any:
         image = self._Image.fromarray(image)
         image = image.resize(self._size, self._Image.NEAREST)
         image = np.array(image)
@@ -506,7 +512,7 @@ class ResizeImage(Wrapper):
 class BackwardReturn(Wrapper):
     """Represent backward return."""
 
-    def __init__(self, env, horizon):
+    def __init__(self, env: Any, horizon: Any) -> None:
         """Initialize the backward return.
 
         Args:
@@ -518,7 +524,7 @@ class BackwardReturn(Wrapper):
         self._bwreturn = 0.0
 
     @functools.cached_property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -529,7 +535,7 @@ class BackwardReturn(Wrapper):
             "bwreturn": elements.Space(np.float32),
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -548,7 +554,7 @@ class BackwardReturn(Wrapper):
 class AddObs(Wrapper):
     """Represent add observation."""
 
-    def __init__(self, env, key, value, space):
+    def __init__(self, env: Any, key: Any, value: Any, space: Any) -> None:
         """Initialize the add observation.
 
         Args:
@@ -563,7 +569,7 @@ class AddObs(Wrapper):
         self._space = space
 
     @functools.cached_property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -574,7 +580,7 @@ class AddObs(Wrapper):
             self._key: self._space,
         }
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -591,7 +597,14 @@ class AddObs(Wrapper):
 class RestartOnException(Wrapper):
     """Represent restart on exception."""
 
-    def __init__(self, ctor, exceptions=(Exception,), window=300, maxfails=2, wait=20):
+    def __init__(
+        self,
+        ctor: Any,
+        exceptions: tuple[Any, ...] = (Exception,),
+        window: int = 300,
+        maxfails: int = 2,
+        wait: int = 20,
+    ) -> None:
         """Initialize the restart on exception.
 
         Args:
@@ -612,7 +625,7 @@ class RestartOnException(Wrapper):
         self._fails = 0
         super().__init__(self._ctor())
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:

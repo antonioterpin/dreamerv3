@@ -1,5 +1,9 @@
 """Provide test train functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 from functools import partial as bind
 
 import elements
@@ -12,7 +16,7 @@ import utils
 class TestTrain:
     """Represent test train."""
 
-    def test_run_loop(self, tmpdir):
+    def test_run_loop(self, tmpdir: Any) -> None:
         """Verify run loop.
 
         Args:
@@ -56,22 +60,22 @@ class TestTrain:
             stats["env_steps"], args.steps, 100, 0.1
         ), "Expected np allclose(stats env steps, args steps, 100, 0 1) to be initialized or truthy."
 
-    def _make_agent(self):
+    def _make_agent(self) -> Any:
         env = self._make_env(0)
         agent = utils.TestAgent(env.obs_space, env.act_space)
         env.close()
         return agent
 
-    def _make_env(self, index):
+    def _make_env(self, index: Any) -> Any:
         from embodied.envs import dummy
 
         return dummy.Dummy("disc", size=(64, 64), length=100)
 
-    def _make_replay(self, args):
+    def _make_replay(self, args: Any) -> Any:
         kwargs = {"length": args.batch_length, "capacity": 1e4}
         return embodied.replay.Replay(**kwargs)
 
-    def _make_logger(self):
+    def _make_logger(self) -> Any:
         return elements.Logger(
             elements.Counter(),
             [
@@ -79,7 +83,7 @@ class TestTrain:
             ],
         )
 
-    def _make_args(self, logdir):
+    def _make_args(self, logdir: Any) -> Any:
         return elements.Config(
             steps=1000,
             train_ratio=32.0,

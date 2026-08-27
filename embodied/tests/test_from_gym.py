@@ -1,5 +1,9 @@
 """Provide test from gym functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import gym
 import numpy as np
 import pytest
@@ -14,11 +18,11 @@ class _LegacyEnv(gym.Env):
     observation_space = gym.spaces.Box(-1, 1, (2,), np.float32)
     action_space = gym.spaces.Box(-1, 1, (1,), np.float32)
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the legacy environment."""
         self.t = 0
 
-    def reset(self):
+    def reset(self) -> Any:
         """Reset state.
 
         Returns:
@@ -27,7 +31,7 @@ class _LegacyEnv(gym.Env):
         self.t = 0
         return np.zeros((2,), np.float32)
 
-    def step(self, action):
+    def step(self, action: Any) -> tuple[Any, ...]:
         """Advance state.
 
         Args:
@@ -47,7 +51,7 @@ class _ModernEnv(gym.Env):
     observation_space = gym.spaces.Box(-1, 1, (2,), np.float32)
     action_space = gym.spaces.Box(-1, 1, (1,), np.float32)
 
-    def __init__(self, truncate=False):
+    def __init__(self, truncate: bool = False) -> None:
         """Initialize the modern environment.
 
         Args:
@@ -56,7 +60,9 @@ class _ModernEnv(gym.Env):
         self.t = 0
         self.truncate = truncate
 
-    def reset(self, *, seed=None, options=None):
+    def reset(
+        self, *, seed: Any | None = None, options: Any | None = None
+    ) -> tuple[Any, ...]:
         """Reset state.
 
         Args:
@@ -69,7 +75,7 @@ class _ModernEnv(gym.Env):
         self.t = 0
         return np.zeros((2,), np.float32), {"source": "reset"}
 
-    def step(self, action):
+    def step(self, action: Any) -> tuple[Any, ...]:
         """Advance state.
 
         Args:
@@ -85,7 +91,7 @@ class _ModernEnv(gym.Env):
         return np.full((2,), self.t, np.float32), 1.0, terminated, truncated, {}
 
 
-def _rollout(env):
+def _rollout(env: Any) -> Any:
     env = FromGym(env)
     act = {k: v.sample() for k, v in env.act_space.items()}
     obs = [env.step({**act, "reset": True})]
@@ -94,7 +100,7 @@ def _rollout(env):
     return obs
 
 
-def test_legacy_api_unchanged():
+def test_legacy_api_unchanged() -> None:
     """Verify legacy api unchanged."""
     obs = _rollout(_LegacyEnv())
     assert [o["is_first"] for o in obs] == [
@@ -123,7 +129,7 @@ def test_legacy_api_unchanged():
 
 
 @pytest.mark.parametrize("truncate", [False, True])
-def test_modern_api_reset_tuple_and_five_tuple_step(truncate):
+def test_modern_api_reset_tuple_and_five_tuple_step(truncate: Any) -> None:
     """Verify modern api reset tuple and five tuple step.
 
     Args:
@@ -160,7 +166,7 @@ def test_modern_api_reset_tuple_and_five_tuple_step(truncate):
     ], 'Expected all parts of the again["is_first"] and again["image"].tolist() == [0, 0] invariant to hold.'
 
 
-def test_modern_api_info_overrides_is_terminal():
+def test_modern_api_info_overrides_is_terminal() -> None:
     """Verify modern api info overrides is terminal.
 
     Returns:
@@ -170,7 +176,7 @@ def test_modern_api_info_overrides_is_terminal():
     class Env(_ModernEnv):
         """Represent environment."""
 
-        def step(self, action):
+        def step(self, action: Any) -> tuple[Any, ...]:
             """Advance state.
 
             Args:
@@ -188,7 +194,7 @@ def test_modern_api_info_overrides_is_terminal():
     ), 'Expected all parts of the obs[-1]["is_last"] and (not obs[-1]["is_terminal"]) invariant to hold.'
 
 
-def test_reset_key_is_not_forwarded_to_dict_action_envs():
+def test_reset_key_is_not_forwarded_to_dict_action_envs() -> None:
     """Verify reset key is not forwarded to dict action envs.
 
     Returns:
@@ -205,11 +211,11 @@ def test_reset_key_is_not_forwarded_to_dict_action_envs():
             {"move": gym.spaces.Box(-1, 1, (1,), np.float32)}
         )
 
-        def __init__(self):
+        def __init__(self) -> None:
             """Initialize the dict action environment."""
             self.received = []
 
-        def reset(self):
+        def reset(self) -> dict[Any, Any]:
             """Reset state.
 
             Returns:
@@ -217,7 +223,7 @@ def test_reset_key_is_not_forwarded_to_dict_action_envs():
             """
             return {"pos": np.zeros((2,), np.float32)}
 
-        def step(self, action):
+        def step(self, action: Any) -> tuple[Any, ...]:
             """Advance state.
 
             Args:

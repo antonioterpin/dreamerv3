@@ -1,5 +1,9 @@
 """Provide utils functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import time
 
 import elements
@@ -10,7 +14,7 @@ import numpy as np
 class TestAgent:
     """Represent test agent."""
 
-    def __init__(self, obs_space, act_space, addr=None):
+    def __init__(self, obs_space: Any, act_space: Any, addr: Any | None = None) -> None:
         """Initialize the test agent.
 
         Args:
@@ -34,14 +38,14 @@ class TestAgent:
             "created": time.time(),
         }
 
-    def _watcher(self):
+    def _watcher(self) -> None:
         while True:
             if self.queue.empty():
                 self.queue.put(self.stats())
             else:
                 time.sleep(0.01)
 
-    def stats(self):
+    def stats(self) -> Any:
         """Handle statistics.
 
         Returns:
@@ -51,7 +55,7 @@ class TestAgent:
         stats["lifetime"] = time.time() - stats.pop("created")
         return stats
 
-    def init_policy(self, batch_size):
+    def init_policy(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init policy.
 
         Args:
@@ -62,7 +66,7 @@ class TestAgent:
         """
         return (np.zeros(batch_size),)
 
-    def init_train(self, batch_size):
+    def init_train(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init train.
 
         Args:
@@ -73,7 +77,7 @@ class TestAgent:
         """
         return (np.zeros(batch_size),)
 
-    def init_report(self, batch_size):
+    def init_report(self, batch_size: Any) -> tuple[Any, ...]:
         """Handle init report.
 
         Args:
@@ -84,7 +88,7 @@ class TestAgent:
         """
         return ()
 
-    def policy(self, carry, obs, mode="train"):
+    def policy(self, carry: Any, obs: Any, mode: str = "train") -> tuple[Any, ...]:
         """Handle policy.
 
         Args:
@@ -122,7 +126,7 @@ class TestAgent:
         }
         return (carry,), act, {}
 
-    def train(self, carry, data):
+    def train(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Train state.
 
         Args:
@@ -152,7 +156,7 @@ class TestAgent:
         metrics = {}
         return (carry,), outs, metrics
 
-    def report(self, carry, data):
+    def report(self, carry: Any, data: Any) -> tuple[Any, ...]:
         """Handle report.
 
         Args:
@@ -171,7 +175,7 @@ class TestAgent:
             "video": np.zeros((10, 64, 64, 3)),
         }
 
-    def dataset(self, generator):
+    def dataset(self, generator: Any) -> Any:
         """Handle dataset.
 
         Args:
@@ -182,7 +186,7 @@ class TestAgent:
         """
         return generator()
 
-    def save(self):
+    def save(self) -> Any:
         """Save state.
 
         Returns:
@@ -191,7 +195,7 @@ class TestAgent:
         self._stats["saves"] += 1
         return self._stats
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:

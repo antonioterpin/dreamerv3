@@ -1,5 +1,9 @@
 """Provide from gym functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 
 import elements
@@ -11,7 +15,9 @@ import numpy as np
 class FromGym(embodied.Env):
     """Represent from gym."""
 
-    def __init__(self, env, obs_key="image", act_key="action", **kwargs):
+    def __init__(
+        self, env: Any, obs_key: str = "image", act_key: str = "action", **kwargs: Any
+    ) -> None:
         """Initialize the from gym.
 
         Args:
@@ -33,7 +39,7 @@ class FromGym(embodied.Env):
         self._info = None
 
     @property
-    def env(self):
+    def env(self) -> Any:
         """Handle environment.
 
         Returns:
@@ -42,7 +48,7 @@ class FromGym(embodied.Env):
         return self._env
 
     @property
-    def info(self):
+    def info(self) -> Any:
         """Handle info.
 
         Returns:
@@ -51,7 +57,7 @@ class FromGym(embodied.Env):
         return self._info
 
     @functools.cached_property
-    def obs_space(self):
+    def obs_space(self) -> dict[Any, Any]:
         """Handle observation space.
 
         Returns:
@@ -71,7 +77,7 @@ class FromGym(embodied.Env):
         }
 
     @functools.cached_property
-    def act_space(self):
+    def act_space(self) -> Any:
         """Handle act space.
 
         Returns:
@@ -85,7 +91,7 @@ class FromGym(embodied.Env):
         spaces["reset"] = elements.Space(bool)
         return spaces
 
-    def step(self, action):
+    def step(self, action: Any) -> Any:
         """Advance state.
 
         Args:
@@ -115,7 +121,14 @@ class FromGym(embodied.Env):
             is_terminal = bool(self._info.get("is_terminal", self._done))
         return self._obs(obs, reward, is_last=bool(self._done), is_terminal=is_terminal)
 
-    def _obs(self, obs, reward, is_first=False, is_last=False, is_terminal=False):
+    def _obs(
+        self,
+        obs: Any,
+        reward: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
         if not self._obs_dict:
             obs = {self._obs_key: obs}
         obs = self._flatten(obs)
@@ -128,7 +141,7 @@ class FromGym(embodied.Env):
         )
         return obs
 
-    def render(self):
+    def render(self) -> Any:
         """Render state.
 
         Returns:
@@ -138,14 +151,14 @@ class FromGym(embodied.Env):
         assert image is not None, "Expected image not to be None."
         return image
 
-    def close(self):
+    def close(self) -> None:
         """Close state."""
         try:
             self._env.close()
         except Exception:
             pass
 
-    def _flatten(self, nest, prefix=None):
+    def _flatten(self, nest: Any, prefix: Any | None = None) -> Any:
         result = {}
         for key, value in nest.items():
             key = prefix + "/" + key if prefix else key
@@ -157,7 +170,7 @@ class FromGym(embodied.Env):
                 result[key] = value
         return result
 
-    def _unflatten(self, flat):
+    def _unflatten(self, flat: Any) -> Any:
         result = {}
         for key, value in flat.items():
             parts = key.split("/")
@@ -169,7 +182,7 @@ class FromGym(embodied.Env):
             node[parts[-1]] = value
         return result
 
-    def _convert(self, space):
+    def _convert(self, space: Any) -> Any:
         if hasattr(space, "n"):
             return elements.Space(np.int32, (), 0, space.n)
         return elements.Space(space.dtype, space.shape, space.low, space.high)

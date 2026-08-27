@@ -1,5 +1,9 @@
 """Provide test distr functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import os
 import pathlib
 import sys
@@ -15,7 +19,9 @@ import numpy as np
 class TestDistr:
     """Represent test distr."""
 
-    def test_batched_throughput(self, clients=32, batch=16, workers=4):
+    def test_batched_throughput(
+        self, clients: int = 32, batch: int = 16, workers: int = 4
+    ) -> None:
         """Verify batched throughput.
 
         Args:
@@ -34,7 +40,7 @@ class TestDistr:
         stats = defaultdict(int)
         barrier = zerofun.mp.Barrier(1 + clients)
 
-        def client(context, addr, barrier):
+        def client(context: Any, addr: Any, barrier: Any) -> None:
             """Handle client.
 
             Args:
@@ -60,7 +66,7 @@ class TestDistr:
             while context.running:
                 client.function(data).result()
 
-        def workfn(data):
+        def workfn(data: Any) -> tuple[Any, ...]:
             """Handle workfn.
 
             Args:
@@ -72,7 +78,7 @@ class TestDistr:
             time.sleep(0.002)
             return data, data
 
-        def donefn(data):
+        def donefn(data: Any) -> None:
             """Handle donefn.
 
             Args:
@@ -110,7 +116,9 @@ class TestDistr:
 
     #############################################################################
 
-    def test_proxy_throughput(self, clients=32, batch=16, workers=4):
+    def test_proxy_throughput(
+        self, clients: int = 32, batch: int = 16, workers: int = 4
+    ) -> None:
         """Verify proxy throughput.
 
         Args:
@@ -125,7 +133,7 @@ class TestDistr:
             int(os.popen("ulimit -n").read()) > 1024
         ), 'Expected int(os popen("ulimit -n") read()) to be greater than 1024.'
 
-        def client(context, outer_addr, barrier):
+        def client(context: Any, outer_addr: Any, barrier: Any) -> None:
             """Handle client.
 
             Args:
@@ -151,7 +159,7 @@ class TestDistr:
             while context.running:
                 client.function(data).result()
 
-        def proxy(context, outer_addr, inner_addr, barrier):
+        def proxy(context: Any, outer_addr: Any, inner_addr: Any, barrier: Any) -> None:
             """Handle proxy.
 
             Args:
@@ -167,7 +175,7 @@ class TestDistr:
             client.connect()
             server = zerofun.Server(outer_addr, errors=True, name="ProxyOuter")
 
-            def function(data):
+            def function(data: Any) -> Any:
                 """Handle function.
 
                 Args:
@@ -185,7 +193,7 @@ class TestDistr:
                     server.check()
                     time.sleep(0.1)
 
-        def backend(context, inner_addr, barrier):
+        def backend(context: Any, inner_addr: Any, barrier: Any) -> None:
             """Handle backend.
 
             Args:
@@ -198,7 +206,7 @@ class TestDistr:
             """
             stats = defaultdict(int)
 
-            def workfn(data):
+            def workfn(data: Any) -> tuple[Any, ...]:
                 """Handle workfn.
 
                 Args:
@@ -210,7 +218,7 @@ class TestDistr:
                 time.sleep(0.002)
                 return data, data
 
-            def donefn(data):
+            def donefn(data: Any) -> None:
                 """Handle donefn.
 
                 Args:

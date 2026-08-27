@@ -1,10 +1,20 @@
 """Provide limiters functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import threading
 import time
 
 
-def wait(predicate, message, info=None, sleep=0.01, notify=60):
+def wait(
+    predicate: Any,
+    message: Any,
+    info: Any | None = None,
+    sleep: float = 0.01,
+    notify: int = 60,
+) -> Any:
     """Wait for state.
 
     Args:
@@ -33,7 +43,7 @@ def wait(predicate, message, info=None, sleep=0.01, notify=60):
 class SamplesPerInsert:
     """Represent samples per insert."""
 
-    def __init__(self, samples_per_insert, tolerance, minsize):
+    def __init__(self, samples_per_insert: Any, tolerance: Any, minsize: Any) -> None:
         """Initialize the samples per insert.
 
         Args:
@@ -50,7 +60,7 @@ class SamplesPerInsert:
         self.size = 0
         self.lock = threading.Lock()
 
-    def save(self):
+    def save(self) -> dict[Any, Any]:
         """Save state.
 
         Returns:
@@ -58,7 +68,7 @@ class SamplesPerInsert:
         """
         return {"size": self.size, "avail": self.avail}
 
-    def load(self, data):
+    def load(self, data: Any) -> None:
         """Load state.
 
         Args:
@@ -67,7 +77,7 @@ class SamplesPerInsert:
         self.size = data["size"]
         self.avail = data["avail"]
 
-    def want_insert(self):
+    def want_insert(self) -> bool:
         # if self.samples_per_insert <= 0 or self.size < self.minsize:
         #   return True, 'ok'
         # if self.avail >= self.max_avail:
@@ -86,7 +96,7 @@ class SamplesPerInsert:
             return True
         return False
 
-    def want_sample(self):
+    def want_sample(self) -> bool:
         # if self.size < self.minsize:
         #   return False, f'too empty: {self.size} < {self.minsize}'
         # if self.samples_per_insert > 0 and self.avail <= self.min_avail:
@@ -105,7 +115,7 @@ class SamplesPerInsert:
             return True
         return False
 
-    def insert(self):
+    def insert(self) -> None:
         """Handle insert."""
         with self.lock:
             self.size += 1
@@ -116,7 +126,7 @@ class SamplesPerInsert:
     #   with self.lock:
     #     self.size -= 1
 
-    def sample(self):
+    def sample(self) -> None:
         """Sample state."""
         with self.lock:
             self.avail -= 1

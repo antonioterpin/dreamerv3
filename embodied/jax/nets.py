@@ -1,8 +1,10 @@
 """Provide nets functionality."""
 
+from __future__ import annotations
+
 import functools
 import math
-from typing import Callable
+from typing import Any, Callable
 
 import einops
 import jax
@@ -17,7 +19,7 @@ LAYER_CALLBACK = lambda tensor, name: tensor
 f32 = jnp.float32
 
 
-def cast(xs, force=False):
+def cast(xs: Any, force: bool = False) -> Any:
     """Handle cast.
 
     Args:
@@ -34,7 +36,7 @@ def cast(xs, force=False):
     return jax.tree.map(lambda x: COMPUTE_DTYPE(x) if should(x) else x, xs)
 
 
-def act(name):
+def act(name: Any) -> Any:
     """Handle act.
 
     Args:
@@ -51,7 +53,7 @@ def act(name):
         return lambda x: jnp.square(jax.nn.relu(x))
     elif name == "swiglu":
 
-        def fn(x):
+        def fn(x: Any) -> Any:
             x, y = jnp.split(x, 2, -1)
             return jax.nn.silu(x) * y
 
@@ -60,7 +62,7 @@ def act(name):
         return getattr(jax.nn, name)
 
 
-def init(name):
+def init(name: Any) -> Any:
     """Handle init.
 
     Args:
@@ -78,7 +80,7 @@ def init(name):
     return Initializer(dist, fan, 1.0)
 
 
-def dropout(x, prob, training):
+def dropout(x: Any, prob: Any, training: Any) -> Any:
     """Handle dropout.
 
     Args:
@@ -95,7 +97,7 @@ def dropout(x, prob, training):
     return x * keep / (1.0 - prob)
 
 
-def symlog(x):
+def symlog(x: Any) -> Any:
     """Handle symlog.
 
     Args:
@@ -107,7 +109,7 @@ def symlog(x):
     return jnp.sign(x) * jnp.log1p(jnp.abs(x))
 
 
-def symexp(x):
+def symexp(x: Any) -> Any:
     """Handle symexp.
 
     Args:
@@ -119,7 +121,7 @@ def symexp(x):
     return jnp.sign(x) * jnp.expm1(jnp.abs(x))
 
 
-def where(condition, xs, ys):
+def where(condition: Any, xs: Any, ys: Any) -> Any:
     """Handle where.
 
     Args:
@@ -132,7 +134,7 @@ def where(condition, xs, ys):
     """
     assert condition.dtype == bool, condition.dtype
 
-    def fn(x, y):
+    def fn(x: Any, y: Any) -> Any:
         """Handle function.
 
         Args:
@@ -149,7 +151,7 @@ def where(condition, xs, ys):
     return jax.tree.map(fn, xs, ys)
 
 
-def mask(xs, mask):
+def mask(xs: Any, mask: Any) -> Any:
     """Handle mask.
 
     Args:
@@ -162,7 +164,7 @@ def mask(xs, mask):
     return where(mask, xs, jax.tree.map(jnp.zeros_like, xs))
 
 
-def available(*trees, bdims=None):
+def available(*trees: Any, bdims: Any | None = None) -> Any:
     """Handle available.
 
     Args:
@@ -176,7 +178,7 @@ def available(*trees, bdims=None):
         NotImplementedError: If the operation cannot be completed.
     """
 
-    def fn(*xs):
+    def fn(*xs: Any) -> Any:
         """Handle function.
 
         Args:
@@ -210,7 +212,7 @@ def available(*trees, bdims=None):
 
 
 @functools.partial(jax.custom_vjp, nondiff_argnums=[1, 2])
-def ensure_dtypes(x, fwd=None, bwd=None):
+def ensure_dtypes(x: Any, fwd: Any | None = None, bwd: Any | None = None) -> Any:
     """Handle ensure dtypes.
 
     Args:
@@ -227,7 +229,9 @@ def ensure_dtypes(x, fwd=None, bwd=None):
     return x
 
 
-def ensure_dtypes_fwd(x, fwd=None, bwd=None):
+def ensure_dtypes_fwd(
+    x: Any, fwd: Any | None = None, bwd: Any | None = None
+) -> tuple[Any, ...]:
     """Handle ensure dtypes fwd.
 
     Args:
@@ -243,7 +247,7 @@ def ensure_dtypes_fwd(x, fwd=None, bwd=None):
     return ensure_dtypes(x, fwd, bwd), ()
 
 
-def ensure_dtypes_bwd(fwd, bwd, cache, dx):
+def ensure_dtypes_bwd(fwd: Any, bwd: Any, cache: Any, dx: Any) -> tuple[Any, ...]:
     """Handle ensure dtypes bwd.
 
     Args:
@@ -264,7 +268,7 @@ def ensure_dtypes_bwd(fwd, bwd, cache, dx):
 ensure_dtypes.defvjp(ensure_dtypes_fwd, ensure_dtypes_bwd)
 
 
-def rms(xs):
+def rms(xs: Any) -> Any:
     """Handle rms.
 
     Args:
@@ -279,7 +283,9 @@ def rms(xs):
     return jnp.sqrt(sumsq / f32(count))
 
 
-def rope(x, ts=None, inverse=False, maxlen=4096):
+def rope(
+    x: Any, ts: Any | None = None, inverse: bool = False, maxlen: int = 4096
+) -> Any:
     """Handle rope.
 
     Args:
@@ -310,7 +316,9 @@ def rope(x, ts=None, inverse=False, maxlen=4096):
 class Initializer:
     """Represent initializer."""
 
-    def __init__(self, dist="trunc_normal", fan="in", scale=1.0):
+    def __init__(
+        self, dist: str = "trunc_normal", fan: str = "in", scale: float = 1.0
+    ) -> None:
         """Initialize the initializer.
 
         Args:
@@ -322,7 +330,9 @@ class Initializer:
         self.fan = fan
         self.scale = scale
 
-    def __call__(self, shape, dtype=jnp.float32, fshape=None):
+    def __call__(
+        self, shape: Any, dtype: Any = jnp.float32, fshape: Any | None = None
+    ) -> Any:
         """Apply the initializer.
 
         Args:
@@ -366,15 +376,15 @@ class Initializer:
         x = x.astype(dtype)
         return x
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Initializer({self.dist}, {self.fan}, {self.scale})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> Any:
         attributes = ("dist", "fan", "scale")
         return all(getattr(self, k) == getattr(other, k) for k in attributes)
 
     @staticmethod
-    def compute_fans(shape):
+    def compute_fans(shape: Any) -> Any:
         """Compute fans.
 
         Args:
@@ -400,7 +410,7 @@ class Embed(nj.Module):
     einit: str | Callable = Initializer("trunc_normal", "out")
     combine: bool = False
 
-    def __init__(self, classes, units, shape=()):
+    def __init__(self, classes: Any, units: Any, shape: tuple[Any, ...] = ()) -> None:
         """Initialize the embed.
 
         Args:
@@ -412,7 +422,7 @@ class Embed(nj.Module):
         self.units = units
         self.shape = shape
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the embed.
 
         Args:
@@ -448,7 +458,7 @@ class Linear(nj.Module):
     binit: str | Callable = Initializer("zeros")
     outscale: float = 1.0
 
-    def __init__(self, units):
+    def __init__(self, units: Any) -> None:
         """Initialize the linear.
 
         Args:
@@ -456,7 +466,7 @@ class Linear(nj.Module):
         """
         self.units = (units,) if isinstance(units, int) else tuple(units)
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the linear.
 
         Args:
@@ -474,7 +484,7 @@ class Linear(nj.Module):
         x = x.reshape((*x.shape[:-1], *self.units))
         return x
 
-    def _scaled_winit(self, *args, **kwargs):
+    def _scaled_winit(self, *args: Any, **kwargs: Any) -> Any:
         return init(self.winit)(*args, **kwargs) * self.outscale
 
 
@@ -486,7 +496,7 @@ class BlockLinear(nj.Module):
     binit: str | Callable = Initializer("zeros")
     outscale: float = 1.0
 
-    def __init__(self, units, blocks):
+    def __init__(self, units: Any, blocks: Any) -> None:
         """Initialize the block linear.
 
         Args:
@@ -498,7 +508,7 @@ class BlockLinear(nj.Module):
         self.units = units
         self.blocks = blocks
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the block linear.
 
         Args:
@@ -519,7 +529,7 @@ class BlockLinear(nj.Module):
             x += self.value("bias", init(self.binit), self.units).astype(x.dtype)
         return x
 
-    def _scaled_winit(self, *args, **kwargs):
+    def _scaled_winit(self, *args: Any, **kwargs: Any) -> Any:
         return init(self.winit)(*args, **kwargs) * self.outscale
 
 
@@ -534,7 +544,7 @@ class Conv2D(nj.Module):
     binit: str | Callable = Initializer("zeros")
     outscale: float = 1.0
 
-    def __init__(self, depth, kernel, stride=1):
+    def __init__(self, depth: Any, kernel: Any, stride: int = 1) -> None:
         """Initialize the conv2 d.
 
         Args:
@@ -546,7 +556,7 @@ class Conv2D(nj.Module):
         self.kernel = (kernel,) * 2 if isinstance(kernel, int) else kernel
         self.stride = stride
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the conv2 d.
 
         Args:
@@ -581,7 +591,7 @@ class Conv2D(nj.Module):
             x += self.value("bias", init(self.binit), self.depth).astype(x.dtype)
         return x
 
-    def _scaled_winit(self, *args, **kwargs):
+    def _scaled_winit(self, *args: Any, **kwargs: Any) -> Any:
         return init(self.winit)(*args, **kwargs) * self.outscale
 
 
@@ -595,7 +605,7 @@ class Conv3D(nj.Module):
     winit: str | Callable = Initializer("trunc_normal")
     binit: str | Callable = Initializer("zeros")
 
-    def __init__(self, depth, kernel, stride=1):
+    def __init__(self, depth: Any, kernel: Any, stride: int = 1) -> None:
         """Initialize the conv3 d.
 
         Args:
@@ -607,7 +617,7 @@ class Conv3D(nj.Module):
         self.kernel = (kernel,) * 3 if isinstance(kernel, int) else kernel
         self.stride = (stride,) * 3 if isinstance(stride, int) else stride
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the conv3 d.
 
         Args:
@@ -652,7 +662,7 @@ class Norm(nj.Module):
     scale: bool = True
     shift: bool = True
 
-    def __init__(self, impl):
+    def __init__(self, impl: Any) -> None:
         """Initialize the norm.
 
         Args:
@@ -663,7 +673,7 @@ class Norm(nj.Module):
             self._fields["eps"] = 10 ** -int(exp)
         self.impl = impl
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the norm.
 
         Args:
@@ -701,12 +711,12 @@ class Norm(nj.Module):
         x = x.astype(dtype)
         return x
 
-    def _scale(self, shape, dtype):
+    def _scale(self, shape: Any, dtype: Any) -> Any:
         if not self.scale:
             return jnp.ones(shape, dtype)
         return self.value("scale", jnp.ones, shape, f32).astype(dtype)
 
-    def _shift(self, shape, dtype):
+    def _shift(self, shape: Any, dtype: Any) -> Any:
         if not self.shift:
             return jnp.zeros(shape, dtype)
         return self.value("shift", jnp.zeros, shape, f32).astype(dtype)
@@ -725,7 +735,13 @@ class Attention(nj.Module):
     binit: str | Callable = Initializer("zeros")
     outscale: float = 1.0
 
-    def __call__(self, x, mask=None, ts=None, training=True):
+    def __call__(
+        self,
+        x: Any,
+        mask: Any | None = None,
+        ts: Any | None = None,
+        training: bool = True,
+    ) -> Any:
         """Apply the attention.
 
         Args:
@@ -782,7 +798,7 @@ class Attention(nj.Module):
 class DictConcat:
     """Represent dict concat."""
 
-    def __init__(self, spaces, fdims, squish=lambda x: x):
+    def __init__(self, spaces: Any, fdims: Any, squish: Any = lambda x: x) -> None:
         """Initialize the dict concat.
 
         Args:
@@ -796,7 +812,7 @@ class DictConcat:
         self.fdims = fdims
         self.squish = squish
 
-    def __call__(self, xs):
+    def __call__(self, xs: Any) -> Any:
         """Apply the dict concat.
 
         Args:
@@ -845,7 +861,7 @@ class DictEmbed(nj.Module):
     binit: str | Callable = Initializer("zeros")
     impl: str = "onehot"
 
-    def __init__(self, spaces, units):
+    def __init__(self, spaces: Any, units: Any) -> None:
         """Initialize the dict embed.
 
         Args:
@@ -858,7 +874,7 @@ class DictEmbed(nj.Module):
         self.ekw = dict(einit=self.einit)
         self.lkw = dict(bias=self.bias, winit=self.winit, binit=self.binit)
 
-    def __call__(self, xs, bshape):
+    def __call__(self, xs: Any, bshape: Any) -> Any:
         """Apply the dict embed.
 
         Args:
@@ -930,7 +946,7 @@ class MLP(nj.Module):
     winit: str | Callable = Initializer("trunc_normal")
     binit: str | Callable = Initializer("zeros")
 
-    def __init__(self, layers=5, units=1024):
+    def __init__(self, layers: int = 5, units: int = 1024) -> None:
         """Initialize the mlp.
 
         Args:
@@ -941,7 +957,7 @@ class MLP(nj.Module):
         self.units = units
         self.kw = dict(bias=self.bias, winit=self.winit, binit=self.binit)
 
-    def __call__(self, x):
+    def __call__(self, x: Any) -> Any:
         """Apply the mlp.
 
         Args:
@@ -978,7 +994,13 @@ class Transformer(nj.Module):
     binit: str | Callable = Initializer("zeros")
     outscale: float = 1.0
 
-    def __call__(self, x, mask=None, ts=None, training=True):
+    def __call__(
+        self,
+        x: Any,
+        mask: Any | None = None,
+        ts: Any | None = None,
+        training: bool = True,
+    ) -> Any:
         """Apply the transformer.
 
         Args:
@@ -1027,7 +1049,7 @@ class GRU(nj.Module):
     norm: str = "rms"
     update_bias: float = -1.0
 
-    def initial(self, batch_size):
+    def initial(self, batch_size: Any) -> Any:
         """Handle initial.
 
         Args:
@@ -1038,7 +1060,9 @@ class GRU(nj.Module):
         """
         return jnp.zeros((batch_size, self.units), COMPUTE_DTYPE)
 
-    def __call__(self, carry, inputs, resets, single=False):
+    def __call__(
+        self, carry: Any, inputs: Any, resets: Any, single: bool = False
+    ) -> Any:
         """Apply the gru.
 
         Args:
@@ -1060,7 +1084,7 @@ class GRU(nj.Module):
         )
         return carry, outputs
 
-    def step(self, carry, inp, reset):
+    def step(self, carry: Any, inp: Any, reset: Any) -> tuple[Any, ...]:
         # NOTE: When passing previous actions as input, ensure to zero out past
         # actions on is_first and clip actions to bounds if needed.
         """Advance state.

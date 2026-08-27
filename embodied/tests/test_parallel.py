@@ -1,5 +1,9 @@
 """Provide test parallel functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 from collections import deque
 from functools import partial as bind
 
@@ -25,7 +29,7 @@ class TestParallel:
             (32, 2),
         ),
     )
-    def test_run_loop(self, tmpdir, train_ratio, eval_envs):
+    def test_run_loop(self, tmpdir: Any, train_ratio: Any, eval_envs: Any) -> None:
         """Verify run loop.
 
         Args:
@@ -81,22 +85,22 @@ class TestParallel:
         stats = received[0]
         assert stats["loads"] == 1, "Expected stats loads to equal 1."
 
-    def _make_agent(self, queue):
+    def _make_agent(self, queue: Any) -> Any:
         env = self._make_env(0)
         agent = utils.TestAgent(env.obs_space, env.act_space, queue)
         env.close()
         return agent
 
-    def _make_env(self, index):
+    def _make_env(self, index: Any) -> Any:
         return dummy.Dummy("disc", size=(64, 64), length=100)
 
-    def _make_replay(self, args, train_ratio=None):
+    def _make_replay(self, args: Any, train_ratio: Any | None = None) -> Any:
         kwargs = {"length": args.batch_length, "capacity": 1e4}
         if train_ratio:
             kwargs["samples_per_insert"] = train_ratio / args.batch_length
         return embodied.replay.Replay(**kwargs)
 
-    def _make_logger(self):
+    def _make_logger(self) -> Any:
         return elements.Logger(
             elements.Counter(),
             [
@@ -104,7 +108,7 @@ class TestParallel:
             ],
         )
 
-    def _make_args(self, logdir, train_ratio, eval_envs):
+    def _make_args(self, logdir: Any, train_ratio: Any, eval_envs: Any) -> Any:
         return elements.Config(
             duration=5.0,
             train_ratio=float(train_ratio),

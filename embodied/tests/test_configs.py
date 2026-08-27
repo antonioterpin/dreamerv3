@@ -1,5 +1,8 @@
 """Provide test configs functionality."""
 
+from __future__ import annotations
+
+
 import pathlib
 
 import elements
@@ -8,7 +11,7 @@ import ruamel.yaml as yaml
 CONFIGS = pathlib.Path(__file__).resolve().parents[2] / "dreamerv3" / "configs.yaml"
 
 
-def test_run_args_declare_the_resume_regex():
+def test_run_args_declare_the_resume_regex() -> None:
     """Verify run args declare the resume regex."""
     configs = yaml.YAML(typ="safe").load(CONFIGS.read_text())
     config = elements.Config(configs["defaults"])

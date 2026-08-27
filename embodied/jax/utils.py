@@ -1,5 +1,9 @@
 """Provide utils functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 
 import jax
@@ -24,7 +28,7 @@ class Normalize(nj.Module):
     perchi: float = 95.0
     debias: bool = True
 
-    def __init__(self, impl):
+    def __init__(self, impl: Any) -> None:
         """Initialize the normalize.
 
         Args:
@@ -47,7 +51,7 @@ class Normalize(nj.Module):
         else:
             raise NotImplementedError(self.impl)
 
-    def __call__(self, x, update):
+    def __call__(self, x: Any, update: Any) -> Any:
         """Apply the normalize.
 
         Args:
@@ -61,7 +65,7 @@ class Normalize(nj.Module):
             self.update(x)
         return self.stats()
 
-    def update(self, x):
+    def update(self, x: Any) -> None:
         """Update state.
 
         Args:
@@ -84,7 +88,7 @@ class Normalize(nj.Module):
         if self.debias and self.impl != "none":
             self._update(self.corr, 1.0)
 
-    def stats(self):
+    def stats(self) -> tuple[Any, ...]:
         """Handle statistics.
 
         Returns:
@@ -109,28 +113,30 @@ class Normalize(nj.Module):
         else:
             raise NotImplementedError(self.impl)
 
-    def _mean(self, x):
+    def _mean(self, x: Any) -> Any:
         x = x.mean()
         axes = internal.get_data_axes()
         if axes:
             x = jax.lax.pmean(x, axes)
         return x
 
-    def _perc(self, x, q):
+    def _perc(self, x: Any, q: Any) -> Any:
         axes = internal.get_data_axes()
         if axes:
             x = jax.lax.all_gather(x, axes)
         x = jnp.percentile(x, q)
         return x
 
-    def _update(self, var, x):
+    def _update(self, var: Any, x: Any) -> None:
         var.write((1 - self.rate) * var.read() + self.rate * sg(x))
 
 
 class SlowModel:
     """Represent slow model."""
 
-    def __init__(self, model, *, source, rate=1.0, every=1):
+    def __init__(
+        self, model: Any, *, source: Any, rate: float = 1.0, every: int = 1
+    ) -> None:
         """Initialize the slow model.
 
         Args:
@@ -147,11 +153,11 @@ class SlowModel:
         name = self.model.path + "_count"
         self.count = nj.Variable(jnp.zeros, (), i32, name=name)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: Any) -> Any:
         self._initonce()
         return getattr(self.model, name)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Apply the slow model.
 
         Args:
@@ -164,7 +170,7 @@ class SlowModel:
         self._initonce()
         return self.model(*args, **kwargs)
 
-    def update(self):
+    def update(self) -> None:
         """Update state."""
         self._initonce()
         mix = jnp.where(self.count.read() % self.every == 0, self.rate, 0)
@@ -173,7 +179,7 @@ class SlowModel:
         [self.model.write(k, v) for k, v in values.items()]
         self.count.write(self.count.read() + 1)
 
-    def _initonce(self, *args, method=None, **kwargs):
+    def _initonce(self, *args: Any, method: Any | None = None, **kwargs: Any) -> None:
         assert self.source.values, "no parameters to track"
         if not self.model.values:
             p = self.model.path + "/"
@@ -187,7 +193,9 @@ class SlowModel:
 class LayerScan:
     """Represent layer scan."""
 
-    def __init__(self, module, count, names=("__call__",)):
+    def __init__(
+        self, module: Any, count: Any, names: tuple[Any, ...] = ("__call__",)
+    ) -> None:
         """Initialize the layer scan.
 
         Args:
@@ -199,7 +207,7 @@ class LayerScan:
         self.count = count
         self.names = names
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         # Magic methods need to be forwarded explicitly.
         """Apply the layer scan.
 
@@ -212,7 +220,7 @@ class LayerScan:
         """
         return self.__getattr__("__call__")(*args, **kwargs)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: Any) -> Any:
         value = getattr(self.module, name)
         if name in self.names:
             assert callable(value), "Expected the wrapped attribute to be callable."
@@ -221,7 +229,9 @@ class LayerScan:
         return value
 
 
-def layer_scan(fn, scope, count, inp, *args, **kwargs):
+def layer_scan(
+    fn: Any, scope: Any, count: Any, inp: Any, *args: Any, **kwargs: Any
+) -> Any:
     """Handle layer scan.
 
     Args:
@@ -295,7 +305,7 @@ def layer_scan(fn, scope, count, inp, *args, **kwargs):
     # print('changing_inner', f(changing_inner))
     # print('changing_outer', f(changing_outer))
 
-    def body(carry, x):
+    def body(carry: Any, x: Any) -> tuple[Any, ...]:
         """Handle body.
 
         Args:

@@ -1,5 +1,10 @@
 """Provide parallel functionality."""
 
+from __future__ import annotations
+from collections.abc import Iterator
+from typing import Any
+
+
 import collections
 import threading
 import time
@@ -14,7 +19,7 @@ import portal
 prefix = lambda d, p: {f"{p}/{k}": v for k, v in d.items()}
 
 
-def _run_workers(workers):
+def _run_workers(workers: Any) -> None:
     """Run workers and, once all of them finished, join them.
 
     Graceful finite-run completion lets workers terminate normally, so the
@@ -33,16 +38,16 @@ def _run_workers(workers):
 
 
 def combined(
-    make_agent,
-    make_replay_train,
-    make_replay_eval,
-    make_env_train,
-    make_env_eval,
-    make_stream,
-    make_logger,
-    args,
-    run_done_error=None,
-):
+    make_agent: Any,
+    make_replay_train: Any,
+    make_replay_eval: Any,
+    make_env_train: Any,
+    make_env_eval: Any,
+    make_stream: Any,
+    make_logger: Any,
+    args: Any,
+    run_done_error: Any | None = None,
+) -> None:
     """Run the complete parallel Dreamer topology.
 
     Args:
@@ -135,7 +140,7 @@ def combined(
     _run_workers(workers)
 
 
-def parallel_agent(make_agent, args, lifecycle=None):
+def parallel_agent(make_agent: Any, args: Any, lifecycle: Any | None = None) -> None:
     """Run the agent in parallel with the actor and learner.
 
     Args:
@@ -162,7 +167,13 @@ def parallel_agent(make_agent, args, lifecycle=None):
 
 
 @elements.timer.section("actor")
-def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
+def parallel_actor(
+    agent: Any,
+    barrier: Any,
+    args: Any,
+    lifecycle: Any | None = None,
+    save_events: Any | None = None,
+) -> None:
     """Run the actor in parallel with the learner and agent.
 
     Args:
@@ -203,7 +214,7 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
     replay = portal.Client(args.replay_addr, "ActorReplay", maxinflight=backlog)
 
     @elements.timer.section("workfn")
-    def workfn(obs):
+    def workfn(obs: Any) -> tuple[Any, ...]:
         """Handle workfn.
 
         Args:
@@ -251,7 +262,7 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
         return acts, trans
 
     @elements.timer.section("donefn")
-    def postfn(trans):
+    def postfn(trans: Any) -> None:
         """Submit a completed transition to replay and logging services."""
         logs = {k: v for k, v in trans.items() if k.startswith("log/")}
         trans = {k: v for k, v in trans.items() if not k.startswith("log/")}
@@ -289,7 +300,13 @@ def parallel_actor(agent, barrier, args, lifecycle=None, save_events=None):
 
 
 @elements.timer.section("learner")
-def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
+def parallel_learner(
+    agent: Any,
+    barrier: Any,
+    args: Any,
+    lifecycle: Any | None = None,
+    save_events: Any | None = None,
+) -> None:
     """Train the agent and acknowledge persistence of the final checkpoint.
 
     Args:
@@ -331,7 +348,7 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
     replays = {}
     received = collections.defaultdict(int)
 
-    def parallel_stream(source, prefetch=2):
+    def parallel_stream(source: Any, prefetch: int = 2) -> Iterator[Any]:
         """Handle parallel stream.
 
         Args:
@@ -361,7 +378,7 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
             received[source] += 1
             yield data
 
-    def evaluate(stream):
+    def evaluate(stream: Any) -> Any:
         """Evaluate state.
 
         Args:
@@ -459,8 +476,12 @@ def parallel_learner(agent, barrier, args, lifecycle=None, save_events=None):
 
 
 def parallel_replay(
-    make_replay_train, make_replay_eval, make_stream, args, lifecycle=None
-):
+    make_replay_train: Any,
+    make_replay_eval: Any,
+    make_stream: Any,
+    args: Any,
+    lifecycle: Any | None = None,
+) -> None:
     """Serve replay operations until the learner persists its final checkpoint.
 
     Args:
@@ -496,7 +517,7 @@ def parallel_replay(
         minsize=args.batch_size * replay_train.length,
     )
 
-    def add_batch(data):
+    def add_batch(data: Any) -> dict[Any, Any]:
         """Add batch.
 
         Args:
@@ -522,7 +543,7 @@ def parallel_replay(
                 replay_train.add(tran, envid)
         return {}
 
-    def sample_batch_train():
+    def sample_batch_train() -> Any:
         """Sample batch train.
 
         Returns:
@@ -552,7 +573,7 @@ def parallel_replay(
                 limiter.sample()
         return next(stream_train)
 
-    def sample_batch_report():
+    def sample_batch_report() -> Any:
         """Sample batch report.
 
         Returns:
@@ -561,7 +582,7 @@ def parallel_replay(
         active.increment()
         return next(stream_report)
 
-    def sample_batch_eval():
+    def sample_batch_eval() -> Any:
         """Sample batch eval.
 
         Returns:
@@ -611,7 +632,7 @@ def parallel_replay(
 
 
 @elements.timer.section("logger")
-def parallel_logger(make_logger, args, lifecycle=None):
+def parallel_logger(make_logger: Any, args: Any, lifecycle: Any | None = None) -> None:
     """Serve logging RPCs and flush output during finite-run shutdown.
 
     Args:
@@ -639,7 +660,7 @@ def parallel_logger(make_logger, args, lifecycle=None):
     dones = collections.defaultdict(lambda: True)
 
     @elements.timer.section("addfn")
-    def addfn(metrics):
+    def addfn(metrics: Any) -> None:
         """Handle addfn.
 
         Args:
@@ -649,7 +670,7 @@ def parallel_logger(make_logger, args, lifecycle=None):
         logger.add(metrics)
 
     @elements.timer.section("tranfn")
-    def tranfn(trans):
+    def tranfn(trans: Any) -> None:
         """Handle tranfn.
 
         Args:
@@ -736,8 +757,13 @@ def parallel_logger(make_logger, args, lifecycle=None):
 
 @elements.timer.section("env")
 def parallel_env(
-    make_env, envid, args, is_eval=False, lifecycle=None, run_done_error=None
-):
+    make_env: Any,
+    envid: Any,
+    args: Any,
+    is_eval: bool = False,
+    lifecycle: Any | None = None,
+    run_done_error: Any | None = None,
+) -> None:
     """Drive one environment, translating finite exhaustion into normal exit.
 
     Args:
@@ -826,7 +852,7 @@ def parallel_env(
             logger.add(stats)
 
 
-def parallel_envs(make_env, make_env_eval, args):
+def parallel_envs(make_env: Any, make_env_eval: Any, args: Any) -> None:
     """Handle parallel envs.
 
     Args:

@@ -1,5 +1,9 @@
 """Provide rssm functionality."""
 
+from __future__ import annotations
+from typing import Any
+
+
 import math
 
 import einops
@@ -34,7 +38,7 @@ class RSSM(nj.Module):
     blocks: int = 8
     free_nats: float = 1.0
 
-    def __init__(self, act_space, **kw):
+    def __init__(self, act_space: Any, **kw: Any) -> None:
         """Initialize the rssm.
 
         Args:
@@ -48,7 +52,7 @@ class RSSM(nj.Module):
         self.kw = kw
 
     @property
-    def entry_space(self):
+    def entry_space(self) -> Any:
         """Handle entry space.
 
         Returns:
@@ -59,7 +63,7 @@ class RSSM(nj.Module):
             stoch=elements.Space(np.float32, (self.stoch, self.classes)),
         )
 
-    def initial(self, bsize):
+    def initial(self, bsize: Any) -> Any:
         """Handle initial.
 
         Args:
@@ -76,7 +80,7 @@ class RSSM(nj.Module):
         )
         return carry
 
-    def truncate(self, entries, carry=None):
+    def truncate(self, entries: Any, carry: Any | None = None) -> Any:
         """Handle truncate.
 
         Args:
@@ -90,7 +94,7 @@ class RSSM(nj.Module):
         carry = jax.tree.map(lambda x: x[:, -1], entries)
         return carry
 
-    def starts(self, entries, carry, nlast):
+    def starts(self, entries: Any, carry: Any, nlast: Any) -> Any:
         """Handle starts.
 
         Args:
@@ -106,7 +110,15 @@ class RSSM(nj.Module):
             lambda x: x[:, -nlast:].reshape((B * nlast, *x.shape[2:])), entries
         )
 
-    def observe(self, carry, tokens, action, reset, training, single=False):
+    def observe(
+        self,
+        carry: Any,
+        tokens: Any,
+        action: Any,
+        reset: Any,
+        training: Any,
+        single: bool = False,
+    ) -> tuple[Any, ...]:
         """Handle observe.
 
         Args:
@@ -135,7 +147,9 @@ class RSSM(nj.Module):
             )
             return carry, entries, feat
 
-    def _observe(self, carry, tokens, action, reset, training):
+    def _observe(
+        self, carry: Any, tokens: Any, action: Any, reset: Any, training: Any
+    ) -> tuple[Any, ...]:
         deter, stoch, action = nn.mask((carry["deter"], carry["stoch"], action), ~reset)
         action = nn.DictConcat(self.act_space, 1)(action)
         action = nn.mask(action, ~reset)
@@ -155,7 +169,9 @@ class RSSM(nj.Module):
         ), "Expected every element to satisfy that x dtype to equal nn.COMPUTE_DTYPE."
         return carry, (entry, feat)
 
-    def imagine(self, carry, policy, length, training, single=False):
+    def imagine(
+        self, carry: Any, policy: Any, length: Any, training: Any, single: bool = False
+    ) -> tuple[Any, ...]:
         """Handle imagine.
 
         Args:
@@ -205,7 +221,9 @@ class RSSM(nj.Module):
             # return carry, entries, feat, action
             return carry, feat, action
 
-    def loss(self, carry, tokens, acts, reset, training):
+    def loss(
+        self, carry: Any, tokens: Any, acts: Any, reset: Any, training: Any
+    ) -> tuple[Any, ...]:
         """Handle loss.
 
         Args:
@@ -232,7 +250,7 @@ class RSSM(nj.Module):
         metrics["rep_ent"] = self._dist(post).entropy().mean()
         return carry, entries, losses, feat, metrics
 
-    def _core(self, deter, stoch, action):
+    def _core(self, deter: Any, stoch: Any, action: Any) -> Any:
         stoch = stoch.reshape((stoch.shape[0], -1))
         action /= sg(jnp.maximum(1, jnp.abs(action)))
         g = self.blocks
@@ -258,19 +276,19 @@ class RSSM(nj.Module):
         deter = update * cand + (1 - update) * deter
         return deter
 
-    def _prior(self, feat):
+    def _prior(self, feat: Any) -> Any:
         x = feat
         for i in range(self.imglayers):
             x = self.sub(f"prior{i}", nn.Linear, self.hidden, **self.kw)(x)
             x = nn.act(self.act)(self.sub(f"prior{i}norm", nn.Norm, self.norm)(x))
         return self._logit("priorlogit", x)
 
-    def _logit(self, name, x):
+    def _logit(self, name: Any, x: Any) -> Any:
         kw = dict(**self.kw, outscale=self.outscale)
         x = self.sub(name, nn.Linear, self.stoch * self.classes, **kw)(x)
         return x.reshape(x.shape[:-1] + (self.stoch, self.classes))
 
-    def _dist(self, logits):
+    def _dist(self, logits: Any) -> Any:
         out = embodied.jax.outs.OneHot(logits, self.unimix)
         out = embodied.jax.outs.Agg(out, 1, jnp.sum)
         return out
@@ -290,7 +308,7 @@ class Encoder(nj.Module):
     outer: bool = False
     strided: bool = False
 
-    def __init__(self, obs_space, **kw):
+    def __init__(self, obs_space: Any, **kw: Any) -> None:
         """Initialize the encoder.
 
         Args:
@@ -305,7 +323,7 @@ class Encoder(nj.Module):
         self.kw = kw
 
     @property
-    def entry_space(self):
+    def entry_space(self) -> dict[Any, Any]:
         """Handle entry space.
 
         Returns:
@@ -313,7 +331,7 @@ class Encoder(nj.Module):
         """
         return {}
 
-    def initial(self, batch_size):
+    def initial(self, batch_size: Any) -> dict[Any, Any]:
         """Handle initial.
 
         Args:
@@ -324,7 +342,7 @@ class Encoder(nj.Module):
         """
         return {}
 
-    def truncate(self, entries, carry=None):
+    def truncate(self, entries: Any, carry: Any | None = None) -> dict[Any, Any]:
         """Handle truncate.
 
         Args:
@@ -336,7 +354,9 @@ class Encoder(nj.Module):
         """
         return {}
 
-    def __call__(self, carry, obs, reset, training, single=False):
+    def __call__(
+        self, carry: Any, obs: Any, reset: Any, training: Any, single: bool = False
+    ) -> tuple[Any, ...]:
         """Apply the encoder.
 
         Args:
@@ -417,7 +437,7 @@ class Decoder(nj.Module):
     outer: bool = False
     strided: bool = False
 
-    def __init__(self, obs_space, **kw):
+    def __init__(self, obs_space: Any, **kw: Any) -> None:
         """Initialize the decoder.
 
         Args:
@@ -434,7 +454,7 @@ class Decoder(nj.Module):
         self.kw = kw
 
     @property
-    def entry_space(self):
+    def entry_space(self) -> dict[Any, Any]:
         """Handle entry space.
 
         Returns:
@@ -442,7 +462,7 @@ class Decoder(nj.Module):
         """
         return {}
 
-    def initial(self, batch_size):
+    def initial(self, batch_size: Any) -> dict[Any, Any]:
         """Handle initial.
 
         Args:
@@ -453,7 +473,7 @@ class Decoder(nj.Module):
         """
         return {}
 
-    def truncate(self, entries, carry=None):
+    def truncate(self, entries: Any, carry: Any | None = None) -> dict[Any, Any]:
         """Handle truncate.
 
         Args:
@@ -465,7 +485,9 @@ class Decoder(nj.Module):
         """
         return {}
 
-    def __call__(self, carry, feat, reset, training, single=False):
+    def __call__(
+        self, carry: Any, feat: Any, reset: Any, training: Any, single: bool = False
+    ) -> tuple[Any, ...]:
         """Apply the decoder.
 
         Args:
