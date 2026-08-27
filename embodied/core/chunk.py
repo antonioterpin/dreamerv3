@@ -86,6 +86,7 @@ class Chunk:
         """
         assert 0 <= index <= self.length, (index, self.length)
         assert 0 <= index + length <= self.length, (index, length, self.length)
+        assert self.data is not None, "Cannot update a chunk before its first append."
         for key, value in mapping.items():
             self.data[key][index : index + length] = value
 
@@ -102,6 +103,7 @@ class Chunk:
         assert (
             0 <= index and index + length <= self.length
         ), "Expected all parts of the 0 <= index and index + length <= self.length invariant to hold."
+        assert self.data is not None, "Cannot slice a chunk before its first append."
         return {k: v[index : index + length] for k, v in self.data.items()}
 
     @elements.timer.section("chunk_save")
@@ -113,6 +115,7 @@ class Chunk:
             log: Log value.
         """
         assert not self.saved, "Expected self saved to be false or empty."
+        assert self.data is not None, "Cannot save a chunk before its first append."
         self.saved = True
         filename = elements.Path(directory) / self.filename
         data = {k: v[: self.length] for k, v in self.data.items()}

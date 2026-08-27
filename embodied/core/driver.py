@@ -88,6 +88,7 @@ class Driver:
 
     def _step(self, policy, step, episode):
         acts = self.acts
+        assert acts is not None, "Driver actions must be initialized before stepping."
         assert all(
             len(x) == self.length for x in acts.values()
         ), "Expected every element to satisfy that number of x to equal self.length."

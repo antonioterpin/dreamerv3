@@ -176,6 +176,9 @@ class Consec(base.Stream):
         if self.index >= self.consec:
             self.index = 0
         if self.index == 0:
+            assert (
+                self.it is not None
+            ), "Consecutive stream must be iterated before use."
             self.current = next(self.it)
             available = self.current["is_first"].shape[-1]
             assert self.length * self.consec + self.prefix <= available, (
@@ -193,6 +196,7 @@ class Consec(base.Stream):
                 )
         start = self.index * self.length
         stop = start + (self.length + self.prefix)
+        assert self.current is not None, "Consecutive stream must have a current batch."
         chunk = {k: v[:, start:stop] for k, v in self.current.items()}
         chunk["consec"] = np.full(chunk["is_first"].shape, self.index, np.int32)
         if self.contiguous:
@@ -244,6 +248,7 @@ class Zip(base.Stream):
         return self
 
     def __next__(self):
+        assert self.iterators is not None, "Zip stream must be iterated before use."
         parts = [next(x) for x in self.iterators]
         result = elements.tree.map(lambda *el: np.concatenate(el), *parts)
         return result
@@ -254,6 +259,7 @@ class Zip(base.Stream):
         Returns:
             Result of the operation.
         """
+        assert self.iterators is not None, "Zip stream must be iterated before saving."
         return [x.save() for x in self.iterators]
 
     def load(self, data):
@@ -262,6 +268,7 @@ class Zip(base.Stream):
         Args:
             data: Data to process.
         """
+        assert self.iterators is not None, "Zip stream must be iterated before loading."
         assert len(data) == len(
             self.iterators
         ), "Expected number of data to equal len(self.iterators)."
@@ -293,6 +300,7 @@ class Map(base.Stream):
 
     def __next__(self):
         assert self.started, "The stream must be started before requesting an item."
+        assert self.iterator is not None, "Map stream must have an active iterator."
         return self.fn(next(self.iterator))
 
     def save(self):
@@ -301,6 +309,7 @@ class Map(base.Stream):
         Returns:
             Result of the operation.
         """
+        assert self.iterator is not None, "Map stream must be iterated before saving."
         return self.iterator.save()
 
     def load(self, data):
@@ -309,6 +318,7 @@ class Map(base.Stream):
         Args:
             data: Data to process.
         """
+        assert self.iterator is not None, "Map stream must be iterated before loading."
         self.iterator.load(data)
 
 

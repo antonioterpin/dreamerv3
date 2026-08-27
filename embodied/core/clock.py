@@ -36,8 +36,9 @@ def setup(is_server, replica, replicas, port, addr):
 def _start_server(port, replicas):
 
     clocks = []
-    requests = []
-    result = [None]
+    # Both barrier phases reuse these containers with different payload types.
+    requests: list = []
+    result: list = [None]
     receive = threading.Barrier(replicas)
     respond = threading.Barrier(replicas)
 
@@ -119,6 +120,8 @@ class GlobalClock:
         """
         self.multihost = bool(CLIENT)
         if self.multihost:
+            assert CLIENT is not None, "Global clock client must be configured."
+            assert REPLICA is not None, "Global clock replica must be configured."
             self.clockid = CLIENT.create(REPLICA, every).result()
             self.skip_next = not first
         else:
@@ -135,6 +138,8 @@ class GlobalClock:
             Result produced by the operation.
         """
         if self.multihost:
+            assert CLIENT is not None, "Global clock client must be configured."
+            assert REPLICA is not None, "Global clock replica must be configured."
             if self.skip_next:
                 self.skip_next = False
                 skip = True

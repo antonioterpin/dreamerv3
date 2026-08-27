@@ -369,6 +369,13 @@ class SampleTree:
             key: Key identifying the requested value.
         """
         entry = self.entries.pop(key)
+        assert self.last is not None, "A non-empty sample tree must have a last entry."
+        assert (
+            entry.parent is not None
+        ), "A stored sample-tree entry must have a parent."
+        assert (
+            self.last.parent is not None
+        ), "The last sample-tree entry must have a parent."
         entry_parent = entry.parent
         last_parent = self.last.parent
         entry.parent.remove(entry)
@@ -397,6 +404,9 @@ class SampleTree:
         """
         entry = self.entries[key]
         entry.uprob = uprob
+        assert (
+            entry.parent is not None
+        ), "A stored sample-tree entry must have a parent."
         entry.parent.recompute()
 
     def sample(self):
