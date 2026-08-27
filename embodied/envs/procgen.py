@@ -57,7 +57,7 @@ class ProcGen(embodied.Env):
 
     def _resize(self, image, size, method):
         if method == "opencv":
-            import cv2
+            import cv2  # pyright: ignore[reportMissingImports]
 
             image = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
             return image

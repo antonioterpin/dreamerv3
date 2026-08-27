@@ -4,9 +4,9 @@ import os
 import elements
 import embodied
 import numpy as np
-from dm_control import manipulation
-from dm_control import suite
-from dm_control.locomotion.examples import basic_rodent_2020
+from dm_control import manipulation  # pyright: ignore[reportMissingImports]
+from dm_control import suite  # pyright: ignore[reportMissingImports]
+from dm_control.locomotion.examples import basic_rodent_2020  # pyright: ignore[reportMissingImports]  # fmt: skip
 
 from . import from_dm
 

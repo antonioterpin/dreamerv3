@@ -9,11 +9,11 @@ np.float = float
 np.int = int
 np.bool = bool
 
-from minerl.herobraine.env_spec import EnvSpec
-from minerl.herobraine.hero import handler
-from minerl.herobraine.hero import handlers
-from minerl.herobraine.hero import mc
-from minerl.herobraine.hero.mc import INVERSE_KEYMAP
+from minerl.herobraine.env_spec import EnvSpec  # pyright: ignore[reportMissingImports]
+from minerl.herobraine.hero import handler  # pyright: ignore[reportMissingImports]
+from minerl.herobraine.hero import handlers  # pyright: ignore[reportMissingImports]
+from minerl.herobraine.hero import mc  # pyright: ignore[reportMissingImports]
+from minerl.herobraine.hero.mc import INVERSE_KEYMAP  # pyright: ignore[reportMissingImports]  # fmt: skip
 
 
 class Wood(embodied.Wrapper):

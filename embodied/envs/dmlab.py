@@ -2,7 +2,7 @@ import functools
 import re
 import zlib
 
-import deepmind_lab
+import deepmind_lab  # pyright: ignore[reportMissingImports]
 import elements
 import embodied
 import numpy as np

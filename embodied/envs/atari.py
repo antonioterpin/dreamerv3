@@ -189,7 +189,7 @@ class Atari(embodied.Env):
         elif self.aggregate == "mean":
             image = np.mean(self.buffers, 0).astype(np.uint8)
         if self.resize == "opencv":
-            import cv2
+            import cv2  # pyright: ignore[reportMissingImports]
 
             image = cv2.resize(image, self.size, interpolation=cv2.INTER_AREA)
         elif self.resize == "pillow":

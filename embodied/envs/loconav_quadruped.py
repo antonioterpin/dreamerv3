@@ -1,11 +1,11 @@
 import os
 
-from dm_control import composer
-from dm_control import mjcf
-from dm_control.composer.observation import observable
-from dm_control.locomotion.walkers import base
-from dm_control.locomotion.walkers import legacy_base
-from dm_control.mujoco.wrapper import mjbindings
+from dm_control import composer  # pyright: ignore[reportMissingImports]
+from dm_control import mjcf  # pyright: ignore[reportMissingImports]
+from dm_control.composer.observation import observable  # pyright: ignore[reportMissingImports]  # fmt: skip
+from dm_control.locomotion.walkers import base  # pyright: ignore[reportMissingImports]
+from dm_control.locomotion.walkers import legacy_base  # pyright: ignore[reportMissingImports]  # fmt: skip
+from dm_control.mujoco.wrapper import mjbindings  # pyright: ignore[reportMissingImports]  # fmt: skip
 import numpy as np
 
 enums = mjbindings.enums

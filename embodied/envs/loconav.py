@@ -31,9 +31,9 @@ class LocoNav(embodied.Env):
             freq = 50
         if "MUJOCO_GL" not in os.environ:
             os.environ["MUJOCO_GL"] = "egl"
-        from dm_control import composer
-        from dm_control.locomotion.props import target_sphere
-        from dm_control.locomotion.tasks import random_goal_maze
+        from dm_control import composer  # pyright: ignore[reportMissingImports]
+        from dm_control.locomotion.props import target_sphere  # pyright: ignore[reportMissingImports]  # fmt: skip
+        from dm_control.locomotion.tasks import random_goal_maze  # pyright: ignore[reportMissingImports]  # fmt: skip
 
         walker, arena = name.split("_", 1)
         if camera == -1:
@@ -100,7 +100,7 @@ class LocoNav(embodied.Env):
 
     def _make_walker(self, name):
         if name == "ant":
-            from dm_control.locomotion.walkers import ant
+            from dm_control.locomotion.walkers import ant  # pyright: ignore[reportMissingImports]  # fmt: skip
 
             return ant.Ant()
         elif name == "quadruped":
@@ -111,10 +111,10 @@ class LocoNav(embodied.Env):
             raise NotImplementedError(name)
 
     def _make_arena(self, name):
-        import labmaze
-        from dm_control import mjcf
-        from dm_control.locomotion.arenas import labmaze_textures
-        from dm_control.locomotion.arenas import mazes
+        import labmaze  # pyright: ignore[reportMissingImports]
+        from dm_control import mjcf  # pyright: ignore[reportMissingImports]
+        from dm_control.locomotion.arenas import labmaze_textures  # pyright: ignore[reportMissingImports]  # fmt: skip
+        from dm_control.locomotion.arenas import mazes  # pyright: ignore[reportMissingImports]  # fmt: skip
         import matplotlib.pyplot as plt
 
         class WallTexture(labmaze_textures.WallTextures):
