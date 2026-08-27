@@ -15,8 +15,12 @@ from embodied.envs.from_gym import FromGym
 class _LegacyEnv(gym.Env):
     """Gym < 0.26 API: reset() -> obs, step() -> (obs, rew, done, info)."""
 
-    observation_space = gym.spaces.Box(-1, 1, (2,), np.float32)
-    action_space = gym.spaces.Box(-1, 1, (1,), np.float32)
+    observation_space = gym.spaces.Box(  # pyright: ignore[reportAttributeAccessIssue]
+        -1, 1, (2,), np.float32
+    )
+    action_space = gym.spaces.Box(  # pyright: ignore[reportAttributeAccessIssue]
+        -1, 1, (1,), np.float32
+    )
 
     def __init__(self) -> None:
         """Initialize the legacy environment."""
@@ -48,8 +52,12 @@ class _LegacyEnv(gym.Env):
 class _ModernEnv(gym.Env):
     """Gym >= 0.26 API: reset() -> (obs, info), step() -> 5-tuple."""
 
-    observation_space = gym.spaces.Box(-1, 1, (2,), np.float32)
-    action_space = gym.spaces.Box(-1, 1, (1,), np.float32)
+    observation_space = gym.spaces.Box(  # pyright: ignore[reportAttributeAccessIssue]
+        -1, 1, (2,), np.float32
+    )
+    action_space = gym.spaces.Box(  # pyright: ignore[reportAttributeAccessIssue]
+        -1, 1, (1,), np.float32
+    )
 
     def __init__(self, truncate: bool = False) -> None:
         """Initialize the modern environment.
@@ -204,11 +212,19 @@ def test_reset_key_is_not_forwarded_to_dict_action_envs() -> None:
     class DictActionEnv(gym.Env):
         """Represent dict action environment."""
 
-        observation_space = gym.spaces.Dict(
-            {"pos": gym.spaces.Box(-1, 1, (2,), np.float32)}
+        observation_space = gym.spaces.Dict(  # pyright: ignore[reportAttributeAccessIssue]
+            {
+                "pos": gym.spaces.Box(  # pyright: ignore[reportAttributeAccessIssue]
+                    -1, 1, (2,), np.float32
+                )
+            }
         )
-        action_space = gym.spaces.Dict(
-            {"move": gym.spaces.Box(-1, 1, (1,), np.float32)}
+        action_space = gym.spaces.Dict(  # pyright: ignore[reportAttributeAccessIssue]
+            {
+                "move": gym.spaces.Box(  # pyright: ignore[reportAttributeAccessIssue]
+                    -1, 1, (1,), np.float32
+                )
+            }
         )
 
         def __init__(self) -> None:

@@ -190,7 +190,7 @@ class Replay:
         self.metrics["updates"] += int(np.prod(stepid.shape[:-1]))
         if priority is not None:
             assert priority.ndim == 2, priority.shape
-            self.sampler.prioritize(
+            self.sampler.prioritize(  # pyright: ignore[reportAttributeAccessIssue]
                 stepid.reshape((-1, stepid.shape[-1])), priority.flatten()
             )
         if data:
@@ -430,7 +430,7 @@ class Replay:
                     self.refs[chunk.uuid] += amount
                     if chunk.succ in self.refs:
                         self.refs[chunk.succ] += 1
-                    for index in range(amount):
+                    for index in range(amount):  # pyright: ignore[reportArgumentType]
                         self._insert(chunk.uuid, index)
 
     @elements.timer.section("complete_chunk")

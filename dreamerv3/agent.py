@@ -92,9 +92,15 @@ class Agent(embodied.jax.Agent):
             **config.slowvalue,
         )
 
-        self.retnorm = embodied.jax.Normalize(**config.retnorm, name="retnorm")
-        self.valnorm = embodied.jax.Normalize(**config.valnorm, name="valnorm")
-        self.advnorm = embodied.jax.Normalize(**config.advnorm, name="advnorm")
+        self.retnorm = embodied.jax.Normalize(
+            **config.retnorm, name="retnorm"  # pyright: ignore[reportCallIssue]
+        )
+        self.valnorm = embodied.jax.Normalize(
+            **config.valnorm, name="valnorm"  # pyright: ignore[reportCallIssue]
+        )
+        self.advnorm = embodied.jax.Normalize(
+            **config.advnorm, name="advnorm"  # pyright: ignore[reportCallIssue]
+        )
 
         self.modules = [
             self.dyn,
@@ -106,7 +112,10 @@ class Agent(embodied.jax.Agent):
             self.val,
         ]
         self.opt = embodied.jax.Optimizer(
-            self.modules, self._make_opt(**config.opt), summary_depth=1, name="opt"
+            self.modules,
+            self._make_opt(**config.opt),
+            summary_depth=1,  # pyright: ignore[reportCallIssue]
+            name="opt",  # pyright: ignore[reportCallIssue]
         )
 
         scales = self.config.loss_scales.copy()
@@ -473,7 +482,14 @@ class Agent(embodied.jax.Agent):
 
         K = self.config.replay_context
         nested = elements.tree.nestdict(data)
-        entries = [nested.get(k, {}) for k in ("enc", "dyn", "dec")]
+        entries = [
+            nested.get(k, {})  # pyright: ignore[reportAttributeAccessIssue]
+            for k in (
+                "enc",
+                "dyn",
+                "dec",
+            )
+        ]
         lhs = lambda xs: jax.tree.map(lambda x: x[:, :K], xs)
         rhs = lambda xs: jax.tree.map(lambda x: x[:, K:], xs)
         rep_carry = (

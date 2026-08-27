@@ -86,7 +86,7 @@ class ProcGen(embodied.Env):
         if self.source == "step":
             pass
         elif self.source == "info":
-            info = self.inner.get_info()
+            info = self.inner.get_info()  # pyright: ignore[reportAttributeAccessIssue]
             assert len(info) == 1, "Expected number of info to equal 1."
             obs["image"] = self._resize(info[0]["rgb"], self.size, self.resize)
         elif self.source == "render":
@@ -105,7 +105,10 @@ class ProcGen(embodied.Env):
             return image
         elif method == "pillow":
             image = Image.fromarray(image)
-            image = image.resize((size[1], size[0]), Image.BILINEAR)
+            image = image.resize(
+                (size[1], size[0]),
+                Image.BILINEAR,  # pyright: ignore[reportAttributeAccessIssue]
+            )
             image = np.array(image)
             return image
         else:

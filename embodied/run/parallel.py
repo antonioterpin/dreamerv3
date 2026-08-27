@@ -686,7 +686,7 @@ def parallel_logger(make_logger: Any, args: Any, lifecycle: Any | None = None) -
         for i, addr in enumerate(envid):
             tran = {k: v[i] for k, v in trans.items()}
 
-            updated[addr] = now
+            updated[addr] = now  # pyright: ignore[reportArgumentType]
             episode = episodes[addr]
             if tran["is_first"]:
                 episode.reset()
@@ -722,7 +722,10 @@ def parallel_logger(make_logger: Any, args: Any, lifecycle: Any | None = None) -
                 epstats.add(result)
 
         for addr, last in list(updated.items()):
-            if now - last >= args.episode_timeout:
+            if (
+                now - last  # pyright: ignore[reportOperatorIssue]
+                >= args.episode_timeout
+            ):
                 print("Dropping episode statistics due to timeout.")
                 del episodes[addr]
                 del updated[addr]
@@ -803,7 +806,11 @@ def parallel_env(
             act["reset"] = True
             score, length = 0, 0
 
-        scope_name = "reset" if act["reset"] else "step"
+        scope_name = (
+            "reset"
+            if act["reset"]  # pyright: ignore[reportOptionalSubscript]
+            else "step"
+        )
         try:
             with elements.timer.section(scope_name):
                 obs = env.step(act)
@@ -824,7 +831,7 @@ def parallel_env(
             env.close()
             return
         obs = {k: np.asarray(v, order="C") for k, v in obs.items()}
-        obs["is_eval"] = is_eval
+        obs["is_eval"] = is_eval  # pyright: ignore[reportArgumentType]
         score += obs["reward"]
         length += 1
         fps.step(1)

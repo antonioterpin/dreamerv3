@@ -94,7 +94,7 @@ class TestReplay:
         duration = time.time() - start
         print("chunksize", chunksize, "inserts/sec:", int(inserts / duration))
         start = time.time()
-        dataset = iter(replay.dataset(1))
+        dataset = iter(replay.dataset(1))  # pyright: ignore[reportAttributeAccessIssue]
         for _ in range(int(samples)):
             next(dataset)
         duration = time.time() - start

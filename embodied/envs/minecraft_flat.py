@@ -11,9 +11,9 @@ import elements
 import embodied
 import numpy as np
 
-np.float = float
-np.int = int
-np.bool = bool
+np.float = float  # pyright: ignore[reportAttributeAccessIssue]
+np.int = int  # pyright: ignore[reportAttributeAccessIssue]
+np.bool = bool  # pyright: ignore[reportAttributeAccessIssue]
 
 from minerl.herobraine.env_spec import EnvSpec  # pyright: ignore[reportMissingImports]
 from minerl.herobraine.hero import handler  # pyright: ignore[reportMissingImports]
@@ -89,7 +89,11 @@ class Climb(embodied.Wrapper):
         height = np.float32(y)
         if obs["is_first"]:
             self._previous = height
-        reward = (height - self._previous) + self._health_reward(obs)
+        reward = (
+            height - self._previous
+        ) + self._health_reward(  # pyright: ignore[reportOperatorIssue]
+            obs
+        )
         obs["reward"] = np.float32(reward)
         self._previous = height
         return obs
@@ -300,7 +304,9 @@ class MinecraftBase(embodied.Env):
 
         # Make env
         with self.LOCK:
-            self._gymenv = MineRLEnv(size, break_speed).make()
+            self._gymenv = MineRLEnv(
+                size, break_speed  # pyright: ignore[reportArgumentType]
+            ).make()
         from . import from_gym
 
         self._env = from_gym.FromGym(self._gymenv)

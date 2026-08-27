@@ -73,7 +73,7 @@ def train_eval(
         episodes = dict(train=train_episodes, eval=eval_episodes)[mode]
         epstats = dict(train=train_epstats, eval=eval_epstats)[mode]
         episode = episodes[worker]
-        tran["is_first"] and episode.reset()
+        tran["is_first"] and episode.reset()  # pyright: ignore[reportUnusedExpression]
         episode.add("score", tran["reward"], agg="sum")
         episode.add("length", 1, agg="sum")
         episode.add("rewards", tran["reward"], agg="stack")

@@ -485,7 +485,10 @@ class ResizeImage(Wrapper):
 
     def _resize(self, image: Any) -> Any:
         image = self._Image.fromarray(image)
-        image = image.resize(self._size, self._Image.NEAREST)
+        image = image.resize(
+            self._size,
+            self._Image.NEAREST,  # pyright: ignore[reportAttributeAccessIssue]
+        )
         image = np.array(image)
         return image
 

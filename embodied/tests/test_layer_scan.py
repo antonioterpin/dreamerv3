@@ -37,7 +37,9 @@ class Layer(nj.Module):
         assert c.shape == (7,), "Expected c shape to equal (7,)."
         assert k.shape == (13, 7), "Expected k shape to equal (13, 7)."
         shape = (x.shape[-1], self.units)
-        winit = lambda: jax.random.normal(nj.seed(), shape, f32)
+        winit = lambda: jax.random.normal(
+            nj.seed(), shape, f32  # pyright: ignore[reportArgumentType]
+        )
         x = x @ self.value("kernel", winit)
         if "outer3" not in nj.context():
             nj.context()["outer3"] = jnp.zeros((), i32)
@@ -100,7 +102,7 @@ class TestLayerScan:
             D: D value.
         """
         x = np.random.normal(0, 1, (B, D))
-        net = Net(layers=L, units=D, name="net")
+        net = Net(layers=L, units=D, name="net")  # pyright: ignore[reportCallIssue]
         params = nj.init(net)({}, x, seed=0)
         assert set(params.keys()) == {
             "outer1",
@@ -137,9 +139,9 @@ class TestLayerScan:
             D: D value.
         """
         x = np.random.normal(0, 1, (B, D))
-        net = Net(layers=L, units=D, name="net")
+        net = Net(layers=L, units=D, name="net")  # pyright: ignore[reportCallIssue]
         params = nj.init(net)({}, x, seed=0)
-        params, out = nj.pure(net)(params, x)
+        params, out = nj.pure(net)(params, x)  # pyright: ignore[reportAssignmentType]
         assert out.shape == (B, D), "Expected out shape to equal (B, D)."
         assert params["outer1"] == L + 2, "Expected params outer1 to equal L + 2."
         assert params["outer2"] == 1, "Expected params outer2 to equal 1."
@@ -163,7 +165,7 @@ class TestLayerScan:
             Result of the operation.
         """
         x = np.random.normal(0, 1, (B, D))
-        net = Net(layers=L, units=D, name="net")
+        net = Net(layers=L, units=D, name="net")  # pyright: ignore[reportCallIssue]
 
         def fn(x: Any) -> Any:
             """Handle function.
@@ -178,11 +180,13 @@ class TestLayerScan:
                 net(x)
             params = {k: v for k, v in net.values.items() if v.dtype == f32}
             params = {net.path + "/" + k: v for k, v in params.items()}
-            loss, _, grads = nj.grad(lambda x: net(x).mean(), params.keys())(x)
+            loss, _, grads = nj.grad(  # pyright: ignore[reportAssignmentType]
+                lambda x: net(x).mean(), params.keys()
+            )(x)
             params = {k: v - 0.1 * grads[k] for k, v in params.items()}
             nj.context().update(params)
             return loss
 
         params = nj.init(net)({}, x, seed=0)
-        params, loss = nj.pure(fn)(params, x)
+        params, loss = nj.pure(fn)(params, x)  # pyright: ignore[reportAssignmentType]
         assert loss.shape == (), "Expected loss shape to equal ()."

@@ -43,7 +43,9 @@ def main(argv: Any | None = None) -> None:
         config = config.update(configs[name])
     config = elements.Flags(config).parse(other)
     config = config.update(
-        logdir=(config.logdir.format(timestamp=elements.timestamp()))
+        logdir=(
+            config.logdir.format(timestamp=elements.timestamp())
+        )  # pyright: ignore[reportCallIssue]
     )
 
     if "JOB_COMPLETION_INDEX" in os.environ:
@@ -53,13 +55,17 @@ def main(argv: Any | None = None) -> None:
     logdir = elements.Path(config.logdir)
     print("Logdir:", logdir)
     print("Run script:", config.script)
-    if not config.script.endswith(("_env", "_replay")):
+    if not config.script.endswith(
+        ("_env", "_replay")
+    ):  # pyright: ignore[reportCallIssue]
         logdir.mkdir()
         config.save(logdir / "config.yaml")
 
     def init() -> None:
         """Handle init."""
-        elements.timer.global_timer.enabled = config.logger.timer
+        elements.timer.global_timer.enabled = (  # pyright: ignore[reportAttributeAccessIssue]
+            config.logger.timer
+        )
 
     portal.setup(
         errfile=config.errfile and logdir / "error",
@@ -125,13 +131,13 @@ def main(argv: Any | None = None) -> None:
         )
 
     elif config.script == "parallel_env":
-        is_eval = config.replica >= args.envs
+        is_eval = config.replica >= args.envs  # pyright: ignore[reportOperatorIssue]
         embodied.run.parallel.parallel_env(
             bind(make_env, config), config.replica, args, is_eval
         )
 
     elif config.script == "parallel_envs":
-        is_eval = config.replica >= args.envs
+        is_eval = config.replica >= args.envs  # pyright: ignore[reportOperatorIssue]
         embodied.run.parallel.parallel_envs(
             bind(make_env, config), bind(make_env, config), args
         )
@@ -216,7 +222,7 @@ def make_logger(config: Any) -> Any:
             run = "/".join(logdir.split("/")[-3:])
             proj = "embodied" if logdir.startswith(("/cns/", "gs://")) else "debug"
             outputs.append(
-                elements.logger.ExpaOutput(
+                elements.logger.ExpaOutput(  # pyright: ignore[reportAttributeAccessIssue]
                     exp, run, proj, config.logger.user, config.flat
                 )
             )

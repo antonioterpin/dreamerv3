@@ -36,14 +36,18 @@ class Crafter(embodied.Env):
             "reward",
             "noreward",
         ), 'Expected task to be present in ("reward", "noreward").'
-        self._env = crafter.Env(size=size, reward=(task == "reward"), seed=seed)
+        self._env = crafter.Env(  # pyright: ignore[reportAttributeAccessIssue]
+            size=size, reward=(task == "reward"), seed=seed
+        )
         self._logs = logs
         self._logdir = logdir and elements.Path(logdir)
-        self._logdir and self._logdir.mkdir()
+        self._logdir and self._logdir.mkdir()  # pyright: ignore[reportUnusedExpression]
         self._episode = 0
         self._length = None
         self._reward = None
-        self._achievements = crafter.constants.achievements.copy()
+        self._achievements = (
+            crafter.constants.achievements.copy()  # pyright: ignore[reportAttributeAccessIssue]
+        )
         self._done = True
 
     @property
@@ -100,7 +104,7 @@ class Crafter(embodied.Env):
             return self._obs(image, 0.0, {}, is_first=True)
         image, reward, self._done, info = self._env.step(action["action"])
         self._reward += reward
-        self._length += 1
+        self._length += 1  # pyright: ignore[reportOperatorIssue]
         if self._done and self._logdir:
             self._write_stats(self._length, self._reward, info)
         return self._obs(
@@ -139,7 +143,9 @@ class Crafter(embodied.Env):
             "reward": round(reward, 1),
             **{f"achievement_{k}": v for k, v in info["achievements"].items()},
         }
-        filename = self._logdir / "stats.jsonl"
+        filename = (
+            self._logdir / "stats.jsonl"  # pyright: ignore[reportOptionalOperand]
+        )
         lines = filename.read() if filename.exists() else ""
         lines += json.dumps(stats) + "\n"
         filename.write(lines, mode="w")

@@ -58,7 +58,9 @@ def setup(
         coordinator_address: Coordinator address value.
         compilation_cache: Compilation cache value.
     """
-    platform and jax.config.update("jax_platforms", platform)
+    platform and jax.config.update(
+        "jax_platforms", platform
+    )  # pyright: ignore[reportUnusedExpression]
     jax.config.update("jax_disable_most_optimizations", debug)
     jax.config.update("jax_disable_jit", not jit)
     if transfer_guard and jit and not debug_nans:
@@ -178,7 +180,9 @@ def fetch_async(value: Any) -> Any:
     """
     if is_multihost():
         value = to_local(value)
-    with jax._src.config.explicit_device_get_scope():
+    with (
+        jax._src.config.explicit_device_get_scope()  # pyright: ignore[reportAttributeAccessIssue]
+    ):
         [x.copy_to_host_async() for x in jax.tree.leaves(value)]
     return value
 
@@ -203,7 +207,9 @@ def device_put(value: Any, sharding: Any) -> Any:
         Result of the operation.
     """
     if is_multihost():
-        with jax._src.config.explicit_device_put_scope():
+        with (
+            jax._src.config.explicit_device_put_scope()  # pyright: ignore[reportAttributeAccessIssue]
+        ):
             value = jax.tree.map(
                 lambda x: jax.make_array_from_process_local_data(sharding, x), value
             )
@@ -367,7 +373,7 @@ def grouped_ckpt_fns(params: Any, chunksize: Any) -> Any:
             else:
                 groups.append(keys)
                 keys, size = [k], v.nbytes
-        keys and groups.append(keys)
+        keys and groups.append(keys)  # pyright: ignore[reportUnusedExpression]
     assert sum(len(keys) for keys in groups) == len(
         params
     ), "Expected sum((len(keys) for keys in groups)) to equal len(params)."
@@ -375,7 +381,7 @@ def grouped_ckpt_fns(params: Any, chunksize: Any) -> Any:
         len(keys) for keys in groups
     ), "Expected every parameter group to be non-empty."
     msg = f"Compiling {len(groups)} checkpoint groups..."
-    elements.print(msg, color="yellow")
+    elements.print(msg, color="yellow")  # pyright: ignore[reportArgumentType]
     maxsize = max(sum(params[k].nbytes for k in g) for g in groups)
     print(f"Largest checkpoint group: {maxsize / (1024 ** 3):.0f} GB")
 
@@ -409,14 +415,14 @@ def ckpt_fn(params: Any, compile: bool = True) -> tuple[Any, ...]:
     inspec = {k: struct(params[k], original[k]) for k in keys}
     gather_fn = jax.jit(
         lambda x: x,
-        in_shardings=(original,),
-        out_shardings=mirrored,
+        in_shardings=(original,),  # pyright: ignore[reportArgumentType]
+        out_shardings=mirrored,  # pyright: ignore[reportArgumentType]
     ).lower(inspec)
     inspec = {k: struct(params[k], mirrored) for k in keys}
     shard_fn = jax.jit(
         lambda x: x,
-        in_shardings=(mirrored,),
-        out_shardings=original,
+        in_shardings=(mirrored,),  # pyright: ignore[reportArgumentType]
+        out_shardings=original,  # pyright: ignore[reportArgumentType]
     ).lower(inspec)
     if compile:
         gather_fn = gather_fn.compile()

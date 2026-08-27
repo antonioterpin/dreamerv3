@@ -46,7 +46,7 @@ def eval_only(make_agent: Any, make_env: Any, make_logger: Any, args: Any) -> No
             worker: Worker value.
         """
         episode = episodes[worker]
-        tran["is_first"] and episode.reset()
+        tran["is_first"] and episode.reset()  # pyright: ignore[reportUnusedExpression]
         episode.add("score", tran["reward"], agg="sum")
         episode.add("length", 1, agg="sum")
         episode.add("rewards", tran["reward"], agg="stack")

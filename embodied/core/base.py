@@ -173,10 +173,10 @@ class Stream:
     def __iter__(self) -> Iterator[Any]:
         return self
 
-    def __next__(self) -> None:
+    def __next__(self) -> Any:
         raise NotImplementedError
 
-    def save(self) -> None:
+    def save(self) -> Any:
         """Save state.
 
         Raises:

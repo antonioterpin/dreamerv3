@@ -22,7 +22,7 @@ class Output:
         pred = self.pred()
         return f"{name}({pred.dtype}, shape={pred.shape})"
 
-    def pred(self) -> None:
+    def pred(self) -> Any:
         """Handle pred.
 
         Raises:
@@ -41,7 +41,7 @@ class Output:
         """
         return -self.logp(sg(target))
 
-    def sample(self, seed: Any, shape: tuple[Any, ...] = ()) -> None:
+    def sample(self, seed: Any, shape: tuple[Any, ...] = ()) -> Any:
         """Sample state.
 
         Args:
@@ -53,7 +53,7 @@ class Output:
         """
         raise NotImplementedError
 
-    def logp(self, event: Any) -> None:
+    def logp(self, event: Any) -> Any:
         """Handle logp.
 
         Args:
@@ -75,7 +75,7 @@ class Output:
         """
         return jnp.exp(self.logp(event))
 
-    def entropy(self) -> None:
+    def entropy(self) -> Any:
         """Handle entropy.
 
         Raises:
@@ -83,7 +83,7 @@ class Output:
         """
         raise NotImplementedError
 
-    def kl(self, other: Any) -> None:
+    def kl(self, other: Any) -> Any:
         """Handle kl.
 
         Args:
@@ -448,7 +448,9 @@ class Binary(Output):
             Result of the operation.
         """
         prob = jax.nn.sigmoid(self.logit)
-        return jax.random.bernoulli(seed, prob, -1, shape + self.logit.shape)
+        return jax.random.bernoulli(
+            seed, prob, -1, shape + self.logit.shape  # pyright: ignore[reportCallIssue]
+        )
 
 
 class Categorical(Output):

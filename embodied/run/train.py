@@ -58,7 +58,7 @@ def train(
             worker: Worker value.
         """
         episode = episodes[worker]
-        tran["is_first"] and episode.reset()
+        tran["is_first"] and episode.reset()  # pyright: ignore[reportUnusedExpression]
         episode.add("score", tran["reward"], agg="sum")
         episode.add("length", 1, agg="sum")
         episode.add("rewards", tran["reward"], agg="stack")

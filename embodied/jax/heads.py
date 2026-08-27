@@ -39,7 +39,12 @@ class MLPHead(nj.Module):
         shared = dict(bias=self.bias, winit=self.winit, binit=self.binit)
         mkw = dict(**shared, act=self.act, norm=self.norm)
         hkw = dict(**shared, **hkw)
-        self.mlp = nets.MLP(self.layers, self.units, **mkw, name="mlp")
+        self.mlp = nets.MLP(
+            self.layers,
+            self.units,
+            **mkw,
+            name="mlp",  # pyright: ignore[reportCallIssue]
+        )
         if isinstance(space, dict):
             self.head = DictHead(space, output, **hkw, name="head")
         else:
@@ -181,8 +186,10 @@ class Head(nj.Module):
         shape = (*self.space.shape, classes[0].item())
         logits = self.sub("logits", nets.Linear, shape, **self.kw)(x)
         output = outs.Categorical(logits)
-        output.minent = 0
-        output.maxent = np.log(logits.shape[-1])
+        output.minent = 0  # pyright: ignore[reportAttributeAccessIssue]
+        output.maxent = np.log(  # pyright: ignore[reportAttributeAccessIssue]
+            logits.shape[-1]
+        )
         return output
 
     def onehot(self, x: Any) -> Any:
@@ -286,8 +293,12 @@ class Head(nj.Module):
         lo, hi = self.minstd, self.maxstd
         stddev = (hi - lo) * jax.nn.sigmoid(stddev + 2.0) + lo
         output = outs.Normal(jnp.tanh(mean), stddev)
-        output.minent = outs.Normal(jnp.zeros_like(mean), self.minstd).entropy()
-        output.maxent = outs.Normal(jnp.zeros_like(mean), self.maxstd).entropy()
+        output.minent = outs.Normal(  # pyright: ignore[reportAttributeAccessIssue]
+            jnp.zeros_like(mean), self.minstd
+        ).entropy()
+        output.maxent = outs.Normal(  # pyright: ignore[reportAttributeAccessIssue]
+            jnp.zeros_like(mean), self.maxstd
+        ).entropy()
         return output
 
     def normal_logstd(self, x: Any) -> Any:
@@ -304,5 +315,7 @@ class Head(nj.Module):
         ), "Expected self space discrete to be false or empty."
         mean = self.sub("mean", nets.Linear, self.space.shape, **self.kw)(x)
         stddev = self.sub("stddev", nets.Linear, self.space.shape, **self.kw)(x)
-        output = outs.Normal(mean, jnp.exp(stddev))
+        output = outs.Normal(
+            mean, jnp.exp(stddev)  # pyright: ignore[reportArgumentType]
+        )
         return output

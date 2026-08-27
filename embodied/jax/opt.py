@@ -75,13 +75,16 @@ class Optimizer(nj.Module):
                 loss *= sg(self.grad_scale.read())
             return loss, aux
 
-        loss, params, grads, aux = nj.grad(lossfn2, self.modules, has_aux=True)(
-            *args, **kwargs
-        )
+        loss, params, grads, aux = nj.grad(  # pyright: ignore[reportAssignmentType]
+            lossfn2, self.modules, has_aux=True
+        )(*args, **kwargs)
         if self.scaling:
             loss *= 1 / self.grad_scale.read()
 
-        counts = {k: math.prod(v.shape) for k, v in params.items()}
+        counts = {
+            k: math.prod(v.shape)
+            for k, v in params.items()  # pyright: ignore[reportAttributeAccessIssue]
+        }
         if nj.creating():
             print(self._summarize_params(counts, self.summary_depth))
 

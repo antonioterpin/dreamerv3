@@ -130,8 +130,12 @@ class LocoNav(embodied.Env):
         if obs["is_first"]:
             self._visited = set()
         global_pos = self._walker.get_pose(self._env._dmenv._physics)[0].reshape(-1)
-        self._visited.add(tuple(np.round(global_pos[:2]).astype(int).tolist()))
-        obs["log/coverage"] = np.int32(len(self._visited))
+        self._visited.add(  # pyright: ignore[reportOptionalMemberAccess]
+            tuple(np.round(global_pos[:2]).astype(int).tolist())
+        )
+        obs["log/coverage"] = np.int32(
+            len(self._visited)  # pyright: ignore[reportArgumentType]
+        )
         return obs
 
     def _make_walker(self, name: Any) -> Any:

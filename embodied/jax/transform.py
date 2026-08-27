@@ -24,13 +24,13 @@ TRACER_SHARDINGS = {}
 
 
 def init(
-    fn: Any,
+    fn: Any,  # pyright: ignore[reportRedeclaration]
     mesh: Any,
     arg_shardings: Any,
-    param_partition_rules: tuple[Any, ...] = (),
-    act_partition_rules: tuple[Any, ...] = (),
+    param_partition_rules: Any = (),
+    act_partition_rules: Any = (),
     static_argnums: tuple[Any, ...] = (),
-    dummy_inputs: tuple[Any, ...] = (),
+    dummy_inputs: Any = (),
     print_partition: bool = False,
 ) -> tuple[Any, ...]:
     """Handle init.
@@ -90,7 +90,7 @@ def init(
         Returns:
             Result of the operation.
         """
-        params, seed, *args = args
+        params, seed, *args = args  # pyright: ignore[reportAssignmentType]
         old = nn.LAYER_CALLBACK
         nn.LAYER_CALLBACK = create_layer_callback(mesh, act_partition_rules)
         params, _ = inner(params, *args, seed=seed)
@@ -119,11 +119,11 @@ def init(
 
 
 def apply(
-    fn: Any,
+    fn: Any,  # pyright: ignore[reportRedeclaration]
     mesh: Any,
     in_shardings: Any,
     out_shardings: Any,
-    partition_rules: tuple[Any, ...] = (),
+    partition_rules: Any = (),
     static_argnums: tuple[Any, ...] = (),
     single_output: bool = False,
     return_params: bool = False,
@@ -166,12 +166,16 @@ def apply(
             Result of the operation.
         """
         if donate_params:
-            donated, allocated, seed, *args = args
+            donated, allocated, seed, *args = (
+                args  # pyright: ignore[reportAssignmentType]
+            )
             params = {**donated, **allocated}
         else:
-            params, seed, *args = args
+            params, seed, *args = args  # pyright: ignore[reportAssignmentType]
         if use_shardmap and len(mesh.devices) > 1 and split_rng:
-            seed = jax.random.fold_in(seed, jax.lax.axis_index("d"))
+            seed = jax.random.fold_in(
+                seed, jax.lax.axis_index("d")  # pyright: ignore[reportArgumentType]
+            )
         params, outs = inner(params, *args, seed=seed)
         outs = (outs,) if single_output else outs
         assert isinstance(outs, tuple), "Expected outs to have type tuple."
@@ -192,7 +196,9 @@ def apply(
             ispecs.insert(i, None)
         ispecs = tuple(ispecs)
         ospecs = jax.tree.map(lambda s: s.spec, out_shardings)
-        fn = shard_map(fn, mesh, ispecs, ospecs, check_rep=False)
+        fn = shard_map(
+            fn, mesh, ispecs, ospecs, check_rep=False
+        )  # pyright: ignore[reportAssignmentType]
 
         def fn(*args: Any, inner: Any = fn) -> Any:
             outs = list(inner(*args))

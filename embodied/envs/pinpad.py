@@ -108,8 +108,12 @@ class PinPad(embodied.Env):
                 self.sequence.clear()
         reward = 0.0
         move = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)][action["action"]]
-        x = np.clip(self.player[0] + move[0], 0, 15)
-        y = np.clip(self.player[1] + move[1], 0, 13)
+        x = np.clip(
+            self.player[0] + move[0], 0, 15  # pyright: ignore[reportOptionalSubscript]
+        )
+        y = np.clip(
+            self.player[1] + move[1], 0, 13  # pyright: ignore[reportOptionalSubscript]
+        )
         tile = self.layout[x][y]
         if tile != "#":
             self.player = (x, y)
@@ -119,7 +123,7 @@ class PinPad(embodied.Env):
         if tuple(self.sequence) == self.target and not self.countdown:
             reward += 10.0
             self.countdown = 10
-        self.steps += 1
+        self.steps += 1  # pyright: ignore[reportOperatorIssue]
         self.done = self.done or (self.steps >= self.length)
         return self._obs(reward=reward, is_last=self.done)
 
@@ -143,7 +147,11 @@ class PinPad(embodied.Env):
         white = np.array([255, 255, 255])
         if self.countdown:
             grid[:] = (223, 255, 223)
-        current = self.layout[self.player[0]][self.player[1]]
+        current = self.layout[
+            self.player[0]  # pyright: ignore[reportOptionalSubscript]
+        ][
+            self.player[1]  # pyright: ignore[reportOptionalSubscript]
+        ]
         for (x, y), char in np.ndenumerate(self.layout):
             if char == "#":
                 grid[x, y] = (192, 192, 192)

@@ -40,8 +40,10 @@ class TestAgent:
 
     def _watcher(self) -> None:
         while True:
-            if self.queue.empty():
-                self.queue.put(self.stats())
+            if self.queue.empty():  # pyright: ignore[reportAttributeAccessIssue]
+                self.queue.put(  # pyright: ignore[reportAttributeAccessIssue]
+                    self.stats()
+                )
             else:
                 time.sleep(0.01)
 

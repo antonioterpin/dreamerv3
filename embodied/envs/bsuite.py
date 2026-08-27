@@ -23,20 +23,26 @@ class BSuite(embodied.Env):
             "Warning: BSuite result logging is stateful and therefore training "
             + "runs cannot be interrupted or restarted."
         )
-        np.int = int  # Patch deprecated Numpy alias used inside BSuite.
+        np.int = int  # Patch deprecated Numpy alias used inside BSuite.  # pyright: ignore[reportAttributeAccessIssue]
         from . import from_dm
 
         if "/" not in task:
             task = f"{task}/0"
         import bsuite
 
-        env = bsuite.from_checkpoint_id(task)
+        env = bsuite.from_checkpoint_id(  # pyright: ignore[reportAttributeAccessIssue]
+            task
+        )
         self.num_episodes = 0
         self.max_episodes = env.bsuite_num_episodes
         self.exit_after = None
         env = from_dm.FromDM(env)
-        env = embodied.wrappers.ForceDtypes(env)
-        env = embodied.wrappers.FlattenTwoDimObs(env)
+        env = embodied.wrappers.ForceDtypes(  # pyright: ignore[reportAttributeAccessIssue]
+            env
+        )
+        env = embodied.wrappers.FlattenTwoDimObs(  # pyright: ignore[reportAttributeAccessIssue]
+            env
+        )
         self.env = env
 
     @property
@@ -79,8 +85,10 @@ class BSuite(embodied.Env):
             if not self.exit_after:
                 self.exit_after = time.time() + 600
             if time.time() > self.exit_after:
-                if self.xm:
-                    wu = self.xm.get_current_work_unit()
+                if self.xm:  # pyright: ignore[reportAttributeAccessIssue]
+                    wu = (
+                        self.xm.get_current_work_unit()  # pyright: ignore[reportAttributeAccessIssue]
+                    )
                     wu.stop(mark_as_completed=True, message="BSuite run complete")
                 else:
                     raise RuntimeError("BSuite run complete")

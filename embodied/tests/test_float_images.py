@@ -32,7 +32,9 @@ def _encode(space: Any, image: Any) -> Any:
         _, _, tokens = enc({}, obs, reset, training=False)
         return tokens
 
-    _, tokens = nj.pure(fn)({}, {"image": image}, seed=0, create=True)
+    _, tokens = nj.pure(fn)(  # pyright: ignore[reportAssignmentType]
+        {}, {"image": image}, seed=0, create=True
+    )
     return np.asarray(tokens, np.float32)
 
 

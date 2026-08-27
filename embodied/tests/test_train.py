@@ -24,7 +24,7 @@ class TestTrain:
         """
         args = self._make_args(tmpdir)
         agent = self._make_agent()
-        embodied.run.train(
+        embodied.run.train(  # pyright: ignore[reportCallIssue]
             lambda: agent,
             bind(self._make_replay, args),
             self._make_env,
@@ -47,7 +47,7 @@ class TestTrain:
         assert stats["saves"] >= 2, "Expected stats saves to be at least 2."
         assert stats["loads"] == 0, "Expected stats loads to equal 0."
         args = args.update(steps=2 * args.steps)
-        embodied.run.train(
+        embodied.run.train(  # pyright: ignore[reportCallIssue]
             lambda: agent,
             bind(self._make_replay, args),
             self._make_env,

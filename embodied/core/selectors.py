@@ -63,7 +63,9 @@ class Uniform:
             Result produced by the operation.
         """
         with self.lock:
-            index = self.rng.integers(0, len(self.keys)).item()
+            index = self.rng.integers(
+                0, len(self.keys)
+            ).item()  # pyright: ignore[reportAttributeAccessIssue]
             return self.keys[index]
 
     def __setitem__(self, key: Any, stepids: Any) -> None:
@@ -487,7 +489,7 @@ class SampleTreeNode:
     def recompute(self) -> None:
         """Handle recompute."""
         self.uprob = sum(x.uprob for x in self.children)
-        self.parent and self.parent.recompute()
+        self.parent and self.parent.recompute()  # pyright: ignore[reportUnusedExpression]
 
 
 class SampleTreeEntry:

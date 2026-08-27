@@ -79,7 +79,10 @@ def load_run(
             ys = [1 if y > ythres else 0 for y in ys]
         return xs, ys
     except Exception as e:
-        elements.print(f"Exception loading {filename}: {e}", color="red")
+        elements.print(
+            f"Exception loading {filename}: {e}",
+            color="red",  # pyright: ignore[reportArgumentType]
+        )
         return None
 
 
@@ -326,8 +329,12 @@ def plot_runs(df: Any, stats: Any, args: Any) -> None:
         style(ax, xticks=args.xticks, yticks=args.yticks)
         title = task.replace("_", " ").replace(":", " ").split(" ", 1)[1].title()
         ax.set_title(title)
-        args.xlim and ax.set_xlim(0, 1.03 * args.xlim)
-        args.ylim and ax.set_ylim(0, 1.03 * args.ylim)
+        args.xlim and ax.set_xlim(
+            0, 1.03 * args.xlim
+        )  # pyright: ignore[reportUnusedExpression]
+        args.ylim and ax.set_ylim(
+            0, 1.03 * args.ylim
+        )  # pyright: ignore[reportUnusedExpression]
         for i, method in enumerate(methods):
             try:
                 sub = grouped.loc[task, method]
@@ -349,7 +356,9 @@ def plot_runs(df: Any, stats: Any, args: Any) -> None:
         for sname, ax in zip(snames, axes[len(tasks) :]):
             style(ax, xticks=args.xticks, yticks=args.yticks, darker=True)
             ax.set_title(sname)
-            args.xlim and ax.set_xlim(0, 1.03 * args.xlim)
+            args.xlim and ax.set_xlim(
+                0, 1.03 * args.xlim
+            )  # pyright: ignore[reportUnusedExpression]
             for i, method in enumerate(methods):
                 sub = grouped.loc[sname, method]
                 curve(ax, sub["xs"], sub["ys"], None, None, method, i)
@@ -407,21 +416,41 @@ def style(
     """
     ax.tick_params(axis="x", which="major", length=2, labelsize=10, pad=3)
     ax.tick_params(axis="y", which="major", length=2, labelsize=10, pad=2)
-    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(xticks))
-    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(yticks))
+    ax.xaxis.set_major_locator(
+        mpl.ticker.MaxNLocator(xticks)  # pyright: ignore[reportAttributeAccessIssue]
+    )
+    ax.yaxis.set_major_locator(
+        mpl.ticker.MaxNLocator(yticks)  # pyright: ignore[reportAttributeAccessIssue]
+    )
     ax.xaxis.set_major_formatter(lambda x, pos: natfmt(x))
     ax.yaxis.set_major_formatter(lambda x, pos: natfmt(x))
     if grid:
         color = "#cccccc" if darker else "#eeeeee"
         ax.grid(which="both", color=color)
-        ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator(grid[0]))
-        ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator(grid[1]))
+        ax.xaxis.set_minor_locator(
+            mpl.ticker.AutoMinorLocator(  # pyright: ignore[reportAttributeAccessIssue]
+                grid[0]
+            )
+        )
+        ax.yaxis.set_minor_locator(
+            mpl.ticker.AutoMinorLocator(  # pyright: ignore[reportAttributeAccessIssue]
+                grid[1]
+            )
+        )
         ax.tick_params(which="minor", length=0)
     if logx:
         ax.set_xscale("log")
-        ax.xaxis.set_major_locator(plt.LogLocator(10, numticks=3))
-        ax.xaxis.set_minor_locator(plt.LogLocator(10, subs="all", numticks=100))
-        ax.xaxis.set_minor_formatter(plt.NullFormatter())
+        ax.xaxis.set_major_locator(
+            plt.LogLocator(10, numticks=3)  # pyright: ignore[reportPrivateImportUsage]
+        )
+        ax.xaxis.set_minor_locator(
+            plt.LogLocator(  # pyright: ignore[reportPrivateImportUsage]
+                10, subs="all", numticks=100
+            )
+        )
+        ax.xaxis.set_minor_formatter(
+            plt.NullFormatter()  # pyright: ignore[reportPrivateImportUsage]
+        )
     if darker:
         ax.set_facecolor((0.95, 0.95, 0.95))
 
@@ -456,15 +485,28 @@ def curve(
     order = order or 0
     kwargs["color"] = color
     mask = np.isfinite(ys)
-    ax.plot(xs[mask], ys[mask], label=label, zorder=200 - order, **kwargs)
+    ax.plot(
+        xs[mask],
+        ys[mask],
+        label=label,
+        zorder=200 - order,  # pyright: ignore[reportOperatorIssue]
+        **kwargs,
+    )
     if scatter:
-        ax.scatter(xs, ys, s=5, label=label, zorder=3000 - order, **kwargs)
+        ax.scatter(
+            xs,
+            ys,
+            s=5,
+            label=label,
+            zorder=3000 - order,  # pyright: ignore[reportOperatorIssue]
+            **kwargs,
+        )
     if lo is not None:
         ax.fill_between(
             xs[mask],
             lo[mask],
-            hi[mask],
-            zorder=100 - order,
+            hi[mask],  # pyright: ignore[reportOptionalSubscript]
+            zorder=100 - order,  # pyright: ignore[reportOperatorIssue]
             lw=0,
             **{**kwargs, "alpha": 0.2},
         )
@@ -515,7 +557,9 @@ def legend(
     if adjust:
         extent = leg.get_window_extent(fig.canvas.get_renderer())
         extent = extent.transformed(fig.transFigure.inverted())
-        yloc, xloc = options["loc"].split()
+        yloc, xloc = options[
+            "loc"
+        ].split()  # pyright: ignore[reportAttributeAccessIssue]
         y0 = dict(lower=extent.y1, center=0, upper=0)[yloc]
         y1 = dict(lower=1, center=1, upper=extent.y0)[yloc]
         x0 = dict(left=extent.x1, center=0, right=0)[xloc]

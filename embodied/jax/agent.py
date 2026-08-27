@@ -1,5 +1,7 @@
 """Provide agent functionality."""
 
+# pyright: reportSelfClsParameterName=false
+
 from __future__ import annotations
 from typing import Any
 
@@ -52,7 +54,12 @@ class Options:
 class Agent(embodied.Agent):
     """Represent agent."""
 
-    def __new__(subcls: Any, obs_space: Any, act_space: Any, config: Any) -> Any:
+    def __new__(
+        subcls: Any,
+        obs_space: Any,
+        act_space: Any,
+        config: Any,
+    ) -> Any:
         """Construct the agent.
 
         Args:
@@ -69,8 +76,8 @@ class Agent(embodied.Agent):
         jaxcfg = Options(**options)
         internal.setup(**setup)
         model = super().__new__(subcls)
-        model.__init__(obs_space, act_space, config)
-        outer = super().__new__(Agent)
+        model.__init__(obs_space, act_space, config)  # pyright: ignore[reportCallIssue]
+        outer = super().__new__(Agent)  # pyright: ignore[reportArgumentType]
         outer.__init__(model, obs_space, act_space, config, jaxcfg)
         return outer
 
@@ -108,11 +115,13 @@ class Agent(embodied.Agent):
         assert self.jaxcfg.policy_sync_steps >= 1, self.jaxcfg.policy_sync_steps
 
         ext_space = self.model.ext_space  # Extra inputs to train and report.
-        elements.print("Observations", color="cyan")
+        elements.print(
+            "Observations", color="cyan"  # pyright: ignore[reportArgumentType]
+        )
         [elements.print(f"  {k:<16} {v}") for k, v in obs_space.items()]
-        elements.print("Actions", color="cyan")
+        elements.print("Actions", color="cyan")  # pyright: ignore[reportArgumentType]
         [elements.print(f"  {k:<16} {v}") for k, v in act_space.items()]
-        elements.print("Extras", color="cyan")
+        elements.print("Extras", color="cyan")  # pyright: ignore[reportArgumentType]
         [elements.print(f"  {k:<16} {v}") for k, v in ext_space.items()]
         self.spaces = dict(**obs_space, **act_space, **ext_space)
         assert not (obs_space.keys() & ext_space.keys()), (obs_space, ext_space)
@@ -168,10 +177,15 @@ class Agent(embodied.Agent):
         self.partition_rules = getattr(
             self.model, "partition_rules", ([(".*", P())], [])
         )
-        elements.print("Initializing parameters...", color="yellow")
+        elements.print(
+            "Initializing parameters...",
+            color="yellow",  # pyright: ignore[reportArgumentType]
+        )
         with self.train_mesh, self._stdout_unless_verbose():
             self.params, self.train_params_sharding = self._init_params()
-        elements.print("Done initializing!", color="yellow")
+        elements.print(
+            "Done initializing!", color="yellow"  # pyright: ignore[reportArgumentType]
+        )
         pattern = re.compile(self.model.policy_keys)
         self.policy_keys = [k for k in self.params.keys() if pattern.search(k)]
         assert self.policy_keys, (list(self.params.keys()), self.model.policy_keys)
@@ -282,7 +296,10 @@ class Agent(embodied.Agent):
             self.params, self.jaxcfg.ckpt_chunksize
         )
         if self.jaxcfg.precompile:
-            elements.print("Compiling train and report...", color="yellow")
+            elements.print(
+                "Compiling train and report...",
+                color="yellow",  # pyright: ignore[reportArgumentType]
+            )
             with self.train_mesh:
                 with self._stdout_unless_verbose():
                     self._compile_train()
@@ -292,7 +309,9 @@ class Agent(embodied.Agent):
                     self._compile_report()
                 print("Report cost analysis:")
                 print(self._format_jit_stats(self._report))
-            elements.print("Done compiling!", color="yellow")
+            elements.print(
+                "Done compiling!", color="yellow"  # pyright: ignore[reportArgumentType]
+            )
 
     def init_policy(self, batch_size: Any) -> Any:
         """Handle init policy.
@@ -488,10 +507,16 @@ class Agent(embodied.Agent):
                 outdir = elements.Path("/tmp/profiler")
                 outdir.mkdir()
             if self.n_updates == 100:
-                elements.print(f"Start JAX profiler: {str(outdir)}", color="yellow")
+                elements.print(
+                    f"Start JAX profiler: {str(outdir)}",
+                    color="yellow",  # pyright: ignore[reportArgumentType]
+                )
                 jax.profiler.start_trace(str(outdir))
             if self.n_updates == 120:
-                elements.print("Stop JAX profiler", color="yellow")
+                elements.print(
+                    "Stop JAX profiler",
+                    color="yellow",  # pyright: ignore[reportArgumentType]
+                )
                 jax.profiler.stop_trace()
                 if copyto:
                     for subdir in elements.Path(outdir).glob("*"):
@@ -694,7 +719,9 @@ class Agent(embodied.Agent):
         tm, ts = self.train_mirrored, self.train_sharded
         us = self.jaxcfg.use_shardmap
 
-        with jax._src.config.explicit_device_get_scope():
+        with (
+            jax._src.config.explicit_device_get_scope()  # pyright: ignore[reportAttributeAccessIssue]
+        ):
             seed = jax.device_put(np.array([self.config.seed, 0], np.uint32), tm)
         data = internal.device_put(self._zeros(self.spaces, (B, T + C)), ts)
         pr, ar = self.partition_rules

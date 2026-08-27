@@ -45,7 +45,7 @@ class TestParallel:
 
         args = self._make_args(tmpdir, train_ratio, eval_envs)
 
-        embodied.run.parallel.combined(
+        embodied.run.parallel.combined(  # pyright: ignore[reportCallIssue]
             bind(self._make_agent, addr),
             bind(self._make_replay, args),
             bind(self._make_replay, args),
@@ -73,7 +73,7 @@ class TestParallel:
         assert stats["saves"] >= 2, "Expected stats saves to be at least 2."
         assert stats["loads"] == 0, "Expected stats loads to equal 0."
 
-        embodied.run.parallel.combined(
+        embodied.run.parallel.combined(  # pyright: ignore[reportCallIssue]
             bind(self._make_agent, addr),
             bind(self._make_replay, args),
             bind(self._make_replay, args),

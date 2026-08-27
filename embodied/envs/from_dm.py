@@ -29,8 +29,8 @@ class FromDM(embodied.Env):
         act_spec = self._env.action_spec()
         self._obs_dict = isinstance(obs_spec, dict)
         self._act_dict = isinstance(act_spec, dict)
-        self._obs_key = not self._obs_dict and obs_key
-        self._act_key = not self._act_dict and act_key
+        self._obs_key: Any = not self._obs_dict and obs_key
+        self._act_key: Any = not self._act_dict and act_key
         self._obs_empty = []
         self._done = True
 

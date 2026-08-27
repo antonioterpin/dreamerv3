@@ -106,12 +106,17 @@ class Atari(embodied.Env):
         with self.LOCK:
             self.ale = ale_py.ALEInterface()
             self.ale.setLoggerMode(ale_py.LoggerMode.Error)
-            self.ale.setInt(b"random_seed", self.rng.integers(0, 2**31))
+            self.ale.setInt(
+                b"random_seed",  # pyright: ignore[reportArgumentType]
+                self.rng.integers(0, 2**31),
+            )
             path = os.environ.get("ALE_ROM_PATH", None)
             if path:
                 self.ale.loadROM(os.path.join(path, f"{name}.bin"))
             else:
-                self.ale.loadROM(roms.get_rom_path(name))
+                self.ale.loadROM(  # pyright: ignore[reportCallIssue]
+                    roms.get_rom_path(name)  # pyright: ignore[reportArgumentType]
+                )
 
         self.ale.setFloat("repeat_action_probability", 0.25 if sticky else 0.0)
         self.actionset = {
@@ -177,7 +182,7 @@ class Atari(embodied.Env):
         act = self.actionset[action["action"]]
         for repeat in range(self.repeat):
             reward += self.ale.act(act)
-            self.duration += 1
+            self.duration += 1  # pyright: ignore[reportOperatorIssue]
             if repeat >= self.repeat - self.pooling:
                 self._render()
             if self.ale.game_over():
@@ -186,9 +191,15 @@ class Atari(embodied.Env):
             if self.duration >= self.length:
                 last = True
             lives = self.ale.lives()
-            if self.lives == "discount" and 0 < lives < self.prevlives:
+            if (
+                self.lives == "discount"
+                and 0 < lives < self.prevlives  # pyright: ignore[reportOperatorIssue]
+            ):
                 terminal = True
-            if self.lives == "reset" and 0 < lives < self.prevlives:
+            if (
+                self.lives == "reset"
+                and 0 < lives < self.prevlives  # pyright: ignore[reportOperatorIssue]
+            ):
                 terminal = True
                 last = True
             self.prevlives = lives
@@ -243,7 +254,9 @@ class Atari(embodied.Env):
             image = cv2.resize(image, self.size, interpolation=cv2.INTER_AREA)
         elif self.resize == "pillow":
             image = Image.fromarray(image)
-            image = image.resize(self.size, Image.BILINEAR)
+            image = image.resize(
+                self.size, Image.BILINEAR  # pyright: ignore[reportAttributeAccessIssue]
+            )
             image = np.array(image)
         if self.gray:
             # Averaging channels equally would not work. For example, a fully red

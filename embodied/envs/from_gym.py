@@ -64,7 +64,9 @@ class FromGym(embodied.Env):
             Result of the operation.
         """
         if self._obs_dict:
-            spaces = self._flatten(self._env.observation_space.spaces)
+            spaces = self._flatten(
+                self._env.observation_space.spaces  # pyright: ignore[reportAttributeAccessIssue]
+            )
         else:
             spaces = {self._obs_key: self._env.observation_space}
         spaces = {k: self._convert(v) for k, v in spaces.items()}
@@ -84,7 +86,9 @@ class FromGym(embodied.Env):
             Result of the operation.
         """
         if self._act_dict:
-            spaces = self._flatten(self._env.action_space.spaces)
+            spaces = self._flatten(
+                self._env.action_space.spaces  # pyright: ignore[reportAttributeAccessIssue]
+            )
         else:
             spaces = {self._act_key: self._env.action_space}
         spaces = {k: self._convert(v) for k, v in spaces.items()}
@@ -147,7 +151,7 @@ class FromGym(embodied.Env):
         Returns:
             Result of the operation.
         """
-        image = self._env.render("rgb_array")
+        image = self._env.render("rgb_array")  # pyright: ignore[reportCallIssue]
         assert image is not None, "Expected image not to be None."
         return image
 
@@ -162,7 +166,9 @@ class FromGym(embodied.Env):
         result = {}
         for key, value in nest.items():
             key = prefix + "/" + key if prefix else key
-            if isinstance(value, gym.spaces.Dict):
+            if isinstance(
+                value, gym.spaces.Dict  # pyright: ignore[reportAttributeAccessIssue]
+            ):
                 value = value.spaces
             if isinstance(value, dict):
                 result.update(self._flatten(value, key))

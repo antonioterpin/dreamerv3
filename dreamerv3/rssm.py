@@ -139,7 +139,9 @@ class RSSM(nj.Module):
         else:
             unroll = jax.tree.leaves(tokens)[0].shape[1] if self.unroll else 1
             carry, (entries, feat) = nj.scan(
-                lambda carry, inputs: self._observe(carry, *inputs, training),
+                lambda carry, inputs: self._observe(
+                    carry, *inputs, training  # pyright: ignore[reportCallIssue]
+                ),
                 carry,
                 (tokens, action, reset),
                 unroll=unroll,

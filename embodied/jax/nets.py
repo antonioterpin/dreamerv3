@@ -93,7 +93,9 @@ def dropout(x: Any, prob: Any, training: Any) -> Any:
     """
     if not prob or not training:
         return x
-    keep = jax.random.bernoulli(nj.seed(), 1.0 - prob, x.shape)
+    keep = jax.random.bernoulli(
+        nj.seed(), 1.0 - prob, x.shape  # pyright: ignore[reportArgumentType]
+    )
     return x * keep / (1.0 - prob)
 
 
@@ -305,7 +307,10 @@ def rope(
         ts = -ts
     freq_exponents = (2.0 / D) * jnp.arange(D // 2)  # [D/2]
     timescale = maxlen**freq_exponents
-    radians = ts[:, :, None] / timescale[None, None, :]  # [B, T, D/2]
+    radians = (
+        ts[:, :, None]  # pyright: ignore[reportOptionalSubscript]
+        / timescale[None, None, :]
+    )  # [B, T, D/2]
     radians = radians[..., None, :].astype(x.dtype)  # [B, T, 1, D/2]
     sin, cos = jnp.sin(radians), jnp.cos(radians)
     x1, x2 = jnp.split(x, 2, axis=-1)  # [B, T, H, D/2]
@@ -360,15 +365,27 @@ class Initializer:
             x = jnp.zeros(shape, dtype)
         elif self.dist == "uniform":
             limit = np.sqrt(1 / fan)
-            x = jax.random.uniform(nj.seed(), shape, dtype, -limit, limit)
+            x = jax.random.uniform(
+                nj.seed(),  # pyright: ignore[reportArgumentType]
+                shape,
+                dtype,
+                -limit,
+                limit,
+            )
         elif self.dist == "normal":
-            x = jax.random.normal(nj.seed(), shape)
+            x = jax.random.normal(
+                nj.seed(), shape  # pyright: ignore[reportArgumentType]
+            )
             x *= np.sqrt(1 / fan)
         elif self.dist == "trunc_normal":
-            x = jax.random.truncated_normal(nj.seed(), -2, 2, shape)
+            x = jax.random.truncated_normal(
+                nj.seed(), -2, 2, shape  # pyright: ignore[reportArgumentType]
+            )
             x *= 1.1368 * np.sqrt(1 / fan)
         elif self.dist == "normed":
-            x = jax.random.uniform(nj.seed(), shape, dtype, -1, 1)
+            x = jax.random.uniform(
+                nj.seed(), shape, dtype, -1, 1  # pyright: ignore[reportArgumentType]
+            )
             x *= 1 / jnp.linalg.norm(x.reshape((-1, shape[-1])), 2, 0)
         else:
             raise NotImplementedError(self.dist)
@@ -670,7 +687,7 @@ class Norm(nj.Module):
         """
         if "1em" in impl:
             impl, exp = impl.split("1em")
-            self._fields["eps"] = 10 ** -int(exp)
+            getattr(self, "_fields")["eps"] = 10 ** -int(exp)
         self.impl = impl
 
     def __call__(self, x: Any) -> Any:
@@ -694,18 +711,30 @@ class Norm(nj.Module):
             pass
         elif self.impl == "rms":
             mean2 = jnp.square(x).mean(axis, keepdims=True)
-            mean2 = adc.checkpoint_name(mean2, "small")
+            mean2 = adc.checkpoint_name(  # pyright: ignore[reportPrivateImportUsage]
+                mean2, "small"
+            )
             scale = self._scale(shape, x.dtype)
-            x = x * (jax.lax.rsqrt(mean2 + self.eps) * scale)
+            x = x * (
+                jax.lax.rsqrt(mean2 + self.eps)  # pyright: ignore[reportOperatorIssue]
+                * scale
+            )
         elif self.impl == "layer":
             mean = x.mean(axis, keepdims=True)
             mean2 = jnp.square(x).mean(axis, keepdims=True)
-            mean2 = adc.checkpoint_name(mean2, "small")
+            mean2 = adc.checkpoint_name(  # pyright: ignore[reportPrivateImportUsage]
+                mean2, "small"
+            )
             var = jnp.maximum(0, mean2 - jnp.square(mean))
-            var = adc.checkpoint_name(var, "small")
+            var = adc.checkpoint_name(  # pyright: ignore[reportPrivateImportUsage]
+                var, "small"
+            )
             scale = self._scale(shape, x.dtype)
             shift = self._shift(shape, x.dtype)
-            x = (x - mean) * (jax.lax.rsqrt(var + self.eps) * scale) + shift
+            x = (x - mean) * (
+                jax.lax.rsqrt(var + self.eps)  # pyright: ignore[reportOperatorIssue]
+                * scale
+            ) + shift
         else:
             raise NotImplementedError(self.impl)
         x = x.astype(dtype)
@@ -785,7 +814,9 @@ class Attention(nj.Module):
             Tq, Tk = q.shape[1], k.shape[1]
             assert mask.shape == (B, Tq, Tk), (mask.shape, (B, Tq, Tk))
             mask = einops.rearrange(mask, "b tq tk -> b 1 1 tq tk")
-            logits = jnp.where(mask, logits, -1e30)
+            logits = jnp.where(  # pyright: ignore[reportCallIssue]
+                mask, logits, -1e30  # pyright: ignore[reportArgumentType]
+            )
         weights = jax.nn.softmax(logits)
         weights = weights.astype(x.dtype)
         weights = dropout(weights, self.dropout, training)

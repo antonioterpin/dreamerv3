@@ -127,7 +127,9 @@ class Chunk:
             np.savez_compressed(stream, **data)
             stream.seek(0)
             filename.write(stream.read(), mode="wb")
-        log and print(f"Saved chunk: {filename.name}")
+        log and print(
+            f"Saved chunk: {filename.name}"
+        )  # pyright: ignore[reportUnusedExpression]
 
     @classmethod
     def load(cls, filename: Any, error: str = "raise") -> Any:

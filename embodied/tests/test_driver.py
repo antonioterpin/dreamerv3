@@ -68,7 +68,7 @@ class TestDriver:
         agent = self._make_agent()
         driver = embodied.Driver([bind(self._make_env, length=5)])
         driver.reset(agent.init_policy)
-        seq = []
+        seq: Any = []
         driver.on_step(lambda tran, _: seq.append(tran))
         action = {"act_disc": np.ones(1, int), "act_cont": np.zeros((1, 6), float)}
         policy = lambda carry, obs: (carry, action, {})
@@ -181,7 +181,7 @@ class TestDriver:
         agent = self._make_agent()
         driver = embodied.Driver([lambda: env])
         driver.reset(agent.init_policy)
-        steps = []
+        steps: Any = []
         driver.on_step(lambda tran, _: steps.append(tran))
         driver(agent.policy, episodes=1)
         assert len(steps) == 8, "Expected number of steps to equal 8."
