@@ -45,7 +45,7 @@ class Atari(embodied.Env):
 
     def __init__(
         self,
-        name: Any,
+        name: str,
         repeat: int = 4,
         size: tuple[Any, ...] = (84, 84),
         gray: bool = True,
@@ -129,8 +129,8 @@ class Atari(embodied.Env):
             [np.zeros((W, H, 3), np.uint8) for _ in range(self.pooling)],
             maxlen=self.pooling,
         )
-        self.prevlives = None
-        self.duration = None
+        self.prevlives: int | None = None
+        self.duration: int | None = None
         self.done = True
 
     @property
@@ -178,11 +178,17 @@ class Atari(embodied.Env):
         reward = 0.0
         terminal = False
         last = False
+        assert (
+            self.duration is not None
+        ), "Expected frame duration to be initialized after Atari reset."
+        assert (
+            self.prevlives is not None
+        ), "Expected previous lives to be initialized after Atari reset."
         assert 0 <= action["action"] < len(self.actionset), action["action"]
         act = self.actionset[action["action"]]
         for repeat in range(self.repeat):
             reward += self.ale.act(act)
-            self.duration += 1  # pyright: ignore[reportOperatorIssue]
+            self.duration += 1
             if repeat >= self.repeat - self.pooling:
                 self._render()
             if self.ale.game_over():
@@ -191,15 +197,9 @@ class Atari(embodied.Env):
             if self.duration >= self.length:
                 last = True
             lives = self.ale.lives()
-            if (
-                self.lives == "discount"
-                and 0 < lives < self.prevlives  # pyright: ignore[reportOperatorIssue]
-            ):
+            if self.lives == "discount" and 0 < lives < self.prevlives:
                 terminal = True
-            if (
-                self.lives == "reset"
-                and 0 < lives < self.prevlives  # pyright: ignore[reportOperatorIssue]
-            ):
+            if self.lives == "reset" and 0 < lives < self.prevlives:
                 terminal = True
                 last = True
             self.prevlives = lives

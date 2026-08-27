@@ -25,7 +25,7 @@ class PinPad(embodied.Env):
         "8": (0, 128, 128),
     }
 
-    def __init__(self, task: Any, length: int = 10000) -> None:
+    def __init__(self, task: str, length: int = 10000) -> None:
         """Initialize the pin pad.
 
         Args:
@@ -53,10 +53,10 @@ class PinPad(embodied.Env):
                 self.spawns.append((x, y))
         print(f'Created PinPad env with sequence: {"->".join(self.target)}')
         self.sequence = collections.deque(maxlen=len(self.target))
-        self.player = None
-        self.steps = None
-        self.done = None
-        self.countdown = None
+        self.player: tuple[int, int] | None = None
+        self.steps: int | None = None
+        self.done: bool | None = None
+        self.countdown: int | None = None
 
     @property
     def act_space(self) -> dict[Any, Any]:
@@ -106,14 +106,16 @@ class PinPad(embodied.Env):
             if self.countdown == 0:
                 self.player = self.spawns[self.random.randint(len(self.spawns))]
                 self.sequence.clear()
+        assert (
+            self.player is not None
+        ), "Expected player position to be initialized after environment reset."
+        assert (
+            self.steps is not None
+        ), "Expected step counter to be initialized after environment reset."
         reward = 0.0
         move = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)][action["action"]]
-        x = np.clip(
-            self.player[0] + move[0], 0, 15  # pyright: ignore[reportOptionalSubscript]
-        )
-        y = np.clip(
-            self.player[1] + move[1], 0, 13  # pyright: ignore[reportOptionalSubscript]
-        )
+        x = np.clip(self.player[0] + move[0], 0, 15)
+        y = np.clip(self.player[1] + move[1], 0, 13)
         tile = self.layout[x][y]
         if tile != "#":
             self.player = (x, y)
@@ -123,7 +125,7 @@ class PinPad(embodied.Env):
         if tuple(self.sequence) == self.target and not self.countdown:
             reward += 10.0
             self.countdown = 10
-        self.steps += 1  # pyright: ignore[reportOperatorIssue]
+        self.steps += 1
         self.done = self.done or (self.steps >= self.length)
         return self._obs(reward=reward, is_last=self.done)
 
@@ -143,15 +145,14 @@ class PinPad(embodied.Env):
         )
 
     def _render(self) -> Any:
+        assert (
+            self.player is not None
+        ), "Expected player position to be initialized before rendering."
         grid = np.zeros((16, 16, 3), np.uint8) + 255
         white = np.array([255, 255, 255])
         if self.countdown:
             grid[:] = (223, 255, 223)
-        current = self.layout[
-            self.player[0]  # pyright: ignore[reportOptionalSubscript]
-        ][
-            self.player[1]  # pyright: ignore[reportOptionalSubscript]
-        ]
+        current = self.layout[self.player[0]][self.player[1]]
         for (x, y), char in np.ndenumerate(self.layout):
             if char == "#":
                 grid[x, y] = (192, 192, 192)

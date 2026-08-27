@@ -23,10 +23,10 @@ class LocoNav(embodied.Env):
 
     def __init__(
         self,
-        name: Any,
+        name: str,
         repeat: int = 1,
         size: tuple[Any, ...] = (64, 64),
-        camera: Any = -1,
+        camera: int = -1,
         again: bool = False,
         termination: bool = False,
         weaker: float = 1.0,
@@ -90,7 +90,7 @@ class LocoNav(embodied.Env):
         from . import dmc
 
         self._env = dmc.DMC(env, repeat, size=size, camera=camera, image=False)
-        self._visited = None
+        self._visited: set[tuple[int, int]] | None = None
         self._weaker = weaker
 
     @property
@@ -129,16 +129,15 @@ class LocoNav(embodied.Env):
             obs = self._env.step(action)
         if obs["is_first"]:
             self._visited = set()
+        assert (
+            self._visited is not None
+        ), "Expected visited positions to be initialized by the first observation."
         global_pos = self._walker.get_pose(self._env._dmenv._physics)[0].reshape(-1)
-        self._visited.add(  # pyright: ignore[reportOptionalMemberAccess]
-            tuple(np.round(global_pos[:2]).astype(int).tolist())
-        )
-        obs["log/coverage"] = np.int32(
-            len(self._visited)  # pyright: ignore[reportArgumentType]
-        )
+        self._visited.add(tuple(np.round(global_pos[:2]).astype(int).tolist()))
+        obs["log/coverage"] = np.int32(len(self._visited))
         return obs
 
-    def _make_walker(self, name: Any) -> Any:
+    def _make_walker(self, name: str) -> Any:
         if name == "ant":
             from dm_control.locomotion.walkers import ant  # pyright: ignore[reportMissingImports]  # fmt: skip
 
@@ -150,7 +149,7 @@ class LocoNav(embodied.Env):
         else:
             raise NotImplementedError(name)
 
-    def _make_arena(self, name: Any) -> Any:
+    def _make_arena(self, name: str) -> Any:
         import labmaze  # pyright: ignore[reportMissingImports]
         from dm_control import mjcf  # pyright: ignore[reportMissingImports]
         from dm_control.locomotion.arenas import labmaze_textures  # pyright: ignore[reportMissingImports]  # fmt: skip

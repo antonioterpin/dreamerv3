@@ -830,8 +830,8 @@ def parallel_env(
                 logger.close()
             env.close()
             return
-        obs = {k: np.asarray(v, order="C") for k, v in obs.items()}
-        obs["is_eval"] = is_eval  # pyright: ignore[reportArgumentType]
+        obs: dict[str, Any] = {k: np.asarray(v, order="C") for k, v in obs.items()}
+        obs["is_eval"] = is_eval
         score += obs["reward"]
         length += 1
         fps.step(1)

@@ -22,8 +22,8 @@ class Replay:
 
     def __init__(
         self,
-        length: Any,
-        capacity: Any | None = None,
+        length: int,
+        capacity: int | None = None,
         directory: Any | None = None,
         chunksize: int = 1024,
         online: bool = False,
@@ -160,7 +160,7 @@ class Replay:
                 self.lengths[worker] += 1
 
     @elements.timer.section("replay_sample")
-    def sample(self, batch: Any, mode: str = "train") -> Any:
+    def sample(self, batch: int, mode: str = "train") -> Any:
         """Sample state.
 
         Args:
@@ -224,7 +224,7 @@ class Replay:
             except KeyError:
                 continue
 
-    def _insert(self, chunkid: Any, index: Any) -> None:
+    def _insert(self, chunkid: Any, index: int) -> None:
         while self.capacity and len(self.items) >= self.capacity:
             self._remove()
         itemid = self.itemid
@@ -434,7 +434,7 @@ class Replay:
                         self._insert(chunk.uuid, index)
 
     @elements.timer.section("complete_chunk")
-    def _complete(self, chunk: Any, worker: Any) -> Any:
+    def _complete(self, chunk: Any, worker: int) -> Any:
         succ = chunklib.Chunk(self.chunksize)
         with self.refs_lock:
             self.refs[chunk.uuid] -= 1

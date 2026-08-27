@@ -17,7 +17,7 @@ class Crafter(embodied.Env):
 
     def __init__(
         self,
-        task: Any,
+        task: str,
         size: tuple[Any, ...] = (64, 64),
         logs: bool = False,
         logdir: Any | None = None,
@@ -43,8 +43,8 @@ class Crafter(embodied.Env):
         self._logdir = logdir and elements.Path(logdir)
         self._logdir and self._logdir.mkdir()  # pyright: ignore[reportUnusedExpression]
         self._episode = 0
-        self._length = None
-        self._reward = None
+        self._length: int | None = None
+        self._reward: float | None = None
         self._achievements = (
             crafter.constants.achievements.copy()  # pyright: ignore[reportAttributeAccessIssue]
         )
@@ -103,8 +103,14 @@ class Crafter(embodied.Env):
             image = self._env.reset()
             return self._obs(image, 0.0, {}, is_first=True)
         image, reward, self._done, info = self._env.step(action["action"])
+        assert (
+            self._reward is not None
+        ), "Expected episode reward to be initialized after environment reset."
+        assert (
+            self._length is not None
+        ), "Expected episode length to be initialized after environment reset."
         self._reward += reward
-        self._length += 1  # pyright: ignore[reportOperatorIssue]
+        self._length += 1
         if self._done and self._logdir:
             self._write_stats(self._length, self._reward, info)
         return self._obs(
@@ -137,15 +143,16 @@ class Crafter(embodied.Env):
         return obs
 
     def _write_stats(self, length: Any, reward: Any, info: Any) -> None:
+        assert (
+            self._logdir is not None
+        ), "Expected a log directory when writing Crafter statistics."
         stats = {
             "episode": self._episode,
             "length": length,
             "reward": round(reward, 1),
             **{f"achievement_{k}": v for k, v in info["achievements"].items()},
         }
-        filename = (
-            self._logdir / "stats.jsonl"  # pyright: ignore[reportOptionalOperand]
-        )
+        filename = self._logdir / "stats.jsonl"
         lines = filename.read() if filename.exists() else ""
         lines += json.dumps(stats) + "\n"
         filename.write(lines, mode="w")

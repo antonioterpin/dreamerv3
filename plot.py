@@ -462,7 +462,7 @@ def curve(
     lo: Any | None = None,
     hi: Any | None = None,
     label: Any | None = None,
-    order: Any | None = None,
+    order: int | None = None,
     color: Any | None = None,
     scatter: bool = True,
     **kwargs: Any,
@@ -489,7 +489,7 @@ def curve(
         xs[mask],
         ys[mask],
         label=label,
-        zorder=200 - order,  # pyright: ignore[reportOperatorIssue]
+        zorder=200 - order,
         **kwargs,
     )
     if scatter:
@@ -498,7 +498,7 @@ def curve(
             ys,
             s=5,
             label=label,
-            zorder=3000 - order,  # pyright: ignore[reportOperatorIssue]
+            zorder=3000 - order,
             **kwargs,
         )
     if lo is not None:
@@ -506,7 +506,7 @@ def curve(
             xs[mask],
             lo[mask],
             hi[mask],  # pyright: ignore[reportOptionalSubscript]
-            zorder=100 - order,  # pyright: ignore[reportOperatorIssue]
+            zorder=100 - order,
             lw=0,
             **{**kwargs, "alpha": 0.2},
         )
