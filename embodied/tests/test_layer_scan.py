@@ -1,6 +1,5 @@
 """Provide test layer scan functionality."""
 
-from __future__ import annotations
 from typing import Any
 
 
