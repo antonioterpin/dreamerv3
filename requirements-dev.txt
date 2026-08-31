@@ -1,0 +1,9 @@
+-r requirements.txt
+
+basedpyright==1.39.10
+black==26.5.1
+gym==0.26.2
+pandas==3.0.5
+pre-commit==4.6.1
+pytest==9.1.1
+zerofun==2.3.1

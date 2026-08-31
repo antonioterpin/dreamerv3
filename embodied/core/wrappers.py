@@ -1,3 +1,9 @@
+"""Provide wrappers functionality."""
+
+from __future__ import annotations
+from typing import Any
+
+
 import functools
 import time
 
@@ -6,107 +12,183 @@ import numpy as np
 
 
 class Wrapper:
+    """Represent wrapper."""
 
-  def __init__(self, env):
-    self.env = env
+    def __init__(self, env: Any) -> None:
+        """Initialize the wrapper.
 
-  def __len__(self):
-    return len(self.env)
+        Args:
+            env: Environment value.
+        """
+        self.env = env
 
-  def __bool__(self):
-    return bool(self.env)
+    def __len__(self) -> int:
+        return len(self.env)
 
-  def __getattr__(self, name):
-    if name.startswith('__'):
-      raise AttributeError(name)
-    try:
-      return getattr(self.env, name)
-    except AttributeError:
-      raise ValueError(name)
+    def __bool__(self) -> bool:
+        return bool(self.env)
+
+    def __getattr__(self, name: Any) -> Any:
+        if name.startswith("__"):
+            raise AttributeError(name)
+        try:
+            return getattr(self.env, name)
+        except AttributeError:
+            raise ValueError(name)
 
 
 class TimeLimit(Wrapper):
+    """Represent time limit."""
 
-  def __init__(self, env, duration, reset=True):
-    super().__init__(env)
-    self._duration = duration
-    self._reset = reset
-    self._step = 0
-    self._done = False
+    def __init__(self, env: Any, duration: Any, reset: bool = True) -> None:
+        """Initialize the time limit.
 
-  def step(self, action):
-    if action['reset'] or self._done:
-      self._step = 0
-      self._done = False
-      if self._reset:
-        action.update(reset=True)
-        return self.env.step(action)
-      else:
-        action.update(reset=False)
+        Args:
+            env: Environment value.
+            duration: Duration value.
+            reset: Reset value.
+        """
+        super().__init__(env)
+        self._duration = duration
+        self._reset = reset
+        self._step = 0
+        self._done = False
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        if action["reset"] or self._done:
+            self._step = 0
+            self._done = False
+            if self._reset:
+                action.update(reset=True)
+                return self.env.step(action)
+            else:
+                action.update(reset=False)
+                obs = self.env.step(action)
+                obs["is_first"] = True
+                return obs
+        self._step += 1
         obs = self.env.step(action)
-        obs['is_first'] = True
+        if self._duration and self._step >= self._duration:
+            obs["is_last"] = True
+        self._done = obs["is_last"]
         return obs
-    self._step += 1
-    obs = self.env.step(action)
-    if self._duration and self._step >= self._duration:
-      obs['is_last'] = True
-    self._done = obs['is_last']
-    return obs
 
 
 class ActionRepeat(Wrapper):
+    """Represent action repeat."""
 
-  def __init__(self, env, repeat):
-    super().__init__(env)
-    self._repeat = repeat
+    def __init__(self, env: Any, repeat: Any) -> None:
+        """Initialize the action repeat.
 
-  def step(self, action):
-    if action['reset']:
-      return self.env.step(action)
-    reward = 0.0
-    for _ in range(self._repeat):
-      obs = self.env.step(action)
-      reward += obs['reward']
-      if obs['is_last'] or obs['is_terminal']:
-        break
-    obs['reward'] = np.float32(reward)
-    return obs
+        Args:
+            env: Environment value.
+            repeat: Repeat value.
+        """
+        super().__init__(env)
+        self._repeat = repeat
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        if action["reset"]:
+            return self.env.step(action)
+        reward = 0.0
+        for _ in range(self._repeat):
+            obs = self.env.step(action)
+            reward += obs["reward"]
+            if obs["is_last"] or obs["is_terminal"]:
+                break
+        obs["reward"] = np.float32(reward)
+        return obs
 
 
 class ClipAction(Wrapper):
+    """Represent clip action."""
 
-  def __init__(self, env, key='action', low=-1, high=1):
-    super().__init__(env)
-    self._key = key
-    self._low = low
-    self._high = high
+    def __init__(
+        self, env: Any, key: str = "action", low: Any = -1, high: int = 1
+    ) -> None:
+        """Initialize the clip action.
 
-  def step(self, action):
-    clipped = np.clip(action[self._key], self._low, self._high)
-    return self.env.step({**action, self._key: clipped})
+        Args:
+            env: Environment value.
+            key: Key identifying the requested value.
+            low: Low value.
+            high: High value.
+        """
+        super().__init__(env)
+        self._key = key
+        self._low = low
+        self._high = high
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        clipped = np.clip(action[self._key], self._low, self._high)
+        return self.env.step({**action, self._key: clipped})
 
 
 class NormalizeAction(Wrapper):
+    """Represent normalize action."""
 
-  def __init__(self, env, key='action'):
-    super().__init__(env)
-    self._key = key
-    self._space = env.act_space[key]
-    self._mask = np.isfinite(self._space.low) & np.isfinite(self._space.high)
-    self._low = np.where(self._mask, self._space.low, -1)
-    self._high = np.where(self._mask, self._space.high, 1)
+    def __init__(self, env: Any, key: str = "action") -> None:
+        """Initialize the normalize action.
 
-  @functools.cached_property
-  def act_space(self):
-    low = np.where(self._mask, -np.ones_like(self._low), self._low)
-    high = np.where(self._mask, np.ones_like(self._low), self._high)
-    space = elements.Space(np.float32, self._space.shape, low, high)
-    return {**self.env.act_space, self._key: space}
+        Args:
+            env: Environment value.
+            key: Key identifying the requested value.
+        """
+        super().__init__(env)
+        self._key = key
+        self._space = env.act_space[key]
+        self._mask = np.isfinite(self._space.low) & np.isfinite(self._space.high)
+        self._low = np.where(self._mask, self._space.low, -1)
+        self._high = np.where(self._mask, self._space.high, 1)
 
-  def step(self, action):
-    orig = (action[self._key] + 1) / 2 * (self._high - self._low) + self._low
-    orig = np.where(self._mask, orig, action[self._key])
-    return self.env.step({**action, self._key: orig})
+    @functools.cached_property
+    def act_space(self) -> dict[Any, Any]:
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
+        low = np.where(self._mask, -np.ones_like(self._low), self._low)
+        high = np.where(self._mask, np.ones_like(self._low), self._high)
+        space = elements.Space(np.float32, self._space.shape, low, high)
+        return {**self.env.act_space, self._key: space}
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        orig = (action[self._key] + 1) / 2 * (self._high - self._low) + self._low
+        orig = np.where(self._mask, orig, action[self._key])
+        return self.env.step({**action, self._key: orig})
 
 
 # class ExpandScalars(Wrapper):
@@ -202,124 +284,213 @@ class NormalizeAction(Wrapper):
 
 
 class UnifyDtypes(Wrapper):
+    """Represent unify dtypes."""
 
-  def __init__(self, env):
-    super().__init__(env)
-    self._obs_space, _, self._obs_outer = self._convert(env.obs_space)
-    self._act_space, self._act_inner, _ = self._convert(env.act_space)
+    def __init__(self, env: Any) -> None:
+        """Initialize the unify dtypes.
 
-  @property
-  def obs_space(self):
-    return self._obs_space
+        Args:
+            env: Environment value.
+        """
+        super().__init__(env)
+        self._obs_space, _, self._obs_outer = self._convert(env.obs_space)
+        self._act_space, self._act_inner, _ = self._convert(env.act_space)
 
-  @property
-  def act_space(self):
-    return self._act_space
+    @property
+    def obs_space(self) -> Any:
+        """Handle observation space.
 
-  def step(self, action):
-    action = action.copy()
-    for key, dtype in self._act_inner.items():
-      action[key] = np.asarray(action[key], dtype)
-    obs = self.env.step(action)
-    for key, dtype in self._obs_outer.items():
-      obs[key] = np.asarray(obs[key], dtype)
-    return obs
+        Returns:
+            Result of the operation.
+        """
+        return self._obs_space
 
-  def _convert(self, spaces):
-    results, befores, afters = {}, {}, {}
-    for key, space in spaces.items():
-      before = after = space.dtype
-      if np.issubdtype(before, np.floating):
-        after = np.float32
-      elif np.issubdtype(before, np.uint8):
-        after = np.uint8
-      elif np.issubdtype(before, np.integer):
-        after = np.int32
-      befores[key] = before
-      afters[key] = after
-      results[key] = elements.Space(after, space.shape, space.low, space.high)
-    return results, befores, afters
+    @property
+    def act_space(self) -> Any:
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
+        return self._act_space
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        action = action.copy()
+        for key, dtype in self._act_inner.items():
+            action[key] = np.asarray(action[key], dtype)
+        obs = self.env.step(action)
+        for key, dtype in self._obs_outer.items():
+            obs[key] = np.asarray(obs[key], dtype)
+        return obs
+
+    def _convert(self, spaces: Any) -> tuple[Any, ...]:
+        results, befores, afters = {}, {}, {}
+        for key, space in spaces.items():
+            before = after = space.dtype
+            if np.issubdtype(before, np.floating):
+                after = np.float32
+            elif np.issubdtype(before, np.uint8):
+                after = np.uint8
+            elif np.issubdtype(before, np.integer):
+                after = np.int32
+            befores[key] = before
+            afters[key] = after
+            results[key] = elements.Space(after, space.shape, space.low, space.high)
+        return results, befores, afters
 
 
 class CheckSpaces(Wrapper):
+    """Represent check spaces."""
 
-  def __init__(self, env):
-    assert not (env.obs_space.keys() & env.act_space.keys()), (
-        env.obs_space.keys(), env.act_space.keys())
-    super().__init__(env)
+    def __init__(self, env: Any) -> None:
+        """Initialize the check spaces.
 
-  def step(self, action):
-    for key, value in action.items():
-      self._check(value, self.env.act_space[key], key)
-    obs = self.env.step(action)
-    for key, value in obs.items():
-      self._check(value, self.env.obs_space[key], key)
-    return obs
+        Args:
+            env: Environment value.
+        """
+        assert not (env.obs_space.keys() & env.act_space.keys()), (
+            env.obs_space.keys(),
+            env.act_space.keys(),
+        )
+        super().__init__(env)
 
-  def _check(self, value, space, key):
-    if not isinstance(value, (
-        np.ndarray, np.generic, list, tuple, int, float, bool)):
-      raise TypeError(f'Invalid type {type(value)} for key {key}.')
-    if value in space:
-      return
-    dtype = np.array(value).dtype
-    shape = np.array(value).shape
-    lowest, highest = np.min(value), np.max(value)
-    raise ValueError(
-        f"Value for '{key}' with dtype {dtype}, shape {shape}, "
-        f"lowest {lowest}, highest {highest} is not in {space}.")
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        for key, value in action.items():
+            self._check(value, self.env.act_space[key], key)
+        obs = self.env.step(action)
+        for key, value in obs.items():
+            self._check(value, self.env.obs_space[key], key)
+        return obs
+
+    def _check(self, value: Any, space: Any, key: Any) -> None:
+        if not isinstance(
+            value, (np.ndarray, np.generic, list, tuple, int, float, bool)
+        ):
+            raise TypeError(f"Invalid type {type(value)} for key {key}.")
+        if value in space:
+            return
+        dtype = np.array(value).dtype
+        shape = np.array(value).shape
+        lowest, highest = np.min(value), np.max(value)
+        raise ValueError(
+            f"Value for '{key}' with dtype {dtype}, shape {shape}, "
+            f"lowest {lowest}, highest {highest} is not in {space}."
+        )
 
 
 class DiscretizeAction(Wrapper):
+    """Represent discretize action."""
 
-  def __init__(self, env, key='action', bins=5):
-    super().__init__(env)
-    self._dims = np.squeeze(env.act_space[key].shape, 0).item()
-    self._values = np.linspace(-1, 1, bins)
-    self._key = key
+    def __init__(self, env: Any, key: str = "action", bins: int = 5) -> None:
+        """Initialize the discretize action.
 
-  @functools.cached_property
-  def act_space(self):
-    space = elements.Space(np.int32, self._dims, 0, len(self._values))
-    return {**self.env.act_space, self._key: space}
+        Args:
+            env: Environment value.
+            key: Key identifying the requested value.
+            bins: Bins value.
+        """
+        super().__init__(env)
+        self._dims = np.squeeze(env.act_space[key].shape, 0).item()
+        self._values = np.linspace(-1, 1, bins)
+        self._key = key
 
-  def step(self, action):
-    continuous = np.take(self._values, action[self._key])
-    return self.env.step({**action, self._key: continuous})
+    @functools.cached_property
+    def act_space(self) -> dict[Any, Any]:
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
+        space = elements.Space(np.int32, self._dims, 0, len(self._values))
+        return {**self.env.act_space, self._key: space}
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        continuous = np.take(self._values, action[self._key])
+        return self.env.step({**action, self._key: continuous})
 
 
 class ResizeImage(Wrapper):
+    """Represent resize image."""
 
-  def __init__(self, env, size=(64, 64)):
-    super().__init__(env)
-    self._size = size
-    self._keys = [
-        k for k, v in env.obs_space.items()
-        if len(v.shape) > 1 and v.shape[:2] != size]
-    print(f'Resizing keys {",".join(self._keys)} to {self._size}.')
-    if self._keys:
-      from PIL import Image
-      self._Image = Image
+    def __init__(self, env: Any, size: tuple[Any, ...] = (64, 64)) -> None:
+        """Initialize the resize image.
 
-  @functools.cached_property
-  def obs_space(self):
-    spaces = self.env.obs_space
-    for key in self._keys:
-      shape = self._size + spaces[key].shape[2:]
-      spaces[key] = elements.Space(np.uint8, shape)
-    return spaces
+        Args:
+            env: Environment value.
+            size: Requested number of elements.
+        """
+        super().__init__(env)
+        self._size = size
+        self._keys = [
+            k
+            for k, v in env.obs_space.items()
+            if len(v.shape) > 1 and v.shape[:2] != size
+        ]
+        print(f'Resizing keys {",".join(self._keys)} to {self._size}.')
+        if self._keys:
+            from PIL import Image
 
-  def step(self, action):
-    obs = self.env.step(action)
-    for key in self._keys:
-      obs[key] = self._resize(obs[key])
-    return obs
+            self._Image = Image
 
-  def _resize(self, image):
-    image = self._Image.fromarray(image)
-    image = image.resize(self._size, self._Image.NEAREST)
-    image = np.array(image)
-    return image
+    @functools.cached_property
+    def obs_space(self) -> Any:
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
+        spaces = self.env.obs_space
+        for key in self._keys:
+            shape = self._size + spaces[key].shape[2:]
+            spaces[key] = elements.Space(np.uint8, shape)
+        return spaces
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        obs = self.env.step(action)
+        for key in self._keys:
+            obs[key] = self._resize(obs[key])
+        return obs
+
+    def _resize(self, image: Any) -> Any:
+        image = self._Image.fromarray(image)
+        image = image.resize(
+            self._size,
+            self._Image.NEAREST,  # pyright: ignore[reportAttributeAccessIssue]
+        )
+        image = np.array(image)
+        return image
 
 
 # class RenderImage(Wrapper):
@@ -342,77 +513,146 @@ class ResizeImage(Wrapper):
 
 
 class BackwardReturn(Wrapper):
+    """Represent backward return."""
 
-  def __init__(self, env, horizon):
-    super().__init__(env)
-    self._discount = 1 - 1 / horizon
-    self._bwreturn = 0.0
+    def __init__(self, env: Any, horizon: Any) -> None:
+        """Initialize the backward return.
 
-  @functools.cached_property
-  def obs_space(self):
-    return {
-        **self.env.obs_space,
-        'bwreturn': elements.Space(np.float32),
-    }
+        Args:
+            env: Environment value.
+            horizon: Horizon value.
+        """
+        super().__init__(env)
+        self._discount = 1 - 1 / horizon
+        self._bwreturn = 0.0
 
-  def step(self, action):
-    obs = self.env.step(action)
-    self._bwreturn *= (1 - obs['is_first']) * self._discount
-    self._bwreturn += obs['reward']
-    obs['bwreturn'] = np.float32(self._bwreturn)
-    return obs
+    @functools.cached_property
+    def obs_space(self) -> dict[Any, Any]:
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
+        return {
+            **self.env.obs_space,
+            "bwreturn": elements.Space(np.float32),
+        }
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        obs = self.env.step(action)
+        self._bwreturn *= (1 - obs["is_first"]) * self._discount
+        self._bwreturn += obs["reward"]
+        obs["bwreturn"] = np.float32(self._bwreturn)
+        return obs
 
 
 class AddObs(Wrapper):
+    """Represent add observation."""
 
-  def __init__(self, env, key, value, space):
-    super().__init__(env)
-    self._key = key
-    self._value = value
-    self._space = space
+    def __init__(self, env: Any, key: Any, value: Any, space: Any) -> None:
+        """Initialize the add observation.
 
-  @functools.cached_property
-  def obs_space(self):
-    return {
-        **self.env.obs_space,
-        self._key: self._space,
-    }
+        Args:
+            env: Environment value.
+            key: Key identifying the requested value.
+            value: Value to process.
+            space: Space value.
+        """
+        super().__init__(env)
+        self._key = key
+        self._value = value
+        self._space = space
 
-  def step(self, action):
-    obs = self.env.step(action)
-    obs[self._key] = self._value
-    return obs
+    @functools.cached_property
+    def obs_space(self) -> dict[Any, Any]:
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
+        return {
+            **self.env.obs_space,
+            self._key: self._space,
+        }
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        obs = self.env.step(action)
+        obs[self._key] = self._value
+        return obs
 
 
 class RestartOnException(Wrapper):
+    """Represent restart on exception."""
 
-  def __init__(
-      self, ctor, exceptions=(Exception,), window=300, maxfails=2, wait=20):
-    if not isinstance(exceptions, (tuple, list)):
-        exceptions = [exceptions]
-    self._ctor = ctor
-    self._exceptions = tuple(exceptions)
-    self._window = window
-    self._maxfails = maxfails
-    self._wait = wait
-    self._last = time.time()
-    self._fails = 0
-    super().__init__(self._ctor())
+    def __init__(
+        self,
+        ctor: Any,
+        exceptions: tuple[Any, ...] = (Exception,),
+        window: int = 300,
+        maxfails: int = 2,
+        wait: int = 20,
+    ) -> None:
+        """Initialize the restart on exception.
 
-  def step(self, action):
-    try:
-      return self.env.step(action)
-    except self._exceptions as e:
-      if time.time() > self._last + self._window:
+        Args:
+            ctor: Ctor value.
+            exceptions: Exceptions value.
+            window: Window value.
+            maxfails: Maxfails value.
+            wait: Wait value.
+        """
+        if not isinstance(exceptions, (tuple, list)):
+            exceptions = [exceptions]
+        self._ctor = ctor
+        self._exceptions = tuple(exceptions)
+        self._window = window
+        self._maxfails = maxfails
+        self._wait = wait
         self._last = time.time()
-        self._fails = 1
-      else:
-        self._fails += 1
-      if self._fails > self._maxfails:
-        raise RuntimeError('The env crashed too many times.')
-      message = f'Restarting env after crash with {type(e).__name__}: {e}'
-      print(message, flush=True)
-      time.sleep(self._wait)
-      self.env = self._ctor()
-      action['reset'] = np.ones_like(action['reset'])
-      return self.env.step(action)
+        self._fails = 0
+        super().__init__(self._ctor())
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+
+        Raises:
+            RuntimeError: If the operation cannot be completed.
+        """
+        try:
+            return self.env.step(action)
+        except self._exceptions as e:
+            if time.time() > self._last + self._window:
+                self._last = time.time()
+                self._fails = 1
+            else:
+                self._fails += 1
+            if self._fails > self._maxfails:
+                raise RuntimeError("The env crashed too many times.")
+            message = f"Restarting env after crash with {type(e).__name__}: {e}"
+            print(message, flush=True)
+            time.sleep(self._wait)
+            self.env = self._ctor()
+            action["reset"] = np.ones_like(action["reset"])
+            return self.env.step(action)

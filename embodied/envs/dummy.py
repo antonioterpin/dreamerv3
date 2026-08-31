@@ -1,59 +1,99 @@
+"""Provide dummy functionality."""
+
+from __future__ import annotations
+from typing import Any
+
+
 import elements
 import embodied
 import numpy as np
 
 
 class Dummy(embodied.Env):
+    """Represent dummy."""
 
-  def __init__(self, task, size=(64, 64), length=100):
-    del task
-    self.size = size
-    self.length = length
-    self.count = 0
-    self.done = False
+    def __init__(
+        self, task: Any, size: tuple[Any, ...] = (64, 64), length: int = 100
+    ) -> None:
+        """Initialize the dummy.
 
-  @property
-  def obs_space(self):
-    return {
-        'image': elements.Space(np.uint8, self.size + (3,)),
-        'vector': elements.Space(np.float32, (7,)),
-        'token': elements.Space(np.int32, (), 0, 256),
-        'count': elements.Space(np.float32, (), 0, self.length),
-        'float2d': elements.Space(np.float32, (4, 5)),
-        'int2d': elements.Space(np.int32, (2, 3), 0, 4),
-        'reward': elements.Space(np.float32),
-        'is_first': elements.Space(bool),
-        'is_last': elements.Space(bool),
-        'is_terminal': elements.Space(bool),
-    }
+        Args:
+            task: Task value.
+            size: Requested number of elements.
+            length: Length value.
+        """
+        del task
+        self.size = size
+        self.length = length
+        self.count = 0
+        self.done = False
 
-  @property
-  def act_space(self):
-    return {
-        'reset': elements.Space(bool),
-        'act_disc': elements.Space(np.int32, (), 0, 5),
-        'act_cont': elements.Space(np.float32, (6,)),
-    }
+    @property
+    def obs_space(self) -> dict[Any, Any]:
+        """Handle observation space.
 
-  def step(self, action):
-    if action.pop('reset') or self.done:
-      self.count = 0
-      self.done = False
-      return self._obs(0, is_first=True)
-    self.count += 1
-    self.done = (self.count >= self.length)
-    return self._obs(1, is_last=self.done, is_terminal=self.done)
+        Returns:
+            Result of the operation.
+        """
+        return {
+            "image": elements.Space(np.uint8, self.size + (3,)),
+            "vector": elements.Space(np.float32, (7,)),
+            "token": elements.Space(np.int32, (), 0, 256),
+            "count": elements.Space(np.float32, (), 0, self.length),
+            "float2d": elements.Space(np.float32, (4, 5)),
+            "int2d": elements.Space(np.int32, (2, 3), 0, 4),
+            "reward": elements.Space(np.float32),
+            "is_first": elements.Space(bool),
+            "is_last": elements.Space(bool),
+            "is_terminal": elements.Space(bool),
+        }
 
-  def _obs(self, reward, is_first=False, is_last=False, is_terminal=False):
-    return dict(
-        image=np.full(self.size + (3,), 255, np.uint8),
-        vector=np.zeros(7, np.float32),
-        token=np.zeros((), np.int32),
-        count=np.float32(self.count),
-        float2d=np.ones((4, 5), np.float32),
-        int2d=np.ones((2, 3), np.int32),
-        reward=np.float32(reward),
-        is_first=is_first,
-        is_last=is_last,
-        is_terminal=is_terminal,
-    )
+    @property
+    def act_space(self) -> dict[Any, Any]:
+        """Handle act space.
+
+        Returns:
+            Result of the operation.
+        """
+        return {
+            "reset": elements.Space(bool),
+            "act_disc": elements.Space(np.int32, (), 0, 5),
+            "act_cont": elements.Space(np.float32, (6,)),
+        }
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        if action.pop("reset") or self.done:
+            self.count = 0
+            self.done = False
+            return self._obs(0, is_first=True)
+        self.count += 1
+        self.done = self.count >= self.length
+        return self._obs(1, is_last=self.done, is_terminal=self.done)
+
+    def _obs(
+        self,
+        reward: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
+        return dict(
+            image=np.full(self.size + (3,), 255, np.uint8),
+            vector=np.zeros(7, np.float32),
+            token=np.zeros((), np.int32),
+            count=np.float32(self.count),
+            float2d=np.ones((4, 5), np.float32),
+            int2d=np.ones((2, 3), np.int32),
+            reward=np.float32(reward),
+            is_first=is_first,
+            is_last=is_last,
+            is_terminal=is_terminal,
+        )

@@ -1,73 +1,196 @@
+"""Provide base functionality."""
+
+from __future__ import annotations
+from collections.abc import Iterator
+from typing import Any
+
+
 class Agent:
+    """Represent agent."""
 
-  def __init__(self, obs_space, act_space, config):
-    pass
+    def __init__(self, obs_space: Any, act_space: Any, config: Any) -> None:
+        """Initialize the agent.
 
-  def init_train(self, batch_size):
-    raise NotImplementedError('init_train(batch_size) -> carry')
+        Args:
+            obs_space: Observation space value.
+            act_space: Act space value.
+            config: Runtime configuration.
+        """
+        pass
 
-  def init_report(self, batch_size):
-    raise NotImplementedError('init_report(batch_size) -> carry')
+    def init_train(self, batch_size: Any) -> Any:
+        """Handle init train.
 
-  def init_policy(self, batch_size):
-    raise NotImplementedError('init_policy(batch_size) -> carry')
+        Args:
+            batch_size: Batch size value.
 
-  def train(self, carry, data):
-    raise NotImplementedError('train(carry, data) -> carry, out, metrics')
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("init_train(batch_size) -> carry")
 
-  def report(self, carry, data):
-    raise NotImplementedError('report(carry, data) -> carry, metrics')
+    def init_report(self, batch_size: Any) -> Any:
+        """Handle init report.
 
-  def policy(self, carry, obs, mode):
-    raise NotImplementedError('policy(carry, obs, mode) -> carry, act, out')
+        Args:
+            batch_size: Batch size value.
 
-  def stream(self, st):
-    raise NotImplementedError('stream(st) -> st')
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("init_report(batch_size) -> carry")
 
-  def save(self):
-    raise NotImplementedError('save() -> data')
+    def init_policy(self, batch_size: Any) -> Any:
+        """Handle init policy.
 
-  def load(self, data):
-    raise NotImplementedError('load(data) -> None')
+        Args:
+            batch_size: Batch size value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("init_policy(batch_size) -> carry")
+
+    def train(self, carry: Any, data: Any) -> Any:
+        """Train state.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("train(carry, data) -> carry, out, metrics")
+
+    def report(self, carry: Any, data: Any) -> Any:
+        """Handle report.
+
+        Args:
+            carry: Carry value.
+            data: Data to process.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("report(carry, data) -> carry, metrics")
+
+    def policy(self, carry: Any, obs: Any, mode: Any) -> Any:
+        """Handle policy.
+
+        Args:
+            carry: Carry value.
+            obs: Observation value.
+            mode: Mode value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("policy(carry, obs, mode) -> carry, act, out")
+
+    def stream(self, st: Any) -> Any:
+        """Handle stream.
+
+        Args:
+            st: St value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("stream(st) -> st")
+
+    def save(self) -> Any:
+        """Save state.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("save() -> data")
+
+    def load(self, data: Any) -> Any:
+        """Load state.
+
+        Args:
+            data: Data to process.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("load(data) -> None")
 
 
 class Env:
+    """Represent environment."""
 
-  def __repr__(self):
-    return (
-        f'{self.__class__.__name__}('
-        f'obs_space={self.obs_space}, '
-        f'act_space={self.act_space})')
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"obs_space={self.obs_space}, "
+            f"act_space={self.act_space})"
+        )
 
-  @property
-  def obs_space(self):
-    # The observation space must contain the keys is_first, is_last, and
-    # is_terminal. Commonly, it also contains the keys reward and image. By
-    # convention, keys starting with 'log/' are not consumed by the agent.
-    raise NotImplementedError('Returns: dict of spaces')
+    @property
+    def obs_space(self) -> Any:
+        # The observation space must contain the keys is_first, is_last, and
+        # is_terminal. Commonly, it also contains the keys reward and image. By
+        # convention, keys starting with 'log/' are not consumed by the agent.
+        """Handle observation space.
 
-  @property
-  def act_space(self):
-    # The action space must contain the reset key as well as any actions.
-    raise NotImplementedError('Returns: dict of spaces')
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("Returns: dict of spaces")
 
-  def step(self, action):
-    raise NotImplementedError('Returns: dict')
+    @property
+    def act_space(self) -> Any:
+        # The action space must contain the reset key as well as any actions.
+        """Handle act space.
 
-  def close(self):
-    pass
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("Returns: dict of spaces")
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError("Returns: dict")
+
+    def close(self) -> Any:
+        """Close state."""
+        pass
 
 
 class Stream:
+    """Represent stream."""
 
-  def __iter__(self):
-    return self
+    def __iter__(self) -> Iterator[Any]:
+        return self
 
-  def __next__(self):
-    raise NotImplementedError
+    def __next__(self) -> Any:
+        raise NotImplementedError
 
-  def save(self):
-    raise NotImplementedError
+    def save(self) -> Any:
+        """Save state.
 
-  def load(self, state):
-    raise NotImplementedError
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError
+
+    def load(self, state: Any) -> None:
+        """Load state.
+
+        Args:
+            state: State value.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
+        raise NotImplementedError

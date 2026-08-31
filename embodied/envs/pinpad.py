@@ -1,3 +1,9 @@
+"""Provide pinpad functionality."""
+
+from __future__ import annotations
+from typing import Any
+
+
 import collections
 
 import elements
@@ -6,120 +12,160 @@ import numpy as np
 
 
 class PinPad(embodied.Env):
+    """Represent pin pad."""
 
-  COLORS = {
-      '1': (255,   0,   0),
-      '2': (  0, 255,   0),
-      '3': (  0,   0, 255),
-      '4': (255, 255,   0),
-      '5': (255,   0, 255),
-      '6': (  0, 255, 255),
-      '7': (128,   0, 128),
-      '8': (  0, 128, 128),
-  }
-
-  def __init__(self, task, length=10000):
-    assert length > 0
-    layout = {
-        'three': LAYOUT_THREE,
-        'four': LAYOUT_FOUR,
-        'five': LAYOUT_FIVE,
-        'six': LAYOUT_SIX,
-        'seven': LAYOUT_SEVEN,
-        'eight': LAYOUT_EIGHT,
-    }[task]
-    self.layout = np.array([list(line) for line in layout.split('\n')]).T
-    assert self.layout.shape == (16, 14), self.layout.shape
-    self.length = length
-    self.random = np.random.RandomState()
-    self.pads = set(self.layout.flatten().tolist()) - set('* #\n')
-    self.target = tuple(sorted(self.pads))
-    self.spawns = []
-    for (x, y), char in np.ndenumerate(self.layout):
-      if char != '#':
-        self.spawns.append((x, y))
-    print(f'Created PinPad env with sequence: {"->".join(self.target)}')
-    self.sequence = collections.deque(maxlen=len(self.target))
-    self.player = None
-    self.steps = None
-    self.done = None
-    self.countdown = None
-
-  @property
-  def act_space(self):
-    return {
-        'action': elements.Space(np.int32, (), 0, 5),
-        'reset': elements.Space(bool),
+    COLORS = {
+        "1": (255, 0, 0),
+        "2": (0, 255, 0),
+        "3": (0, 0, 255),
+        "4": (255, 255, 0),
+        "5": (255, 0, 255),
+        "6": (0, 255, 255),
+        "7": (128, 0, 128),
+        "8": (0, 128, 128),
     }
 
-  @property
-  def obs_space(self):
-    return {
-        'image': elements.Space(np.uint8, (64, 64, 3)),
-        'reward': elements.Space(np.float32),
-        'is_first': elements.Space(bool),
-        'is_last': elements.Space(bool),
-        'is_terminal': elements.Space(bool),
-    }
+    def __init__(self, task: str, length: int = 10000) -> None:
+        """Initialize the pin pad.
 
-  def step(self, action):
-    if self.done or action['reset']:
-      self.player = self.spawns[self.random.randint(len(self.spawns))]
-      self.sequence.clear()
-      self.steps = 0
-      self.done = False
-      self.countdown = 0
-      return self._obs(reward=0.0, is_first=True)
-    if self.countdown:
-      self.countdown -= 1
-      if self.countdown == 0:
-        self.player = self.spawns[self.random.randint(len(self.spawns))]
-        self.sequence.clear()
-    reward = 0.0
-    move = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)][action['action']]
-    x = np.clip(self.player[0] + move[0], 0, 15)
-    y = np.clip(self.player[1] + move[1], 0, 13)
-    tile = self.layout[x][y]
-    if tile != '#':
-      self.player = (x, y)
-    if tile in self.pads:
-      if not self.sequence or self.sequence[-1] != tile:
-        self.sequence.append(tile)
-    if tuple(self.sequence) == self.target and not self.countdown:
-      reward += 10.0
-      self.countdown = 10
-    self.steps += 1
-    self.done = self.done or (self.steps >= self.length)
-    return self._obs(reward=reward, is_last=self.done)
+        Args:
+            task: Task value.
+            length: Length value.
+        """
+        assert length > 0, "Expected length to be greater than 0."
+        layout = {
+            "three": LAYOUT_THREE,
+            "four": LAYOUT_FOUR,
+            "five": LAYOUT_FIVE,
+            "six": LAYOUT_SIX,
+            "seven": LAYOUT_SEVEN,
+            "eight": LAYOUT_EIGHT,
+        }[task]
+        self.layout = np.array([list(line) for line in layout.split("\n")]).T
+        assert self.layout.shape == (16, 14), self.layout.shape
+        self.length = length
+        self.random = np.random.RandomState()
+        self.pads = set(self.layout.flatten().tolist()) - set("* #\n")
+        self.target = tuple(sorted(self.pads))
+        self.spawns = []
+        for (x, y), char in np.ndenumerate(self.layout):
+            if char != "#":
+                self.spawns.append((x, y))
+        print(f'Created PinPad env with sequence: {"->".join(self.target)}')
+        self.sequence = collections.deque(maxlen=len(self.target))
+        self.player: tuple[int, int] | None = None
+        self.steps: int | None = None
+        self.done: bool | None = None
+        self.countdown: int | None = None
 
-  def _obs(self, reward, is_first=False, is_last=False, is_terminal=False):
-    return dict(
-        image=self._render(),
-        reward=np.float32(reward),
-        is_first=is_first,
-        is_last=is_last,
-        is_terminal=is_terminal,
-    )
+    @property
+    def act_space(self) -> dict[Any, Any]:
+        """Handle act space.
 
-  def _render(self):
-    grid = np.zeros((16, 16, 3), np.uint8) + 255
-    white = np.array([255, 255, 255])
-    if self.countdown:
-      grid[:] = (223, 255, 223)
-    current = self.layout[self.player[0]][self.player[1]]
-    for (x, y), char in np.ndenumerate(self.layout):
-      if char == '#':
-        grid[x, y] = (192, 192, 192)
-      elif char in self.pads:
-        color = np.array(self.COLORS[char])
-        color = color if char == current else (10 * color + 90 * white) / 100
-        grid[x, y] = color
-    grid[self.player] = (0, 0, 0)
-    grid[:, -2:] = (192, 192, 192)
-    for i, char in enumerate(self.sequence):
-      grid[2 * i + 1, -2] = self.COLORS[char]
-    image = np.repeat(np.repeat(grid, 4, 0), 4, 1)
-    return image.transpose((1, 0, 2))
+        Returns:
+            Result of the operation.
+        """
+        return {
+            "action": elements.Space(np.int32, (), 0, 5),
+            "reset": elements.Space(bool),
+        }
+
+    @property
+    def obs_space(self) -> dict[Any, Any]:
+        """Handle observation space.
+
+        Returns:
+            Result of the operation.
+        """
+        return {
+            "image": elements.Space(np.uint8, (64, 64, 3)),
+            "reward": elements.Space(np.float32),
+            "is_first": elements.Space(bool),
+            "is_last": elements.Space(bool),
+            "is_terminal": elements.Space(bool),
+        }
+
+    def step(self, action: Any) -> Any:
+        """Advance state.
+
+        Args:
+            action: Action value.
+
+        Returns:
+            Result of the operation.
+        """
+        if self.done or action["reset"]:
+            self.player = self.spawns[self.random.randint(len(self.spawns))]
+            self.sequence.clear()
+            self.steps = 0
+            self.done = False
+            self.countdown = 0
+            return self._obs(reward=0.0, is_first=True)
+        if self.countdown:
+            self.countdown -= 1
+            if self.countdown == 0:
+                self.player = self.spawns[self.random.randint(len(self.spawns))]
+                self.sequence.clear()
+        assert (
+            self.player is not None
+        ), "Expected player position to be initialized after environment reset."
+        assert (
+            self.steps is not None
+        ), "Expected step counter to be initialized after environment reset."
+        reward = 0.0
+        move = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)][action["action"]]
+        x = np.clip(self.player[0] + move[0], 0, 15)
+        y = np.clip(self.player[1] + move[1], 0, 13)
+        tile = self.layout[x][y]
+        if tile != "#":
+            self.player = (x, y)
+        if tile in self.pads:
+            if not self.sequence or self.sequence[-1] != tile:
+                self.sequence.append(tile)
+        if tuple(self.sequence) == self.target and not self.countdown:
+            reward += 10.0
+            self.countdown = 10
+        self.steps += 1
+        self.done = self.done or (self.steps >= self.length)
+        return self._obs(reward=reward, is_last=self.done)
+
+    def _obs(
+        self,
+        reward: Any,
+        is_first: bool = False,
+        is_last: bool = False,
+        is_terminal: bool = False,
+    ) -> Any:
+        return dict(
+            image=self._render(),
+            reward=np.float32(reward),
+            is_first=is_first,
+            is_last=is_last,
+            is_terminal=is_terminal,
+        )
+
+    def _render(self) -> Any:
+        assert (
+            self.player is not None
+        ), "Expected player position to be initialized before rendering."
+        grid = np.zeros((16, 16, 3), np.uint8) + 255
+        white = np.array([255, 255, 255])
+        if self.countdown:
+            grid[:] = (223, 255, 223)
+        current = self.layout[self.player[0]][self.player[1]]
+        for (x, y), char in np.ndenumerate(self.layout):
+            if char == "#":
+                grid[x, y] = (192, 192, 192)
+            elif char in self.pads:
+                color = np.array(self.COLORS[char])
+                color = color if char == current else (10 * color + 90 * white) / 100
+                grid[x, y] = color
+        grid[self.player] = (0, 0, 0)
+        grid[:, -2:] = (192, 192, 192)
+        for i, char in enumerate(self.sequence):
+            grid[2 * i + 1, -2] = self.COLORS[char]
+        image = np.repeat(np.repeat(grid, 4, 0), 4, 1)
+        return image.transpose((1, 0, 2))
 
 
 LAYOUT_THREE = """
@@ -137,7 +183,7 @@ LAYOUT_THREE = """
 #     2222     #
 #     2222     #
 ################
-""".strip('\n')
+""".strip("\n")
 
 LAYOUT_FOUR = """
 ################
@@ -154,7 +200,7 @@ LAYOUT_FOUR = """
 #3333      2222#
 #3333      2222#
 ################
-""".strip('\n')
+""".strip("\n")
 
 LAYOUT_FIVE = """
 ################
@@ -171,7 +217,7 @@ LAYOUT_FIVE = """
 #333       2222#
 #          2222#
 ################
-""".strip('\n')
+""".strip("\n")
 
 LAYOUT_SIX = """
 ################
@@ -188,7 +234,7 @@ LAYOUT_SIX = """
 #444        222#
 #444        222#
 ################
-""".strip('\n')
+""".strip("\n")
 
 LAYOUT_SEVEN = """
 ################
@@ -205,7 +251,7 @@ LAYOUT_SEVEN = """
 #666  7777  222#
 #666  7777  222#
 ################
-""".strip('\n')
+""".strip("\n")
 
 LAYOUT_EIGHT = """
 ################
@@ -222,4 +268,4 @@ LAYOUT_EIGHT = """
 #666  7777  222#
 #666  7777  222#
 ################
-""".strip('\n')
+""".strip("\n")
