@@ -295,6 +295,24 @@ class RSSM(nj.Module):
         return out
 
 
+def _cnn_depths(obs_space, depth, mults, outer):
+    # Preserve configured stages; extend float spatial CNNs that exceed
+    # the existing 16-pixel bottleneck limit.
+    mults = tuple(mults)
+    resolutions = [
+        max(s.shape[:2])
+        for s in obs_space.values()
+        if len(s.shape) == 3 and np.issubdtype(s.dtype, np.floating)
+    ]
+    if resolutions:
+        resolution = max(resolutions)
+        factor = 2 ** (len(mults) - int(bool(outer)))
+        while resolution > 16 * factor:
+            mults += (mults[-1],)
+            factor *= 2
+    return tuple(depth * mult for mult in mults)
+
+
 class Encoder(nj.Module):
     """Represent encoder."""
 
@@ -320,7 +338,7 @@ class Encoder(nj.Module):
         self.obs_space = obs_space
         self.veckeys = [k for k, s in obs_space.items() if len(s.shape) <= 2]
         self.imgkeys = [k for k, s in obs_space.items() if len(s.shape) == 3]
-        self.depths = tuple(self.depth * mult for mult in self.mults)
+        self.depths = _cnn_depths(obs_space, self.depth, self.mults, self.outer)
         self.kw = kw
 
     @property
@@ -388,18 +406,17 @@ class Encoder(nj.Module):
         if self.imgkeys:
             K = self.kernel
             imgs = [obs[k] for k in sorted(self.imgkeys)]
-            # Images are either uint8 in [0, 255] or floating point already in
-            # [0, 1]; both are mapped to [-0.5, 0.5] here and the decoder's sigmoid
-            # output is compared against the same [0, 1] target.
             assert all(
                 x.dtype == jnp.uint8 or jnp.issubdtype(x.dtype, jnp.floating)
                 for x in imgs
             ), [x.dtype for x in imgs]
             imgs = [
-                nn.cast(x, force=True) / (255 if x.dtype == jnp.uint8 else 1)
+                nn.cast(nn.symlog(x) if self.symlog else x, force=True)
+                if jnp.issubdtype(x.dtype, jnp.floating)
+                else nn.cast(x, force=True) / 255 - 0.5
                 for x in imgs
             ]
-            x = jnp.concatenate(imgs, -1) - 0.5
+            x = jnp.concatenate(imgs, -1)
             x = x.reshape((-1, *x.shape[bdims:]))
             for i, depth in enumerate(self.depths):
                 if self.outer and i == 0:
@@ -449,7 +466,7 @@ class Decoder(nj.Module):
         self.obs_space = obs_space
         self.veckeys = [k for k, s in obs_space.items() if len(s.shape) <= 2]
         self.imgkeys = [k for k, s in obs_space.items() if len(s.shape) == 3]
-        self.depths = tuple(self.depth * mult for mult in self.mults)
+        self.depths = _cnn_depths(obs_space, self.depth, self.mults, self.outer)
         self.imgdep = sum(obs_space[k].shape[-1] for k in self.imgkeys)
         self.imgres = self.imgkeys and obs_space[self.imgkeys[0]].shape[:-1]
         self.kw = kw
@@ -563,11 +580,14 @@ class Decoder(nj.Module):
                 x = x.repeat(2, -2).repeat(2, -3)
                 kw = dict(**self.kw, outscale=self.outscale)
                 x = self.sub("imgout", nn.Conv2D, self.imgdep, K, **kw)(x)
-            x = jax.nn.sigmoid(x)
             x = x.reshape((*bshape, *x.shape[1:]))
             split = np.cumsum([self.obs_space[k].shape[-1] for k in self.imgkeys][:-1])
             for k, out in zip(self.imgkeys, jnp.split(x, split, -1)):
-                out = embodied.jax.outs.MSE(out)
+                if np.issubdtype(self.obs_space[k].dtype, np.floating):
+                    squish = nn.symlog if self.symlog else None
+                    out = embodied.jax.outs.MSE(out, squish)
+                else:
+                    out = embodied.jax.outs.MSE(jax.nn.sigmoid(out))
                 out = embodied.jax.outs.Agg(out, 3, jnp.sum)
                 recons[k] = out
 
